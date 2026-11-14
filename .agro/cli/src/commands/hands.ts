@@ -2,24 +2,20 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HANDS_VERBS, isOneOf } from "../command-table.js";
 import {
-  asRecord,
-  asText,
-  callApi,
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
   present,
-  toNode,
-  toNodeList,
   trimConsoleUrl,
-  waitForRunning,
-  type ApiResult,
   type ConsoleConfig,
   type ConsoleIO,
-  type ConsoleNode,
   type ConsolePollDeps,
 } from "../lib/console-api.js";
+import { createConsoleProvider } from "../lib/hands/console-provider.js";
+import type { Hand, HandProvider } from "../lib/hands/provider.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import * as prompt from "../lib/prompt.js";
+
+export { normalizeHandRef } from "../lib/hands/console-provider.js";
 
 export const BRAIN_HOME = "/home/sandbox";
 export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
@@ -70,10 +66,6 @@ export function resolveBrainConsoleConfig(
   return { ok: true, config: { url: trimConsoleUrl(url), token, source: envToken === undefined ? "file" : "env" } };
 }
 
-export function normalizeHandRef(ref: string): string {
-  return ref.startsWith("#") ? ref.slice(1) : ref;
-}
-
 const SLUG_PART = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export function parseProjectSlug(value: string): ProjectSlug | undefined {
@@ -96,20 +88,16 @@ function brainProjectPath(home: string, slug: ProjectSlug): string {
   return join(home, ".agro", "workspaces", "harness", "projects", slug.owner, slug.repo);
 }
 
-function handRemote(hand: ConsoleNode): string {
-  return `hand-${hand.orgIndex}`;
+function sshOptions(hand: Hand): string[] {
+  return ["-o", "StrictHostKeyChecking=accept-new", "-o", `HostKeyAlias=${hand.hostKeyAlias}`];
 }
 
-function sshOptions(hand: ConsoleNode): string[] {
-  return ["-o", "StrictHostKeyChecking=accept-new", "-o", `HostKeyAlias=${hand.id}`];
-}
-
-function gitEnv(deps: HandsDeps, hand: ConsoleNode): NodeJS.ProcessEnv {
+function gitEnv(deps: HandsDeps, hand: Hand): NodeJS.ProcessEnv {
   return { ...deps.env, GIT_SSH_COMMAND: ["ssh", ...sshOptions(hand)].join(" ") };
 }
 
-function runSsh(deps: HandsDeps, hand: ConsoleNode, sshHost: string, command: string): number {
-  const result = deps.run("ssh", [...sshOptions(hand), "--", `sandbox@${sshHost}`, command], { stdio: "inherit" });
+function runSsh(deps: HandsDeps, hand: Hand, sshDest: string, command: string): number {
+  const result = deps.run("ssh", [...sshOptions(hand), "--", sshDest, command], { stdio: "inherit" });
   return result.status ?? 255;
 }
 
@@ -181,13 +169,17 @@ function hiding(io: HandsIO, token: string): HandsIO {
   return { stdout: (s) => io.stdout(hide(s)), stderr: (s) => io.stderr(hide(s)) };
 }
 
-function failed(io: HandsIO, prefix: string, result: ApiResult & { ok: false }): number {
-  io.stderr(`${prefix}: ${result.message}\n`);
+function failed(io: HandsIO, prefix: string, error: string): number {
+  io.stderr(`${prefix}: ${error}\n`);
   return 1;
 }
 
-function handPath(ref: string): string {
-  return `/api/nodes/${encodeURIComponent(normalizeHandRef(ref))}`;
+function statusReporter(io: HandsIO, prefix: string): (hand: Hand) => void {
+  return (hand) => io.stderr(`${prefix}: hand ${hand.id} ${hand.status}\n`);
+}
+
+function printRunning(io: HandsIO, hand: Hand): void {
+  io.stdout(`index: ${hand.index ?? "-"}\nalias: ${hand.alias ?? "-"}\nssh host: ${hand.sshHost ?? "-"}\n`);
 }
 
 function oneHand(tokens: string[], allowed: string[]): { ok: true; ref: string } | { ok: false; error: string } {
@@ -199,19 +191,19 @@ function oneHand(tokens: string[], allowed: string[]): { ok: true; ref: string }
   return { ok: true, ref: refs[0] };
 }
 
-async function runList(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+async function runList(tokens: string[], io: HandsIO, provider: HandProvider, prefix: string) {
   const extra = tokens.find((token) => token !== "--json");
   if (extra !== undefined) {
     io.stderr(`${prefix}: ${extra.startsWith("-") ? "unknown flag" : "unexpected argument"} "${extra}"\n`);
     return 1;
   }
-  const listed = await callApi(deps, config, "GET", "/api/nodes");
-  if (!listed.ok) return failed(io, prefix, listed);
-  const hands = toNodeList(listed.body);
+  const listed = await provider.list();
+  if (!listed.ok) return failed(io, prefix, listed.error);
+  const hands = listed.value;
   if (tokens.includes("--json")) {
-    const rows = hands.map(({ id, orgIndex, alias, status, spec, sshHost }) => ({
+    const rows = hands.map(({ id, index, alias, status, spec, sshHost }) => ({
       id,
-      index: orgIndex === null ? null : Number(orgIndex),
+      index: index === null ? null : Number(index),
       alias,
       status,
       spec,
@@ -227,7 +219,7 @@ async function runList(tokens: string[], io: HandsIO, deps: HandsDeps, config: C
   const table = [
     ["INDEX", "ALIAS", "STATUS", "SPEC", "SSH HOST"],
     ...hands.map((hand) => [
-      hand.orgIndex === null ? "-" : `#${hand.orgIndex}`,
+      hand.index === null ? "-" : `#${hand.index}`,
       hand.alias ?? "-",
       hand.status,
       hand.spec ?? "-",
@@ -291,24 +283,24 @@ function pushProject(
   io: HandsIO,
   deps: HandsDeps,
   prefix: string,
-  hand: ConsoleNode,
-  sshHost: string,
+  hand: Hand,
+  sshDest: string,
+  remote: string,
   slug: ProjectSlug,
   local: { path: string; branch: string },
 ): number {
   const folder = handProjectPath(slug);
-  const remote = handRemote(hand);
   const prepared = runSsh(
     deps,
     hand,
-    sshHost,
+    sshDest,
     `mkdir -p projects/${slug.owner} && git init -q -b ${shellQuote([local.branch])} ${folder} && git -C ${folder} config receive.denyCurrentBranch updateInstead`,
   );
   if (prepared !== 0) {
-    io.stderr(`${prefix}: preparing ~/${folder} on hand #${hand.orgIndex} failed with status ${prepared}\n`);
+    io.stderr(`${prefix}: preparing ~/${folder} on hand ${hand.label} failed with status ${prepared}\n`);
     return prepared;
   }
-  const added = deps.run("git", ["-C", local.path, "remote", "add", remote, `sandbox@${sshHost}:${folder}`], {
+  const added = deps.run("git", ["-C", local.path, "remote", "add", remote, `${sshDest}:${folder}`], {
     stdio: "capture",
   });
   if (added.status !== 0) {
@@ -327,35 +319,7 @@ function pushProject(
   return 0;
 }
 
-async function awaitHand(
-  io: HandsIO,
-  deps: HandsDeps,
-  config: ConsoleConfig,
-  prefix: string,
-  hand: ConsoleNode,
-  requestedAt: number,
-  fork?: { job: string | null },
-): Promise<ConsoleNode | undefined> {
-  const report = (next: ConsoleNode) => io.stderr(`${prefix}: hand ${next.id} ${next.status}\n`);
-  report(hand);
-  const waited = await waitForRunning(deps, config, hand, requestedAt, report, { pendingOn404: fork !== undefined });
-  if (!waited.ok) {
-    const last = waited.node;
-    if (waited.reason === "request") io.stderr(`${prefix}: hand ${last.id}: ${waited.message}\n`);
-    else if (waited.reason === "timeout" && !waited.appeared) {
-      const job = fork?.job ?? null;
-      io.stderr(`${prefix}: fork ${last.id} never appeared after 15 minutes${job === null ? "" : ` (job ${job})`}\n`);
-    } else if (waited.reason === "timeout") {
-      io.stderr(`${prefix}: hand ${last.id} is not running after 15 minutes — last status ${last.status}\n`);
-    } else io.stderr(`${prefix}: hand ${last.id} failed — last status ${last.status}\n`);
-    return undefined;
-  }
-  const { orgIndex, alias, sshHost } = waited.node;
-  io.stdout(`index: ${orgIndex ?? "-"}\nalias: ${alias ?? "-"}\nssh host: ${sshHost ?? "-"}\n`);
-  return waited.node;
-}
-
-async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
   const parsed = parseCreate(tokens);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -376,50 +340,38 @@ async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config:
     }
     local = { path: found.path, branch };
   }
-  const requestedAt = deps.now();
-  const created = await callApi(deps, config, "POST", "/api/nodes", {
-    profile: "sandbox",
-    ...(name === undefined ? {} : { name }),
-    ...(spec === undefined ? {} : { spec }),
-  });
-  if (!created.ok) return failed(io, prefix, created);
-  const hand = toNode(created.body);
-  if (hand === undefined) {
-    io.stderr(`${prefix}: the console response has no node id\n`);
-    return 1;
-  }
-  const running = await awaitHand(io, deps, config, prefix, hand, requestedAt);
-  if (running === undefined) return 1;
-  const { orgIndex, sshHost } = running;
+  const created = await provider.create({ name, spec }, statusReporter(io, prefix));
+  if (!created.ok) return failed(io, prefix, created.error);
+  const running = created.value;
+  printRunning(io, running);
+  const { sshDest, remoteName } = running;
   const slug = project ?? clone;
   if (slug === undefined) return 0;
-  if (sshHost === null || orgIndex === null) {
+  if (sshDest === null || remoteName === null) {
     io.stderr(`${prefix}: hand ${running.id} has no SSH host or index\n`);
     return 1;
   }
   io.stdout(`project: ~/${handProjectPath(slug)}\n`);
-  if (local !== undefined) return pushProject(io, deps, prefix, running, sshHost, slug, local);
+  if (local !== undefined) return pushProject(io, deps, prefix, running, sshDest, remoteName, slug, local);
   const cloned = runSsh(
     deps,
     running,
-    sshHost,
+    sshDest,
     `mkdir -p projects/${slug.owner} && git clone -q https://github.com/${slug.owner}/${slug.repo}.git ${handProjectPath(slug)}`,
   );
-  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand #${orgIndex} failed with status ${cloned}\n`);
+  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand ${running.label} failed with status ${cloned}\n`);
   return cloned;
 }
 
 async function resolveHand(
-  deps: HandsDeps,
-  config: ConsoleConfig,
+  provider: HandProvider,
   ref: string,
-): Promise<{ ok: true; hand: ConsoleNode; sshHost: string } | { ok: false; error: string }> {
-  const read = await callApi(deps, config, "GET", handPath(ref));
-  if (!read.ok) return { ok: false, error: read.message };
-  const hand = toNode(read.body);
-  if (hand === undefined) return { ok: false, error: "the console response has no node id" };
-  if (hand.sshHost === null) return { ok: false, error: `hand ${ref} has no SSH host (status ${hand.status})` };
-  return { ok: true, hand, sshHost: hand.sshHost };
+): Promise<{ ok: true; hand: Hand; sshDest: string } | { ok: false; error: string }> {
+  const resolved = await provider.resolve(ref);
+  if (!resolved.ok) return resolved;
+  const hand = resolved.value;
+  if (hand.sshDest === null) return { ok: false, error: `hand ${ref} has no SSH host (status ${hand.status})` };
+  return { ok: true, hand, sshDest: hand.sshDest };
 }
 
 function parseHandProject(
@@ -441,7 +393,7 @@ function parseHandProject(
   return { ok: true, ref, project };
 }
 
-async function runExec(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+async function runExec(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
   const split = tokens.indexOf("--");
   const command = split === -1 ? [] : tokens.slice(split + 1);
   const parsed = parseHandProject(split === -1 ? tokens : tokens.slice(0, split));
@@ -457,17 +409,17 @@ async function runExec(tokens: string[], io: HandsIO, deps: HandsDeps, config: C
     io.stderr(`${prefix}: usage: exec <hand> [--project <owner>/<repo>] -- <command...>\n`);
     return 1;
   }
-  const resolved = await resolveHand(deps, config, parsed.ref);
+  const resolved = await resolveHand(provider, parsed.ref);
   if (!resolved.ok) {
     io.stderr(`${prefix}: ${resolved.error}\n`);
     return 1;
   }
   const quoted = shellQuote(command);
   const remote = parsed.project === undefined ? quoted : `cd ${handProjectPath(parsed.project)} && ${quoted}`;
-  return runSsh(deps, resolved.hand, resolved.sshHost, remote);
+  return runSsh(deps, resolved.hand, resolved.sshDest, remote);
 }
 
-async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
   const parsed = parseHandProject(tokens);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -486,16 +438,16 @@ async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, config: 
     io.stderr(`${prefix}: ${found.error}\n`);
     return 1;
   }
-  const resolved = await resolveHand(deps, config, parsed.ref);
+  const resolved = await resolveHand(provider, parsed.ref);
   if (!resolved.ok) {
     io.stderr(`${prefix}: ${resolved.error}\n`);
     return 1;
   }
-  if (resolved.hand.orgIndex === null) {
+  const remote = resolved.hand.remoteName;
+  if (remote === null) {
     io.stderr(`${prefix}: hand ${parsed.ref} has no index\n`);
     return 1;
   }
-  const remote = handRemote(resolved.hand);
   const fetched = deps.run("git", ["-C", found.path, "fetch", remote], {
     stdio: "inherit",
     env: gitEnv(deps, resolved.hand),
@@ -535,39 +487,22 @@ function parseFork(tokens: string[]): { ok: true; args: ForkArgs } | { ok: false
   return { ok: true, args: { ref: refs[0], ...values } };
 }
 
-async function runFork(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+async function runFork(tokens: string[], io: HandsIO, provider: HandProvider, prefix: string) {
   const parsed = parseFork(tokens);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { ref, name } = parsed.args;
-  let spec = parsed.args.spec;
-  if (spec === undefined) {
-    const read = await callApi(deps, config, "GET", handPath(ref));
-    if (!read.ok) return failed(io, prefix, read);
-    spec = toNode(read.body)?.spec ?? undefined;
-    if (spec === undefined) {
-      io.stderr(`${prefix}: hand ${ref} has no spec; pass --spec <spec>\n`);
-      return 1;
-    }
-  }
-  const requestedAt = deps.now();
-  const forked = await callApi(deps, config, "POST", `${handPath(ref)}/fork`, {
-    spec,
-    ...(name === undefined ? {} : { name }),
-  });
-  if (!forked.ok) return failed(io, prefix, forked);
-  const body = asRecord(forked.body);
-  const forkId = asText(body?.forkId);
-  const job = asText(body?.jobId);
-  if (forkId === null) {
+  const { ref, name, spec } = parsed.args;
+  const forked = await provider.fork(ref, { name, spec }, statusReporter(io, prefix));
+  if (!forked.ok) return failed(io, prefix, forked.error);
+  const { hand, job } = forked.value;
+  if (hand === undefined) {
     io.stdout(`fork of ${ref} requested${job === null ? "" : ` (job ${job})`}; run agro hands list to find the fork\n`);
     return 0;
   }
-  const fork = toNode({ id: forkId, status: "queued" });
-  if (fork === undefined) return 1;
-  return (await awaitHand(io, deps, config, prefix, fork, requestedAt, { job })) === undefined ? 1 : 0;
+  printRunning(io, hand);
+  return 0;
 }
 
 const ACTION_PAST = { pause: "paused", resume: "resumed" } as const;
@@ -576,8 +511,7 @@ async function runAction(
   verb: keyof typeof ACTION_PAST,
   tokens: string[],
   io: HandsIO,
-  deps: HandsDeps,
-  config: ConsoleConfig,
+  provider: HandProvider,
   prefix: string,
 ) {
   const parsed = oneHand(tokens, []);
@@ -585,13 +519,13 @@ async function runAction(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const result = await callApi(deps, config, "POST", `${handPath(parsed.ref)}/${verb}`);
-  if (!result.ok) return failed(io, prefix, result);
+  const result = await provider[verb](parsed.ref);
+  if (!result.ok) return failed(io, prefix, result.error);
   io.stdout(`${ACTION_PAST[verb]} ${parsed.ref}\n`);
   return 0;
 }
 
-async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
   const parsed = oneHand(tokens, ["--yes", "-y"]);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -603,8 +537,8 @@ async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, config
     io.stderr(`${prefix}: aborted — hand ${ref} unchanged\n`);
     return 1;
   }
-  const deleted = await callApi(deps, config, "DELETE", handPath(ref));
-  if (!deleted.ok) return failed(io, prefix, deleted);
+  const deleted = await provider.destroy(ref);
+  if (!deleted.ok) return failed(io, prefix, deleted.error);
   io.stdout(`destroyed ${ref}\n`);
   return 0;
 }
@@ -637,12 +571,13 @@ export async function runHands(
   }
   const { config } = resolved;
   const safe = hiding(io, config.token);
+  const provider = createConsoleProvider(deps, config);
   const prefix = `${bin} hands ${verb}`;
-  if (verb === "list") return runList(rest, safe, deps, config, prefix);
-  if (verb === "create") return runCreate(rest, safe, deps, config, prefix);
-  if (verb === "destroy") return runDestroy(rest, safe, deps, config, prefix);
-  if (verb === "fork") return runFork(rest, safe, deps, config, prefix);
-  if (verb === "exec") return runExec(rest, safe, deps, config, prefix);
-  if (verb === "fetch") return runFetch(rest, safe, deps, config, prefix);
-  return runAction(verb, rest, safe, deps, config, prefix);
+  if (verb === "list") return runList(rest, safe, provider, prefix);
+  if (verb === "create") return runCreate(rest, safe, deps, provider, prefix);
+  if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);
+  if (verb === "fork") return runFork(rest, safe, provider, prefix);
+  if (verb === "exec") return runExec(rest, safe, deps, provider, prefix);
+  if (verb === "fetch") return runFetch(rest, safe, deps, provider, prefix);
+  return runAction(verb, rest, safe, provider, prefix);
 }
