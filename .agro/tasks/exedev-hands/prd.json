@@ -169,8 +169,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-6, 8 executed: hands-exedev.test.ts pins new --json --name --tag agro-hand with ls wait and fail-closed paths, --project/--clone remote hand-<name>, cp --copy-tags, pause/resume/rm argv, untagged refusal with no write call, brain refusal by hostname label and ssh_dest label, --spec refusal before any ssh call, confirmDestroy yes/no/--yes; hands suites 110/110. Note: the destroy prompt precedes the guard; a refused destroy still asks first (no write occurs). 7 reasoned: handsHelp has Providers, Console hands (n4 fallback), exe.dev hands (tag enrollment), Guards, Projects sections. 9: typecheck exit 0; test:scripts 3395 passed, 9 failed = 7 baseline + 2 carried to US-007.",
       "dependsOn": [
         "US-005"
       ],
@@ -179,7 +179,8 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "bcf63dd0"
     },
     {
       "id": "US-007",
