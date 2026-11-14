@@ -43,6 +43,13 @@ These operator requests select this route:
 - "Fork hand sbx-dev-001; its credentials may go to the copy."
 - "Destroy hand sbx-dev-001 — it's task-owned and accepted."
 
+Two owners share this route:
+
+- `agro hands` owns hand selection, SSH transport, and git movement between the brain and the hand.
+- `agro run` on the hand owns application execution: tests, builds, and installs.
+
+A hand request that runs application work names both owners: `agro hands` and `agro run`.
+
 This route uses `agro hands` for project offload.
 The validation driver's `console` adapter instead uses `agro node`.
 Its internal ID stays `console`; do not substitute `agro hands` in that adapter.
@@ -116,6 +123,40 @@ Write a console hand index without `#`; an unquoted `#7` starts a shell comment.
    ```bash
    agro hands fetch <hand> --project <owner>/<repo>
    ```
+
+### Put a project on an existing hand
+
+`agro hands create --project` is the only CLI path that pushes a branch.
+For an existing hand, such as an enrolled exe.dev VM or an existing console hand, do these steps on the brain:
+
+1. Prepare the project folder on the hand:
+
+   ```bash
+   agro hands exec <hand> -- git init -q projects/<owner>/<repo>
+   agro hands exec <hand> -- git -C projects/<owner>/<repo> config receive.denyCurrentBranch updateInstead
+   ```
+
+2. Inspect the brain remote. If an existing remote differs, stop for advisor review; do not overwrite it.
+   If the remote is missing, add it with the hand's SSH destination.
+   For an exe.dev hand, run:
+
+   ```bash
+   git -C <harness-root>/projects/<owner>/<repo> remote add hand-<vm> <vm>.exe.xyz:projects/<owner>/<repo>
+   ```
+
+   For a console hand, use `hand-<index>` and `sandbox@<recorded-ssh-host>:projects/<owner>/<repo>`.
+
+3. Push the current branch. `agro hands fetch` pins the host key alias, but no `agro hands` verb pushes to an existing hand.
+   Pin the alias in `GIT_SSH_COMMAND` yourself.
+   The alias is the VM name for an exe.dev hand and the hand uuid for a console hand:
+
+   ```bash
+   GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=<vm>" git -C <harness-root>/projects/<owner>/<repo> push hand-<vm> HEAD
+   ```
+
+4. Continue with `agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>`, the commit, and `agro hands fetch`.
+
+### Clone on the hand
 
 For a GitHub source, `agro hands create --clone <owner>/<repo>` clones only on the hand.
 Before fetching clone results, the matching brain checkout and brain remote must exist.

@@ -774,6 +774,15 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
 - `agro hands fork <hand>` copies the hand with its credentials. `--name` sets
   the fork name.
 - `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
+- `agro hands` owns hand selection, SSH transport, and git movement. `agro run`
+  on the hand owns application execution: tests, builds, and installs.
+- `create --project` is the only verb that pushes a branch. To put a project on
+  an existing hand, prepare the hand folder with `agro hands exec <hand> -- git
+  init -q projects/<owner>/<repo>` and `agro hands exec <hand> -- git -C
+  projects/<owner>/<repo> config receive.denyCurrentBranch updateInstead`. Then
+  add the brain remote and run `git push <remote> HEAD` with
+  `GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=<alias>"`.
+  The alias is the VM name for an exe.dev hand and the hand uuid for a console hand.
 
 ### Console hands
 
