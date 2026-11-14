@@ -146,3 +146,7 @@ None.
 - [ ] `agro run --isolation microvm -- true` has a recorded exit status on the brain and on the hand.
 
 ## Lessons
+
+1. Claim: `standard-skills-link.test.ts` times out inside `agro run` on this brain. Evidence: 4 cases fail with "Test timed out in 5000ms" on `origin/development` at `8850da14` under `agro run`, the same as on this branch (`evidence/baseline.md`). Outcome: dropped. The failure predates this PR, comes from container speed on the brain, and CI passes the file.
+2. Claim: the console sign-in fails for about 30 seconds after a hand resume. Evidence: US-004 transcript; `agro auth status` printed `request failed: fetch failed` until the tunnel reconnected. Outcome: dropped. The reconnect loop restores the tunnel within the 60-second limit by design.
+3. Claim: microVM isolation works on the brain and on the hand. Evidence: US-001 probe; `agro run --isolation microvm -- true` exits 0 on both hosts. Outcome: dropped. The finding is a capability fact, not a defect.
