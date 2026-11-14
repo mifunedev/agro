@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1623-exedev-hands",
+  "description": "exe.dev hand provider and free tier fallback. ADR #1622 selects option 3: a provider seam inside `agro hands`, with exe.dev as the second provider. The brain `agro-supervisor` is an exe.dev VM with no console token, so `agro hands` exits 2 there today. The operator also put the removal of `--free-tier` into this scope. When a requested spec is not in the free tier, a console create falls back to `n4`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the exe.dev command API",
+      "description": "As the advisor, I want recorded exe.dev command output so that the provider stories build on measured JSON shapes, not on guesses.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/exedev-hands/evidence/probe.md` records the output of `ssh exe.dev help` for `ls`, `new`, `cp`, `pause`, `resume`, `rm`, and `tag`, run on the brain.",
+        "The fixture file `.agro/cli/src/commands/__tests__/fixtures/exedev-ls.json` holds one `ssh exe.dev ls --json` capture. The capture holds one VM with the tag `agro-hand` and one VM without tags. The capture keeps the fields `vm_name`, `ssh_dest`, `status`, and `tags`, and drops share links and email fields.",
+        "The probe records whether `pause` and `resume` accept `--json`, and records the exit status of `ssh exe.dev ls --json` when the account key is missing, run with `-o IdentitiesOnly=yes -i /dev/null`.",
+        "The probe creates, forks, pauses, and deletes no VM."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/exedev-hands/evidence/probe.md",
+        ".agro/cli/src/commands/__tests__/fixtures/exedev-ls.json"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-002",
+      "title": "Extract the hand provider seam",
+      "description": "As a CLI maintainer, I want one `HandProvider` interface with the console implementation behind it. Then a second provider adds code beside the console code, not inside it.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/hands/provider.ts` exports `HandProvider`. The interface holds the operations `list`, `resolve`, `create`, `fork`, `pause`, `resume`, and `destroy`. The interface also holds the SSH destination, the host key alias, and the remote name.",
+        "`.agro/cli/src/lib/hands/console-provider.ts` implements `HandProvider` with the current console calls. `runHands` in `.agro/cli/src/commands/hands.ts` calls verbs only through `HandProvider`.",
+        "`.agro/cli/src/commands/__tests__/hands.test.ts` and `.agro/cli/src/commands/__tests__/hands-project.test.ts` pass with no edit to either file.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/commands/hands.ts"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-003",
+      "title": "Add the hands.provider configuration key",
+      "description": "As an operator, I want `hands.provider` in `agro.json` so that I select the hand provider for one brain explicitly.",
+      "acceptanceCriteria": [
+        "`AGRO_CONFIG_FIELDS` in `.agro/cli/src/lib/agro-config.ts` holds `{ path: \"hands.provider\", type: \"enum\", values: [\"console\", \"exedev\"] }`, and `validateAgroConfig` rejects any other value.",
+        "`agro hands` reads `hands.provider` from `~/.agro/workspaces/harness/agro.json`, where `~` is the home directory of the user that runs `agro`. When the file or the key is absent, the provider is `console`.",
+        "`agro config set hands.provider exedev` writes the key, and `agro config set hands.provider other` exits 1.",
+        "`docs/configuration.md` \u00a7 Field reference documents `hands.provider`. `.agro/cli/src/__tests__/docs-reference.test.ts` passes.",
+        "`.agro/cli/src/lib/__tests__/agro-config.test.ts` covers the valid values, the rejected value, and the absent key."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/agro-config.ts",
+        ".agro/cli/src/lib/__tests__/agro-config.test.ts",
+        "docs/configuration.md",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/hands/provider.ts"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-004",
+      "title": "Remove --free-tier and fall back to n4",
+      "description": "As an operator, I want console creates to pick the free tier without a flag. When I request a spec that the free tier does not offer, the CLI creates `n4` and tells me.",
+      "acceptanceCriteria": [
+        "The worker deletes `CreateArgs.freeTier`, `CheckArgs.freeTier`, and the `--free-tier` parsing in `.agro/cli/src/commands/node.ts`. Then `agro node create` and `agro node check` reject `--free-tier` with `unknown flag \"--free-tier\"` and exit 1.",
+        "Without `--spec`, `agro node create` sends the spec `n4` (`FREE_TIER_SPEC`).",
+        "A shared function in `.agro/cli/src/lib/console-api.ts` sends `POST /api/nodes` with the requested spec. If the console returns HTTP 403 with the code `PAYMENTS_DISABLED`, the function sends one more `POST /api/nodes` with `spec: \"n4\"` and `freeTier: true`. The function sends no third request.",
+        "Before the second request, the CLI prints `spec <spec> is not in the free tier; creating n4` to stderr. When the requested spec is `n4`, the CLI prints no notice.",
+        "Any other error code, `FREE_TIER_INELIGIBLE` included, exits 1 after the first request with no retry.",
+        "`agro node create` and the console provider `create` in `.agro/cli/src/lib/hands/console-provider.ts` both use the shared function.",
+        "`agro node check` always runs the free tier check. A line `warn free-tier: not eligible ...` reports an ineligible account and does not change the exit status.",
+        "`.agro/skills/sandbox/adapters/console.sh` passes no `--free-tier` and reads no `CONSOLE_FREE_TIER`. `.agro/skills/sandbox/references/validation.md` and `.agro/skills/sandbox/references/providers.md` no longer name `--free-tier` or `CONSOLE_FREE_TIER`.",
+        "`nodeHelp` and `docs/lifecycle-commands.md` \u00a7 Remote console nodes no longer name `--free-tier`, and both describe the `n4` fallback.",
+        "`.agro/cli/src/__tests__/node.test.ts` covers the default spec, the fallback with its notice, no notice for `n4`, no retry for other codes, and the rejected flag. `.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` expects `node check --ssh-key key-uuid`.",
+        "`git grep -n -e '--free-tier' -e CONSOLE_FREE_TIER -- .agro docs ':!.agro/tasks'` prints no line.",
+        "`resolveConsoleConfig`, `CONSOLE_CONFIG_MISSING`, and `DEFAULT_CONSOLE_URL` live in `.agro/cli/src/lib/console-api.ts`, and `resolveBrainConsoleConfig` moves from `hands.ts` to the same file. `.agro/cli/src/commands/auth.ts` imports nothing from `./node.js`.",
+        "One shared function renders the node list table, and one shared function asks the delete confirmation. `agro node` and the console hand provider both call each function.",
+        "`nodeHelp` states that a sandbox-profile node from `agro node create` is not a hand unless a brain manages the node.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/commands/auth.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/skills/sandbox/adapters/console.sh",
+        ".agro/skills/sandbox/references/validation.md",
+        ".agro/skills/sandbox/references/providers.md",
+        "docs/lifecycle-commands.md",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-005",
+      "title": "Read and run on exe.dev hands",
+      "description": "As an agent on an exe.dev brain, I want `agro hands list`, `exec`, and `fetch` to work on tagged exe.dev VMs. Then I offload project work without a console token.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/hands/exedev-provider.ts` implements `list` and `resolve` from `ssh exe.dev ls --json`. The provider returns only VMs whose `tags` holds `agro-hand`. `<hand>` is the VM name.",
+        "With `hands.provider` set to `exedev`, `agro hands` needs no brain token. A failed `ssh exe.dev whoami` preflight exits 2 and prints the remedy to register the brain key with the exe.dev account.",
+        "`exec` runs `ssh <ssh_dest> bash -lc '<command>'` with `HostKeyAlias=<vm_name>`. With `--project`, the command runs in `projects/<owner>/<repo>`. `exec` exits with the remote exit status.",
+        "`fetch` runs `git fetch hand-<vm_name>` in the brain project.",
+        "Both providers resolve the brain project as `<harness-root>/projects/<owner>/<repo>`. `<harness-root>` is `harnessRoot` from `~/.agro/config.json` when set, else `defaultHarnessRoot` (`${AGRO_HOME:-~/.agro}/workspaces/harness`). `hands.ts` no longer holds the literal `\"workspaces\", \"harness\"` or `BRAIN_HOME` for project paths.",
+        "A test sets `AGRO_HOME` to a temp directory and proves that `fetch` runs in `<AGRO_HOME>/workspaces/harness/projects/<owner>/<repo>`.",
+        "An untagged or unknown `<hand>` exits 1 and prints `hand <name> is not tagged agro-hand`.",
+        "`.agro/cli/src/commands/__tests__/hands-exedev.test.ts` runs each verb against a fake runner that returns `fixtures/exedev-ls.json`. The tests pin the SSH argv, the remote name, the project paths, and the exit status.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/exedev-provider.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-006",
+      "title": "Manage the exe.dev hand lifecycle with guards",
+      "description": "As an agent on an exe.dev brain, I want `create`, `fork`, `pause`, `resume`, and `destroy` on exe.dev hands. Guards stop each verb that names the brain or a VM outside the hand set.",
+      "acceptanceCriteria": [
+        "`create` runs `ssh exe.dev new --json --name <name> --tag agro-hand`. `create --project` and `create --clone` prepare the hand and add the remote `hand-<name>` to the brain project.",
+        "With `hands.provider` set to `exedev`, `create --spec` and `fork --spec` exit 1 with `--spec applies only to console hands`.",
+        "`fork` runs `ssh exe.dev cp <source> <name> --copy-tags`. `pause`, `resume`, and `destroy` run `ssh exe.dev pause`, `resume`, and `rm`.",
+        "`fork`, `pause`, `resume`, and `destroy` exit 1 with no `ssh exe.dev` write call when the VM has no `agro-hand` tag.",
+        "Each write verb exits 1 with no `ssh exe.dev` write call when `<hand>` names the brain VM. The provider identifies the brain VM by `os.hostname()`.",
+        "`destroy` asks the operator for confirmation unless the command line holds `--yes`.",
+        "`handsHelp` in `.agro/cli/src/commands/hands.ts` documents both providers, the `agro-hand` tag, the guards, and the `n4` fallback for console hands.",
+        "`hands-exedev.test.ts` covers each write verb, each guard, the `--spec` refusal, and the confirmation prompt.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/exedev-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-007",
+      "title": "Route hand requests across providers in the sandbox skill",
+      "description": "As an agent, I want one hands reference for both providers. Then a request to offload work to a hand routes the same way on a console brain and on an exe.dev brain.",
+      "acceptanceCriteria": [
+        "`git mv` renames `.agro/skills/sandbox/references/mifune-console.md` to `.agro/skills/sandbox/references/hands.md`. The route id changes from `mifune-console` to `hands` in `.agro/skills/sandbox/SKILL.md`.",
+        "`hands.md` covers provider selection, enrollment with `ssh exe.dev tag <vm> agro-hand`, the guards, the `n4` fallback, and the operator request examples from ADR #1622.",
+        "`.agro/skills/sandbox/references/exedev.md` no longer states that exe.dev has no pause. The file points to `hands.md` for the use of an exe.dev VM as a hand.",
+        "`.agro/scripts/__tests__/sandbox-skill.test.ts`, `.agro/scripts/__tests__/helpers/sandbox-routing.ts`, and the files in `.agro/scripts/__tests__/fixtures/sandbox-routing/` use the route `hands`. `cases.json` holds at least two exe.dev hand requests from ADR #1622.",
+        "`docs/lifecycle-commands.md` \u00a7 Hands from a brain documents both providers.",
+        "`CHANGELOG.md` `## [Unreleased]` names the exe.dev hand provider and `hands.provider`. A **BREAKING** entry names the removal of `--free-tier` and the `n4` fallback. Each entry links to the task issue.",
+        "The root `AGENTS.md` \u00a7 A small glossary defines **brain**, **hand**, and **console node**. A hand is a node that a brain creates and manages through `agro hands`.",
+        "`.agro/skills/sandbox/references/hands.md` and `.agro/skills/worktrees/SKILL.md` name the brain harness root through `agro hands --help`, not through a repeated literal path.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/sandbox/references/hands.md` exits 0.",
+        "`bash .agro/scripts/link-providers.sh` in check mode exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004",
+        "US-006"
+      ],
+      "files": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/mifune-console.md",
+        ".agro/skills/sandbox/references/hands.md",
+        ".agro/skills/sandbox/references/exedev.md",
+        ".agro/skills/worktrees/SKILL.md",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        "AGENTS.md"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-008",
+      "title": "Record a live review on agro-sbx-dev-001",
+      "description": "As the operator, I want one transcript of the built CLI on the real exe.dev hand. The transcript shows the provider working end to end in the PR.",
+      "acceptanceCriteria": [
+        "Before any write, a read-only `agro hands list` on the brain lists `agro-sbx-dev-001`. If the command fails, the story sets `blocked` and runs no other command.",
+        "`.agro/tasks/exedev-hands/evidence/manual-review.md` records the built CLI on the brain `agro-supervisor` with `hands.provider` passed for the run only. The run covers `list`, `exec agro-sbx-dev-001 --project <owner>/<repo> -- git log --oneline -1`, one commit on the hand, `fetch`, `pause`, and `resume`.",
+        "The transcript shows `agro hands destroy agro-supervisor --yes` refused with exit 1 and no exe.dev write.",
+        "The transcript shows `agro node create --free-tier` refused with exit 1 and no console request.",
+        "The run creates, forks, and destroys no VM or console node. A `create`, `fork`, or live `n4` fallback run needs separate operator authority and an `agro auth login` sign-in. `external`",
+        "At the end, `ssh exe.dev ls --json` lists the same VMs and tags as at the start."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005",
+        "US-006",
+        "US-007"
+      ],
+      "files": [
+        ".agro/tasks/exedev-hands/evidence/manual-review.md"
+      ],
+      "external": false
+    }
+  ]
+}
