@@ -219,7 +219,8 @@
         "CHANGELOG.md",
         "AGENTS.md"
       ],
-      "external": false
+      "external": false,
+      "rounds": 1
     },
     {
       "id": "US-008",
