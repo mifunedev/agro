@@ -199,8 +199,8 @@
         "`bash .agro/scripts/link-providers.sh` in check mode exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Round 1 repair: first fresh replay (11 decision-only contexts at 9e5c7cf5) found R9 missing required owner agro-run and an undocumented existing-hand push; 86d75213 documented run ownership and the existing-hand push procedure; all 11 re-recorded at 86d75213 matched oracles (one earlier R2 dispatch with a placeholder prompt was discarded). 1-8 reasoned/executed per worker reports: git mv to hands.md, route hands, exedev.md pause fix, cases R9-R11, harness-root brain-path test, docs both providers, glossary brain/hand/console node, CHANGELOG Added + BREAKING Removed linked to #1623. 9 executed: ste-check hands.md exit 0. 10 executed: link-providers.sh --check exit 0. 11 executed: test:scripts 3397 passed, 7 baseline herdr-default failures only; routing + skill tests 43/43; typecheck exit 0. decisions.json notes are lightly condensed; route, owners, commands verbatim.",
       "dependsOn": [
         "US-004",
         "US-006"
@@ -220,7 +220,8 @@
         "AGENTS.md"
       ],
       "external": false,
-      "rounds": 1
+      "rounds": 1,
+      "commit": "9e5c7cf5,86d75213,063bdc44"
     },
     {
       "id": "US-008",
