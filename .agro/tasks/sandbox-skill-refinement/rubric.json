@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "subject": "Sandbox skill consolidation, PR #1619",
+  "repository": "mifunedev/agro",
+  "defaultBranch": "main",
+  "defaultSha": "af779d7b1af7a5b55b293b242b91b85ac735d923",
+  "baseSha": "1a2d35f5940e7b3f316b361557180ce674590c85",
+  "candidateSha": "7d4900b71128409f58a9ef2b56aae27d0a658489",
+  "scoreMeaning": "Evidence-backed artifact readiness, not observed agent task-success probability.",
+  "statusRules": {
+    "P": "Award one point only when inspected source or authorized execution evidence supports the whole check and no material contradiction remains.",
+    "F": "Award zero points for absent, incorrect, misleading, or contradicted behavior. Cite the defect or missing contract.",
+    "U": "Award zero points when evidence is unavailable or was not inspected. Disclose unknowns separately; do not call uncertainty a confirmed defect."
+  },
+  "formula": "Sum each category's weight * P_count / check_count. Apply any confirmed critical-safety cap, then round the final score to at most three decimal places. Do not round intermediate arithmetic.",
+  "criticalSafetyCap": 0.499,
+  "capRule": "Apply only to a source-confirmed instruction that exposes credentials, bypasses a refusal, weakens a required isolation boundary, or destroys resources without ownership/authority. Ordinary uncertainty does not activate the cap.",
+  "categories": [
+    {
+      "id": "R", "name": "Scenario routing", "weight": 0.25,
+      "checks": [
+        "R1: One-shot local verification routes to local/docker.",
+        "R2: A separate-kernel requirement routes to local/msb with KVM prerequisites.",
+        "R3: A PostgreSQL-backed test routes to container services, not unsupported microVM services.",
+        "R4: An egress-allowlisted command routes to a supported container path without weakening the policy.",
+        "R5: Brain-to-hand project offload routes to mifune-console and agro hands.",
+        "R6: An explicitly requested exe.dev VM routes to exedev, not a console hand.",
+        "R7: Fresh AGRO release/install validation routes to the retained driver/check suite, with adapter IDs distinct from local route names.",
+        "R8: Persistent Docker/OpenShell workspaces, interactive processes, and checkout isolation route to their existing owners rather than duplicated administration."
+      ]
+    },
+    {
+      "id": "O", "name": "Operational completeness", "weight": 0.20,
+      "checks": [
+        "O1: local/docker Choose when identifies a concrete applicable task and boundary.",
+        "O2: local/docker Prerequisites identify execution location and required capabilities.",
+        "O3: local/docker Execute gives usable supported commands and necessary configuration.",
+        "O4: local/docker Verify identifies observable success/failure and persistent output effects.",
+        "O5: local/docker Cleanup names the lifecycle owner and remaining resources.",
+        "O6: local/docker Failure remedies give bounded remedies without unsafe fallback.",
+        "O7: local/msb Choose when identifies a concrete applicable task and boundary.",
+        "O8: local/msb Prerequisites identify execution location and required capabilities.",
+        "O9: local/msb Execute gives usable supported commands and necessary configuration.",
+        "O10: local/msb Verify identifies observable success/failure and persistent output effects.",
+        "O11: local/msb Cleanup names the lifecycle owner and remaining resources.",
+        "O12: local/msb Failure remedies give bounded remedies without unsafe fallback.",
+        "O13: mifune-console Choose when identifies a concrete applicable task and boundary.",
+        "O14: mifune-console Prerequisites identify execution location and required capabilities.",
+        "O15: mifune-console Execute gives usable supported commands and necessary configuration.",
+        "O16: mifune-console Verify identifies observable success/failure and result retrieval.",
+        "O17: mifune-console Cleanup names the lifecycle owner and remaining resources.",
+        "O18: mifune-console Failure remedies give bounded remedies without unsafe fallback.",
+        "O19: exedev Choose when identifies a concrete applicable task and boundary.",
+        "O20: exedev Prerequisites identify execution location and required capabilities.",
+        "O21: exedev Execute gives usable supported commands and necessary configuration.",
+        "O22: exedev Verify identifies observable success/failure and result retrieval.",
+        "O23: exedev Cleanup names the lifecycle owner and remaining resources.",
+        "O24: exedev Failure remedies give bounded remedies without unsafe fallback."
+      ]
+    },
+    {
+      "id": "S", "name": "Safety and authority", "weight": 0.25,
+      "checks": [
+        "S1: Host-only agro run and nested-sandbox refusal remain explicit.",
+        "S2: Writable workspace/Git mounts and credentials already in mounted content are not represented as absent or rolled back.",
+        "S3: SSH transport and provider VM ownership are not represented as a supported application runtime boundary by themselves.",
+        "S4: Billable creation and forks require explicit operator authority.",
+        "S5: Teardown is restricted to owned resources within approved scope; retained/borrowed resources remain accounted for.",
+        "S6: A refusal never silently authorizes host fallback, weakened isolation, or an egress-policy bypass.",
+        "S7: Brain tokens are never read, printed, or copied by the agent; remote validation preserves its secret-transfer ban.",
+        "S8: Hands HTTP 403 codes require stopping without retries or credential bypass.",
+        "S9: Fork guidance accounts for copied credentials and destination authorization.",
+        "S10: Persistent processes survive disconnect, and agent observation uses bounded completion monitoring rather than shell sleep polling."
+      ]
+    },
+    {
+      "id": "T", "name": "Command truth and compatibility", "weight": 0.15,
+      "checks": [
+        "T1: Route names are not invented CLI flags; optional --sandbox use is gated by installed capabilities.",
+        "T2: Container image precedence, uid/gid, cwd, HOME, mounts, and environment forwarding agree with implementation.",
+        "T3: Service aliases/readiness, run.env applicability, and allowlist topology/proxy behavior agree with implementation.",
+        "T4: Disposable microVM version/KVM/image/user/service/egress limitations agree with implementation.",
+        "T5: MicroVM exit/logging/cleanup and host file-permission claims agree with available source or explicitly qualified evidence.",
+        "T6: Hands project/clone/exec/commit-before-fetch/pause/destroy semantics agree with implementation.",
+        "T7: exe.dev commands and supported lifecycle limitations agree with the inspected adapter; undocumented provider-wide claims are not invented.",
+        "T8: Validation provider IDs, extension environment variable, five-function contract, result grammar, and phase-chain limitations remain compatible."
+      ]
+    },
+    {
+      "id": "V", "name": "Verification and preservation", "weight": 0.10,
+      "checks": [
+        "V1: All 16 moved machinery files preserve Git blob contents and executable modes relative to the PR base.",
+        "V2: Existing driver/adapter/suite tests target the moved implementation and retain failure/cleanup coverage.",
+        "V3: Regression coverage evaluates the eight routing scenarios or equivalent task decisions, rather than only checking prose/filename presence.",
+        "V4: Provider discovery and CI paths resolve to the new canonical skill with old entrypoints retired.",
+        "V5: Authorized CI or execution evidence proves relevant tests/typecheck/build on the evaluated revision; unrun live-provider checks remain disclosed."
+      ]
+    },
+    {
+      "id": "M", "name": "Context economy and maintainability", "weight": 0.05,
+      "checks": [
+        "M1: SKILL.md is at most 120 lines and its description is at most 1024 characters.",
+        "M2: Each bundled reference is linked directly from the dispatcher and local links resolve.",
+        "M3: Provider/runtime/resource-role vocabulary remains distinct and consistent in the operational guidance.",
+        "M4: Current-state claims avoid dependence on this advisor session, checkout location, or an archived task helper.",
+        "M5: Detailed policy/configuration has one truthful owner; moved references do not create materially conflicting duplicate instructions."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "storyId": "US-001",
+  "dependencies": [],
+  "readScope": ["AGENTS.md", ".agro/**/AGENTS.md", ".agro/skills/{builder,ste,git}/**", ".agro/cli/src/commands/{run,hands}.ts", ".agro/cli/src/lib/execution/{ephemeral-target,runner}.ts", ".agro/skills/sandbox/references/**", "docs/lifecycle-commands.md", ".agro/scripts/__tests__/sandbox-skill.test.ts", "CHANGELOG.md"],
+  "ownedWritePaths": [".agro/skills/sandbox/references/local-docker.md", ".agro/skills/sandbox/references/providers.md", "docs/lifecycle-commands.md", ".agro/scripts/__tests__/sandbox-skill.test.ts", "CHANGELOG.md"],
+  "deliverable": "Bounded uncommitted diff for advisor inspection and advisor-owned commit; no acceptance or push by worker.",
+  "verification": ["agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-skill.test.ts", "Focused guards fail before documentation repair, then pass", "agro run -- bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/sandbox/references/local-docker.md .agro/skills/sandbox/references/providers.md", "git diff --check"],
+  "executionDirectory": "/home/exedev/.agro/workspaces/harness/.worktrees/feat/1618-sandbox-skill",
+  "executionLocation": "host",
+  "model": "provider default",
+  "modelReason": "Small coupled documentation and guard-test repair; preserve the default rather than choose preferred grading behavior.",
+  "worktreeDecision": "Use the existing isolated task worktree sequentially. The main checkout has unrelated operator-owned changes and cannot switch to the task branch.",
+  "baseline": "Immutable ddd4889fe09826247a865ca55a7bae92d4ea3ab6 has exact-head SUCCESS for both GitHub checks; prior full local verification passed3348 tests/125 files. Current planner-only changes do not alter tested source. Changed instruction bytes intentionally stale the old observed routing batch until a genuinely new batch is captured."
+}

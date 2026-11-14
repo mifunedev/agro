@@ -21,6 +21,10 @@ any directory. See
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
 Host prerequisites and the CLI install are in [Installation](installation.md).
+For execution route selection, hand offload, and remote validation, use the
+[Sandbox skill](https://github.com/mifunedev/agro/blob/main/.agro/skills/sandbox/SKILL.md).
+The routes are `local/docker`, `local/msb`, `mifune-console`, and `exedev`.
+Here, `local` means the host running `agro`, even on a remote VM.
 
 ## The verbs
 
@@ -196,8 +200,12 @@ image for the CLI version.
 
 The container gets these limits:
 
-- The container mounts only the git repository root at the same path. Outside a repository,
-  the container mounts only the current directory at the same path.
+- The container mounts the Git repository root writable at the same path.
+  Outside a repository, the container mounts the current directory writable at the same path.
+  For a linked worktree, Docker also mounts the external Git common directory writable.
+  This exception lets Git resolve shared repository metadata.
+  Review mounted paths for credentials before execution.
+  Isolation does not remove image environment variables or credentials already inside the mounted checkout.
 - The container runs the command in the current directory as the host uid and gid, with
   `HOME=/tmp`.
 - The container gets no host environment variables, no home directory, and no Docker socket.
@@ -214,8 +222,9 @@ service has these fields:
 - `ready`: a shell command that `agro run` executes in the service container with
   `sh -c`. Exit code 0 means that the service is ready. This field is optional.
 
-`run.env` holds environment variables for the command container. `run.env` applies
-only when `run.services` declares at least one service.
+`run.env` holds environment variables for the command container.
+It applies when `run.services` declares at least one service or `access.egress` is `allowlist`.
+With neither services nor an allowlist, `run.env` does not apply.
 
 This example starts PostgreSQL for a test command:
 
@@ -242,11 +251,18 @@ When services exist, each `agro run` does these steps:
 2. Start a new container for each service on that network. The container name is
    `agro-run-<id>-<service>`, and the network alias is the service name. The command
    reaches the service at the host name `postgres` in the example.
-3. Execute the `ready` command of each service one time each second, for a maximum of
-   60 s. If a service is not ready after 60 s, `agro run` exits 1 and names the service.
+3. Execute the `ready` command of each service with the readiness limits below.
+   If all attempts fail, `agro run` exits 1 and names the service.
 4. Run the command on the same network with the variables from `run.env`.
-5. Remove the service containers and the network after the command stops. `agro run`
-   also removes them after a failure.
+5. Make best-effort attempts to remove recorded service containers and the network after success or failure.
+
+For services and proxy, readiness defaults to 60 attempts with 1 second between failed attempts.
+Probe execution time adds to the wait. Captured probes have no timeout.
+The attempt limit is not a hard 60-second wall-clock limit.
+Before execution, the executing agent sets and records a finite deadline within the operator-approved run scope.
+The agent uses a background monitor with a completion notice.
+At the deadline, the agent stops the run and inspects cleanup errors and owned resources.
+Remove only resources that belong to the approved run. Do not use shell sleep loops.
 
 ### Egress allowlist: `access.egress: "allowlist"`
 
@@ -262,9 +278,9 @@ route out. This applies with or without services. Each `agro run` does these ste
    them read-only.
 4. Connect the proxy to `agro-run-<id>` with the network alias `proxy`.
 5. Start the services as described above.
-6. Wait for the proxy to accept connections on port 3128, for a maximum of 60 s. If the
-   proxy is not ready after 60 s, `agro run` exits 1. Then wait for the services and run
-   the command on `agro-run-<id>`.
+6. Wait for the proxy to accept connections on port 3128 with the readiness limits above.
+   If all attempts fail, `agro run` exits 1.
+   Then wait for the services and run the command on `agro-run-<id>`.
 
 The proxy permits the OpenShell policy hosts plus the hosts in `access.egressAllow`.
 The command gets these environment variables in addition to `run.env`:
@@ -275,9 +291,8 @@ The command gets these environment variables in addition to `run.env`:
 
 A client that ignores the proxy variables cannot reach the internet.
 
-After the command stops, `agro run` removes the proxy container, the service
-containers, both networks, and the temporary directory. `agro run` also removes them
-after a failure.
+After success or failure, `agro run` makes best-effort attempts to remove recorded proxy and service containers, both networks, and temporary proxy configuration.
+Inspect cleanup errors. Remove only resources that belong to the approved run.
 
 `agro.json` is a tracked file. Do not put secrets in `run.services` or `run.env`.
 
@@ -337,9 +352,11 @@ With a cached image, the boot-to-exit time on a KVM host is about 1.4 s.
 The microVM mode does not support `run.services` or `access.egress: "allowlist"` yet.
 With either setting, `agro run --isolation microvm` exits 1.
 
-Known caveat: a file that the guest creates in the mount has mode 600 on the host, and
-a directory has mode 700. The host file loses the executable bit. msb keeps the guest
-owner and mode in the extended attribute `user.msb.override_stat`.
+Historical tests with msb 0.7.13 in the tested guest configuration observed host file mode 600 and directory mode 700.
+The host file lost its executable bit.
+Those tests observed guest owner/mode storage in the extended attribute `user.msb.override_stat`.
+These observations are not a new live verification or a guarantee for other configurations.
+Inspect actual host file modes after guest writes; do not infer modes from guest metadata.
 
 The exit code of `agro run` is the exit code of the command. The decision is
 [ADR #1575](https://github.com/mifunedev/agro/issues/1575).
@@ -691,10 +708,19 @@ agro node check --free-tier      # check the SSH key and the free tier, create n
 through the console. The brain keeps the project history, and the hand does the
 work. `agro hands` keeps no state. The console lists the hands.
 
+Before application build/test/install workloads, inspect the hand's installed capabilities through SSH.
+After remote `agro run --help` and runtime checks confirm support, use the application example below.
+Creation and forks require operator authority.
+Teardown applies only to the recorded task-owned hand within approved scope.
+In the example, `4` means that recorded hand index, not an unrelated resource.
+`agro run` runs on the remote host and refuses nested execution inside a sandbox.
+If a supported runtime is unavailable or refuses execution, stop and report the capability gap or refusal.
+Do not fall back to raw-host application execution.
+
 ```bash
 agro hands create --project <owner>/<repo>   # create a hand, push the current branch
 agro hands list                              # the hands: index, alias, status, spec, SSH host
-agro hands exec 4 --project <owner>/<repo> -- npm test   # run a command in the hand project
+agro hands exec 4 --project <owner>/<repo> -- agro run -- npm test
 agro hands fetch 4 --project <owner>/<repo>  # git fetch hand-4 in the brain project
 agro hands destroy 4                         # destroy one hand after a confirmation
 ```
@@ -719,9 +745,10 @@ agro hands destroy 4                         # destroy one hand after a confirma
 - `create --clone <owner>/<repo>` clones
   `https://github.com/<owner>/<repo>.git` on the hand with the git credential of
   the hand. The brain pushes nothing.
-- `agro hands exec` runs the command after `--` over SSH and exits with the
-  exit status of the command. `--project` runs the command in the project
-  folder of the hand.
+- `agro hands exec` is SSH transport, not a container or runtime boundary.
+  It runs the command after the first `--` over SSH and exits with the command's exit status.
+  `--project` runs the command in the project folder of the hand.
+  The nested `agro run` in the application example supplies the runtime isolation; `exec` does not.
 - `agro hands fetch` runs `git fetch hand-<index>` in the brain project.
 - SSH connects to `sandbox@<sshHost>` with the default brain key. The first
   contact accepts the host key, and the brain pins the key by the hand uuid. A
