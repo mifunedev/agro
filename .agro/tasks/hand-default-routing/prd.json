@@ -68,8 +68,8 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0, `corepack pnpm typecheck` exits 0, and `corepack pnpm test:scripts` passes except the known baseline failures."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "1-9, 11-12 reasoned/executed per worker report: SKILL.md default order, status rule, no resume/create, failed-exec stop/offer, no raw host, inner loop local, one agent per project per hand; hands.md Choose when replaced; cases R12-R15; caseIds R1-R15, unknown R16; skill test assertions; docs bullet; CHANGELOG Changed with #1633. 10 executed: 15 fresh decision-only records at afbb9bfc all match oracles; decisions.json a53677f9 with helper provenance. 13 executed: ste-check hands.md and SKILL.md no findings. 14 executed: link-providers --check exit 0; agro run -- pnpm typecheck exit 0; agro run -- vitest sandbox-routing + sandbox-skill 44/44 (advisor rerun); agro run -- pnpm test:scripts 3448 passed, 4 failed = standard-skills-link 5 s timeouts that also fail on origin/development under agro run (evidence/baseline.md).",
+      "passes": true,
+      "notes": "1-9, 11-12 reasoned/executed per worker report: SKILL.md default order, status rule, no resume/create, failed-exec stop/offer, no raw host, inner loop local, one agent per project per hand; hands.md Choose when replaced; cases R12-R15; caseIds R1-R15, unknown R16; skill test assertions; docs bullet; CHANGELOG Changed with #1633. 10 executed: 15 fresh decision-only records at afbb9bfc all match oracles; decisions.json a53677f9 with helper provenance. 13 executed: ste-check hands.md and SKILL.md no findings. 14 executed: link-providers --check exit 0; agro run -- pnpm typecheck exit 0; agro run -- vitest sandbox-routing + sandbox-skill 44/44 (advisor rerun); agro run -- pnpm test:scripts 3448 passed, 4 failed = standard-skills-link 5 s timeouts that also fail on origin/development under agro run (evidence/baseline.md). Code review repair round 1: b1d9ae66 orders the default (isolation selects runtime, explicit location, uncommitted edits local, hands list failure local, running hand that holds the project, push to hand-<hand> and HEAD match, else local/docker), adds R16 (separate kernel on hand) and R17 (uncommitted edits local), narrows test assertions, rewords docs as agent policy; 27d9869b names hand-<hand> as the push target after a replay showed R12 pushing to origin. 17 fresh decisions at 27d9869b match oracles (879635c1). agro run -- vitest sandbox-routing + sandbox-skill 44/44 (advisor). agro run -- pnpm test:scripts 3447 passed, 5 failed, all standard-skills-link 5 s timeouts in the file that fails on origin/development under agro run.",
       "dependsOn": [
         "US-001"
       ],
@@ -85,7 +85,7 @@
         "CHANGELOG.md"
       ],
       "external": false,
-      "commit": "afbb9bfc,a53677f9",
+      "commit": "afbb9bfc,b1d9ae66,27d9869b,879635c1",
       "rounds": 1
     },
     {
