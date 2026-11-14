@@ -36,15 +36,16 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: lib/hands/provider.ts exports HandProvider (list, resolve, create, fork, pause, resume, destroy); Hand carries sshDest, hostKeyAlias, remoteName. 2 reasoned: lib/hands/console-provider.ts holds every console call; hands.ts imports neither callApi nor ConsoleNode. 3 executed: vitest hands.test.ts + hands-project.test.ts exit 0 (64 passed); git diff HEAD~1 --stat on commands/__tests__ empty. 4 executed: corepack pnpm typecheck exit 0; corepack pnpm test:scripts 3330 passed, 7 failed = baseline herdr-default (no zsh).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/hands/provider.ts",
         ".agro/cli/src/lib/hands/console-provider.ts",
         ".agro/cli/src/commands/hands.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "a01844e2"
     },
     {
       "id": "US-003",
