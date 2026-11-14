@@ -41,16 +41,43 @@ interface RunCall {
   gitSsh?: string;
 }
 
-function fakeRunner(replies: { whoami?: number; ls?: RunResult; ssh?: number; git?: number } = {}) {
+interface Replies {
+  whoami?: number;
+  ls?: RunResult | RunResult[];
+  write?: RunResult;
+  ssh?: number;
+  git?: number;
+}
+
+function fakeRunner(replies: Replies = {}) {
   const calls: RunCall[] = [];
+  const lsReplies = replies.ls === undefined ? [] : Array.isArray(replies.ls) ? [...replies.ls] : [replies.ls];
   const run: LifecycleRunner = (cmd, args, opts): RunResult => {
     calls.push({ cmd, args, stdio: opts.stdio, gitSsh: opts.env?.GIT_SSH_COMMAND });
     if (cmd === "ssh" && args.join(" ") === WHOAMI.join(" ")) return { status: replies.whoami ?? 0, stdout: "{}" };
-    if (cmd === "ssh" && args.join(" ") === LS.join(" ")) return replies.ls ?? { status: 0, stdout: LS_JSON };
+    if (cmd === "ssh" && args.join(" ") === LS.join(" ")) {
+      if (lsReplies.length === 0) return { status: 0, stdout: LS_JSON };
+      return lsReplies.length === 1 ? lsReplies[0] : lsReplies.shift()!;
+    }
+    if (cmd === "ssh" && args[2] === "exe.dev") return replies.write ?? { status: 0, stdout: "" };
     if (cmd === "ssh") return { status: replies.ssh ?? 0 };
     return { status: replies.git ?? 0 };
   };
   return { calls, run };
+}
+
+function exedevWrites(calls: RunCall[]): string[][] {
+  return calls
+    .filter((c) => c.cmd === "ssh" && c.args[2] === "exe.dev" && !["whoami", "ls"].includes(c.args[3]))
+    .map((c) => c.args.slice(3));
+}
+
+function lsOf(...vms: Record<string, unknown>[]): RunResult {
+  return { status: 0, stdout: JSON.stringify({ vms }) };
+}
+
+function vm(name: string, status = "running", tags: string[] = ["agro-hand"]): Record<string, unknown> {
+  return { vm_name: name, ssh_dest: `${name}.exe.xyz`, status, tags };
 }
 
 function harness(run: LifecycleRunner, overrides: Partial<HandsDeps> = {}) {
@@ -67,6 +94,11 @@ function harness(run: LifecycleRunner, overrides: Partial<HandsDeps> = {}) {
       throw new Error("exedev hands never call the console");
     }) as typeof fetch,
     run,
+    hostname: () => "agro-supervisor",
+    sleep: async () => {},
+    now: () => 0,
+    pollDelayMs: () => 1000,
+    timeoutMs: 15 * 60 * 1000,
     ...overrides,
   };
   const io = { stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) };
@@ -171,12 +203,226 @@ describe("agro hands with hands.provider exedev", () => {
     expect(r.calls.filter((c) => c.cmd === "git" || c.args.includes("--"))).toEqual([]);
   });
 
-  it.each(["create", "fork", "pause", "resume", "destroy"])("reports %s as not available yet", async (verb) => {
+});
+
+function clock(stepMs: number) {
+  let t = 0;
+  return { now: () => t, sleep: async () => void (t += stepMs) };
+}
+
+describe("agro hands lifecycle on exedev hands", () => {
+  it("creates a named hand tagged agro-hand and waits for it to run", async () => {
+    const t = clock(1000);
+    const r = fakeRunner({
+      write: { status: 0, stdout: "" },
+      ls: [lsOf(vm("other")), lsOf(vm("fresh", "starting")), lsOf(vm("fresh"))],
+    });
+    const h = harness(r.run, t);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([["new", "--json", "--name", "fresh", "--tag", "agro-hand"]]);
+    expect(r.calls.find((c) => c.args[3] === "new")?.args.slice(0, 3)).toEqual(["-o", "BatchMode=yes", "exe.dev"]);
+    expect(h.stderr()).toBe("agro hands create: hand fresh starting\n");
+    expect(h.stdout()).toBe("name: fresh\nssh host: fresh.exe.xyz\n");
+  });
+
+  it("takes the generated name from the new --json output", async () => {
+    const r = fakeRunner({
+      write: { status: 0, stdout: JSON.stringify({ vm_name: "auto-1", ssh_dest: "auto-1.exe.xyz" }) },
+      ls: lsOf(vm("auto-1")),
+    });
+    const h = harness(r.run);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([["new", "--json", "--tag", "agro-hand"]]);
+    expect(h.stdout()).toBe("name: auto-1\nssh host: auto-1.exe.xyz\n");
+  });
+
+  it("fails closed when new names no VM and no --name was given", async () => {
+    const r = fakeRunner({ write: { status: 0, stdout: "created\n" } });
+    const h = harness(r.run);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(
+      "agro hands create: ssh exe.dev new named no vm_name; run agro hands list to find the hand\n",
+    );
+  });
+
+  it("fails closed when the new VM never appears", async () => {
+    const t = clock(60_000);
+    const r = fakeRunner({ ls: lsOf(vm("other")) });
+    const h = harness(r.run, t);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: hand fresh never appeared in ssh exe.dev ls after 15 minutes\n");
+  });
+
+  it("fails closed when the new VM never runs", async () => {
+    const t = clock(60_000);
+    const r = fakeRunner({ ls: lsOf(vm("fresh", "starting")) });
+    const h = harness(r.run, t);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(
+      "agro hands create: hand fresh starting\nagro hands create: hand fresh is not running after 15 minutes — last status starting\n",
+    );
+  });
+
+  it("fails when ssh exe.dev new fails", async () => {
+    const r = fakeRunner({ write: { status: 1, stderr: "name taken\n" } });
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: ssh exe.dev new failed with status 1: name taken\n");
+  });
+
+  it("creates with --project, prepares the hand in a login shell, and adds hand-<name>", async () => {
+    const r = fakeRunner({ ls: lsOf(vm("fresh")) });
+    const h = harness(r.run);
+    const project = join(h.home, ".agro", "workspaces", "harness", ...PROJECT_SUFFIX);
+    const run = r.run;
+    h.deps.run = (cmd, args, opts) =>
+      cmd === "git" && args.includes("symbolic-ref") ? { status: 0, stdout: "main\n" } : run(cmd, args, opts);
+    expect(await runHands(["create", "--name", "fresh", "--project", "acme/widget"], h.io, h.deps)).toBe(0);
+    const freshSsh = ["-o", "StrictHostKeyChecking=accept-new", "-o", "HostKeyAlias=fresh"];
+    expect(r.calls.filter((c) => c.args.includes("--") || c.cmd === "git").map((c) => [c.cmd, ...c.args])).toEqual([
+      [
+        "ssh",
+        ...freshSsh,
+        "--",
+        "fresh.exe.xyz",
+        "bash -lc 'mkdir -p projects/acme && git init -q -b main projects/acme/widget && git -C projects/acme/widget config receive.denyCurrentBranch updateInstead'",
+      ],
+      ["git", "-C", project, "remote", "add", "hand-fresh", "fresh.exe.xyz:projects/acme/widget"],
+      ["git", "-C", project, "push", "hand-fresh", "main"],
+    ]);
+    expect(h.stdout()).toContain("remote: hand-fresh\n");
+  });
+
+  it("creates with --clone and clones on the hand", async () => {
+    const r = fakeRunner({ ls: lsOf(vm("fresh")) });
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh", "--clone", "acme/widget"], h.io, h.deps)).toBe(0);
+    expect(r.calls.at(-1)?.args.at(-1)).toBe(
+      "bash -lc 'mkdir -p projects/acme && git clone -q https://github.com/acme/widget.git projects/acme/widget'",
+    );
+  });
+
+  it.each([
+    ["create", "--name", "x", "--spec", "n8"],
+    ["create", "--spec=n8"],
+    ["fork", HAND, "--spec", "n8"],
+  ])("refuses %s --spec with no ssh exe.dev call", async (...args) => {
     const r = fakeRunner();
     const h = harness(r.run);
-    const args = verb === "create" ? [verb] : [verb, HAND, ...(verb === "destroy" ? ["--yes"] : [])];
     expect(await runHands(args, h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toBe(`agro hands ${verb}: ${verb} is not available for exedev hands yet\n`);
-    expect(r.calls.map((c) => c.args)).toEqual([WHOAMI]);
+    expect(h.stderr()).toBe(`agro hands ${args[0]}: --spec applies only to console hands\n`);
+    expect(r.calls).toEqual([]);
+  });
+
+  it("forks a tagged hand with --copy-tags and waits for a named fork", async () => {
+    const r = fakeRunner({ ls: [lsFixture(), lsOf(vm("copy"))] });
+    const h = harness(r.run);
+    expect(await runHands(["fork", HAND, "--name", "copy"], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([["cp", HAND, "copy", "--copy-tags"]]);
+    expect(h.stdout()).toBe("name: copy\nssh host: copy.exe.xyz\n");
+  });
+
+  it("forks without a name and points at list", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["fork", HAND], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([["cp", HAND, "--copy-tags"]]);
+    expect(h.stdout()).toBe(`fork of ${HAND} requested; run agro hands list to find the fork\n`);
+  });
+
+  it.each([
+    ["pause", "pause", "paused"],
+    ["resume", "resume", "resumed"],
+  ])("%s runs ssh exe.dev %s on a tagged hand", async (verb, command, past) => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands([verb, HAND], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([[command, HAND]]);
+    expect(r.calls.find((c) => c.args[3] === command)?.args.slice(0, 3)).toEqual(["-o", "BatchMode=yes", "exe.dev"]);
+    expect(h.stdout()).toBe(`${past} ${HAND}\n`);
+  });
+
+  it("destroy --yes runs ssh exe.dev rm without a prompt", async () => {
+    const questions: string[] = [];
+    const r = fakeRunner();
+    const h = harness(r.run, { confirm: async (q) => (questions.push(q), false) });
+    expect(await runHands(["destroy", HAND, "--yes"], h.io, h.deps)).toBe(0);
+    expect(questions).toEqual([]);
+    expect(exedevWrites(r.calls)).toEqual([["rm", HAND]]);
+    expect(h.stdout()).toBe(`destroyed ${HAND}\n`);
+  });
+
+  it("destroy asks and runs rm after yes", async () => {
+    const questions: string[] = [];
+    const r = fakeRunner();
+    const h = harness(r.run, { confirm: async (q) => (questions.push(q), true) });
+    expect(await runHands(["destroy", HAND], h.io, h.deps)).toBe(0);
+    expect(questions).toEqual([`Destroy hand ${HAND}?`]);
+    expect(exedevWrites(r.calls)).toEqual([["rm", HAND]]);
+  });
+
+  it("destroy asks and aborts after no with no write call", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run, { confirm: async () => false });
+    expect(await runHands(["destroy", HAND], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands destroy: aborted — hand ${HAND} unchanged\n`);
+    expect(exedevWrites(r.calls)).toEqual([]);
+  });
+
+  it("reports a failed write call", async () => {
+    const r = fakeRunner({ write: { status: 1, stderr: "busy\n" } });
+    const h = harness(r.run);
+    expect(await runHands(["pause", HAND], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands pause: ssh exe.dev pause failed with status 1: busy\n");
+  });
+
+  it.each([
+    ["fork", "no-such-vm"],
+    ["fork", "untagged"],
+    ["pause", "untagged"],
+    ["resume", "untagged"],
+    ["destroy", "untagged"],
+  ])("%s refuses %s without the agro-hand tag and makes no write call", async (verb, name) => {
+    const r = fakeRunner({ ls: lsOf(vm(HAND), vm("untagged", "running", [])) });
+    const h = harness(r.run);
+    expect(await runHands([verb, name, ...(verb === "destroy" ? ["--yes"] : [])], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands ${verb}: hand ${name} is not tagged agro-hand\n`);
+    expect(exedevWrites(r.calls)).toEqual([]);
+  });
+
+  it.each(["fork", "pause", "resume", "destroy"])("%s refuses the brain by hostname", async (verb) => {
+    const r = fakeRunner({ ls: lsOf(vm("agro-supervisor")) });
+    const h = harness(r.run);
+    expect(await runHands([verb, "agro-supervisor", ...(verb === "destroy" ? ["--yes"] : [])], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands ${verb}: refusing to ${verb} agro-supervisor: it is this brain\n`);
+    expect(exedevWrites(r.calls)).toEqual([]);
+  });
+
+  it.each(["fork", "pause", "resume", "destroy"])("%s refuses the brain by its ssh_dest host label", async (verb) => {
+    const r = fakeRunner({ ls: lsOf({ ...vm("brain"), ssh_dest: "agro-supervisor.exe.xyz" }) });
+    const h = harness(r.run);
+    expect(await runHands([verb, "brain", ...(verb === "destroy" ? ["--yes"] : [])], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands ${verb}: refusing to ${verb} brain: it is this brain\n`);
+    expect(exedevWrites(r.calls)).toEqual([]);
+  });
+
+  it("fork refuses a target named like the brain", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["fork", HAND, "--name", "agro-supervisor"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands fork: refusing to fork agro-supervisor: it is this brain\n");
+    expect(exedevWrites(r.calls)).toEqual([]);
+  });
+
+  it("create refuses a --name equal to the brain", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run, { hostname: () => "agro-supervisor.exe.xyz" });
+    expect(await runHands(["create", "--name", "agro-supervisor"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: refusing to create agro-supervisor: it is this brain\n");
+    expect(exedevWrites(r.calls)).toEqual([]);
   });
 });
+
+function lsFixture(): RunResult {
+  return { status: 0, stdout: LS_JSON };
+}

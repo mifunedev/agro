@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { join } from "node:path";
 import { HANDS_VERBS, isOneOf } from "../command-table.js";
 import {
@@ -14,7 +14,7 @@ import {
   type ConsolePollDeps,
 } from "../lib/console-api.js";
 import { createConsoleProvider } from "../lib/hands/console-provider.js";
-import { createExedevProvider, exedevPreflight } from "../lib/hands/exedev-provider.js";
+import { createExedevProvider, exedevPreflight, HAND_TAG, SPEC_REFUSAL } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
   resolveHandProviderId,
@@ -46,6 +46,7 @@ export interface HandsDeps extends ConsolePollDeps {
   confirm: (question: string) => Promise<boolean>;
   run: LifecycleRunner;
   exists: (path: string) => boolean;
+  hostname: () => string;
 }
 
 export interface ProjectSlug {
@@ -103,6 +104,7 @@ function defaultDeps(): HandsDeps {
     confirm: (question) => prompt.confirm(question, false),
     run: spawnRunner,
     exists: (path) => existsSync(path),
+    hostname: () => hostname(),
   };
 }
 
@@ -119,32 +121,58 @@ Usage:
   ${bin} hands exec <hand> [--project <owner>/<repo>] -- <command...>
   ${bin} hands fetch <hand> --project <owner>/<repo>
 
+Providers:
+  \`hands.provider\` in <harness-root>/agro.json selects the provider:
+  \`console\` (the default) or \`exedev\`.
+
+Console hands:
 <hand> is an index (4), an alias, or a uuid.
 Quote '#4' if you write the # sign: an unquoted #4 starts a shell comment.
 
 \`create\` requests a sandbox hand, waits up to 15 minutes for it to reach
-\`running\`, then prints its index, alias, and SSH host. \`destroy\` asks for
-confirmation unless --yes is given.
+\`running\`, then prints its index, alias, and SSH host. When the free tier
+does not offer the requested spec, \`create\` creates \`n4\` and says so.
+\`destroy\` asks for confirmation unless --yes is given.
 
 \`fork\` copies a hand with its credentials. The fork takes the spec of the
 source unless --spec is given. When the console names the fork, \`fork\`
 waits for it like \`create\`. Otherwise, run \`${bin} hands list\` to find it.
 
+The verbs read the brain token from ${brainTokenPath(BRAIN_HOME)} and the
+console URL from ${brainConsoleUrlPath(BRAIN_HOME)}. AGRO_CONSOLE_TOKEN and
+AGRO_CONSOLE_URL override them. Without a brain token, the verbs exit 2.
+
+exe.dev hands:
+<hand> is an exe.dev VM name. A hand is a VM with the tag ${HAND_TAG}.
+\`list\` shows only tagged VMs. Enroll an existing VM with
+\`ssh exe.dev tag <vm> ${HAND_TAG}\`. The verbs run \`ssh exe.dev\` with the
+brain SSH key and exit 2 when \`ssh exe.dev whoami\` fails.
+
+\`create\` runs \`ssh exe.dev new --json --name <name> --tag ${HAND_TAG}\`,
+waits up to 15 minutes for the VM to reach \`running\`, then prints its name
+and SSH host. \`fork\` runs \`ssh exe.dev cp <hand> [<name>] --copy-tags\`.
+\`pause\`, \`resume\`, and \`destroy\` run \`ssh exe.dev pause\`, \`resume\`,
+and \`rm\`. \`destroy\` asks for confirmation unless --yes is given.
+--spec applies only to console hands.
+
+Guards: \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 without a
+change when the VM lacks the ${HAND_TAG} tag. Each write verb exits 1 without a
+change when <hand>, the fork name, or the create name names this brain. The
+brain is the VM whose name or SSH host label equals the host name.
+
+Projects:
 A project lives at ~/projects/<owner>/<repo> on the hand and at
 <harness-root>/projects/<owner>/<repo> on the brain. The harness root is
 \`harnessRoot\` in ~/.agro/config.json, else ~/.agro/workspaces/harness.
 \`create --project\` prepares the hand folder, adds the remote hand-<index>
-to the brain project, and pushes the current branch. \`create --clone\`
-clones https://github.com/<owner>/<repo>.git on the hand with the hand's own
-git credential. \`exec\` runs the command over SSH, in the project folder
-with --project, and exits with its status. \`fetch\` runs
-\`git fetch hand-<index>\` in the brain project. SSH connects to
-sandbox@<sshHost> with the default brain key and pins each hand's host key
-by its uuid.
-
-The verbs read the brain token from ${brainTokenPath(BRAIN_HOME)} and the
-console URL from ${brainConsoleUrlPath(BRAIN_HOME)}. AGRO_CONSOLE_TOKEN and
-AGRO_CONSOLE_URL override them. Without a brain token, the verbs exit 2.
+(hand-<name> for exe.dev hands) to the brain project, and pushes the current
+branch. \`create --clone\` clones https://github.com/<owner>/<repo>.git on the
+hand with the hand's own git credential. \`exec\` runs the command over SSH,
+in the project folder with --project, and exits with its status. \`fetch\`
+runs \`git fetch hand-<index>\` in the brain project. SSH connects to
+sandbox@<sshHost> for console hands and to <vm>.exe.xyz in a login shell for
+exe.dev hands, with the default brain key, and pins each hand's host key by
+its uuid or VM name.
 `;
 }
 
@@ -162,7 +190,11 @@ function statusReporter(io: HandsIO, prefix: string): (hand: Hand) => void {
   return (hand) => io.stderr(`${prefix}: hand ${hand.id} ${hand.status}\n`);
 }
 
-function printRunning(io: HandsIO, hand: Hand): void {
+function printRunning(io: HandsIO, hand: Hand, providerId: HandProviderId): void {
+  if (providerId === "exedev") {
+    io.stdout(`name: ${hand.id}\nssh host: ${hand.sshHost ?? "-"}\n`);
+    return;
+  }
   io.stdout(`index: ${hand.index ?? "-"}\nalias: ${hand.alias ?? "-"}\nssh host: ${hand.sshHost ?? "-"}\n`);
 }
 
@@ -323,7 +355,14 @@ function pushProject(
   return 0;
 }
 
-async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
+async function runCreate(
+  tokens: string[],
+  io: HandsIO,
+  deps: HandsDeps,
+  providerId: HandProviderId,
+  provider: HandProvider,
+  prefix: string,
+) {
   const parsed = parseCreate(tokens);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -347,7 +386,7 @@ async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, provide
   const created = await provider.create({ name, spec }, statusReporter(io, prefix));
   if (!created.ok) return failed(io, prefix, created.error);
   const running = created.value;
-  printRunning(io, running);
+  printRunning(io, running, providerId);
   const { sshDest, remoteName } = running;
   const slug = project ?? clone;
   if (slug === undefined) return 0;
@@ -492,7 +531,13 @@ function parseFork(tokens: string[]): { ok: true; args: ForkArgs } | { ok: false
   return { ok: true, args: { ref: refs[0], ...values } };
 }
 
-async function runFork(tokens: string[], io: HandsIO, provider: HandProvider, prefix: string) {
+async function runFork(
+  tokens: string[],
+  io: HandsIO,
+  providerId: HandProviderId,
+  provider: HandProvider,
+  prefix: string,
+) {
   const parsed = parseFork(tokens);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -506,7 +551,7 @@ async function runFork(tokens: string[], io: HandsIO, provider: HandProvider, pr
     io.stdout(`fork of ${ref} requested${job === null ? "" : ` (job ${job})`}; run agro hands list to find the fork\n`);
     return 0;
   }
-  printRunning(io, hand);
+  printRunning(io, hand, providerId);
   return 0;
 }
 
@@ -579,13 +624,17 @@ export async function runHands(
   let safe: HandsIO;
   let provider: HandProvider;
   if (providerId === "exedev") {
+    if ((verb === "create" || verb === "fork") && options.some((token) => token === "--spec" || token.startsWith("--spec="))) {
+      io.stderr(`${prefix}: ${SPEC_REFUSAL}\n`);
+      return 1;
+    }
     const preflight = exedevPreflight(deps.run);
     if (!preflight.ok) {
       io.stderr(`${bin} hands: ${preflight.error}\n`);
       return 2;
     }
     safe = io;
-    provider = createExedevProvider(deps.run);
+    provider = createExedevProvider(deps);
   } else {
     const resolved = resolveBrainConsoleConfig(deps.env, deps.homeDir, deps.readFile);
     if (!resolved.ok) {
@@ -598,9 +647,9 @@ export async function runHands(
     provider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`));
   }
   if (verb === "list") return runList(rest, safe, providerId, provider, prefix);
-  if (verb === "create") return runCreate(rest, safe, deps, provider, prefix);
+  if (verb === "create") return runCreate(rest, safe, deps, providerId, provider, prefix);
   if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);
-  if (verb === "fork") return runFork(rest, safe, provider, prefix);
+  if (verb === "fork") return runFork(rest, safe, providerId, provider, prefix);
   if (verb === "exec") return runExec(rest, safe, deps, provider, prefix);
   if (verb === "fetch") return runFetch(rest, safe, deps, provider, prefix);
   return runAction(verb, rest, safe, provider, prefix);
