@@ -15,13 +15,14 @@
         "The probe changes no service, VM, or file outside the evidence folder. The microVM smoke run creates no persistent guest."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: probe.md records docker state, kvm, msb 0.7.13, groups, agro run --help on brain (docker inactive) and hand (docker 29.1.3 active). 2 executed: agro hands list --json shows status running (the only status present). 3 executed: agro run --isolation microvm -- true exit 0 on brain and on hand; no persistent guest. 4 reasoned: only read-only commands and ephemeral microVM runs; evidence gitignored by design.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/hand-default-routing/evidence/probe.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "evidence-only"
     },
     {
       "id": "US-002",
