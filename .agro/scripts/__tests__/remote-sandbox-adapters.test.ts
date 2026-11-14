@@ -48,7 +48,7 @@ function stubConsole(list = "[]", lists: string[] = []) {
       `printf '%s\\n' "$*" >> "${bin}/agro.calls"`,
       'case "$1 $2" in',
       `  "node list") [ "\${AGRO_DOWN:-0}" = 1 ] && { echo "agro node list: HTTP 503 no code" >&2; exit 1; }; l=$(( $(cat "${bin}/lists" 2>/dev/null || echo 0) + 1 )); echo "$l" > "${bin}/lists"; if [ -e "${bin}/list-$l.json" ]; then cat "${bin}/list-$l.json"; else cat "${bin}/list.json"; fi ;;`,
-      `  "node check") [ "\${AGRO_DOWN:-0}" = 1 ] && { echo "fail ssh-key: HTTP 503 no code"; exit 1; }; [ "\${CHECK_FAILS:-0}" = 1 ] && { echo "fail free-tier: not eligible (FREE_TIER_INELIGIBLE)"; exit 1; }; echo "ok ssh-key key-uuid" ;;`,
+      `  "node check") [ "\${AGRO_DOWN:-0}" = 1 ] && { echo "fail ssh-key: HTTP 503 no code"; exit 1; }; [ "\${CHECK_FAILS:-0}" = 1 ] && { echo "fail ssh-key key-uuid: not found in agro-console"; exit 1; }; echo "ok ssh-key key-uuid" ;;`,
       `  "node create") [ "\${CREATE_FAILS:-0}" = 1 ] && { printf '{"id":"node-1","status":"failed","ssh":null}\\n'; exit 1; }; printf '{"id":"node-1","status":"running","ssh":"ssh sandbox@203.0.113.7"}\\n' ;;`,
       '  "node delete")',
       `    n=$(( $(cat "${bin}/deletes" 2>/dev/null || echo 0) + 1 )); echo "$n" > "${bin}/deletes"`,
@@ -66,7 +66,7 @@ function stubConsole(list = "[]", lists: string[] = []) {
   return bin;
 }
 
-const CONSOLE_ENV = "export CONSOLE_SSH_KEY_ID=key-uuid CONSOLE_SSH_IDENTITY=/keys/id_ed25519; unset IMAGE CONSOLE_SPEC CONSOLE_FREE_TIER;";
+const CONSOLE_ENV = "export CONSOLE_SSH_KEY_ID=key-uuid CONSOLE_SSH_IDENTITY=/keys/id_ed25519; unset IMAGE CONSOLE_SPEC;";
 
 function withConsole(script: string, bin: string) {
   return withLib(`${CONSOLE_ENV}\n${script}`, bin);
@@ -129,27 +129,27 @@ describe("remote-sandbox adapters", () => {
     expect(defined("console_restart")).toBe(false);
   });
 
-  it("console_preflight runs agro node check with the free tier and the key", () => {
+  it("console_preflight runs agro node check with the key", () => {
     const bin = stubConsole();
     const result = withConsole("console_preflight", bin);
     expect(result.code).toBe(0);
     expect(result.stdout).toBe("ok ssh-key key-uuid\n");
-    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("node check --free-tier --ssh-key key-uuid\n");
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("node check --ssh-key key-uuid\n");
   });
 
-  it("console_preflight omits the free tier when CONSOLE_FREE_TIER=0 and the key without CONSOLE_SSH_KEY_ID", () => {
+  it("console_preflight omits the key without CONSOLE_SSH_KEY_ID", () => {
     const bin = stubConsole();
-    expect(withConsole("unset CONSOLE_SSH_KEY_ID; CONSOLE_FREE_TIER=0 console_preflight", bin).code).toBe(0);
+    expect(withConsole("unset CONSOLE_SSH_KEY_ID; console_preflight", bin).code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("node check\n");
   });
 
   it("console_create stops before agro node create when agro node check fails", () => {
     const bin = stubConsole();
     const result = withConsole('CHECK_FAILS=1 console_create agro-mx-0; echo "rc=$?"', bin);
-    expect(result.stdout).toContain("fail free-tier: not eligible (FREE_TIER_INELIGIBLE)");
+    expect(result.stdout).toContain("fail ssh-key key-uuid: not found in agro-console");
     expect(result.stdout).toContain("rc=1");
     expect(result.stderr).toContain("no node created");
-    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("node check --free-tier --ssh-key key-uuid\n");
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("node check --ssh-key key-uuid\n");
     expect(withLib(`test -e "$STATE_DIR/console-agro-mx-0"`).code).not.toBe(0);
   });
 
@@ -169,23 +169,23 @@ describe("remote-sandbox adapters", () => {
     const bin = stubConsole();
     expect(withConsole("unset CONSOLE_SSH_KEY_ID; console_create agro-mx-nokey", bin).code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
-      "node check --free-tier\nnode create --spec n4 --name agro-mx-nokey --json --free-tier\n",
+      "node check\nnode create --spec n4 --name agro-mx-nokey --json\n",
     );
   });
 
-  it("console_create requests the free tier by default and stores the node", () => {
+  it("console_create requests n4 by default and stores the node", () => {
     const bin = stubConsole();
     const result = withConsole('console_create agro-mx-1 && cat "$STATE_DIR/console-agro-mx-1"', bin);
     expect(result.code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
-      "node check --free-tier --ssh-key key-uuid\nnode create --spec n4 --ssh-key key-uuid --name agro-mx-1 --json --free-tier\n",
+      "node check --ssh-key key-uuid\nnode create --spec n4 --ssh-key key-uuid --name agro-mx-1 --json\n",
     );
     expect(result.stdout.trim().split("\n").at(-1)).toBe("node-1 sandbox@203.0.113.7");
   });
 
-  it("console_create omits the free tier when CONSOLE_FREE_TIER=0 and honors CONSOLE_SPEC", () => {
+  it("console_create honors CONSOLE_SPEC", () => {
     const bin = stubConsole();
-    expect(withConsole("CONSOLE_FREE_TIER=0 CONSOLE_SPEC=n8 console_create agro-mx-2", bin).code).toBe(0);
+    expect(withConsole("CONSOLE_SPEC=n8 console_create agro-mx-2", bin).code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
       "node check --ssh-key key-uuid\nnode create --spec n8 --ssh-key key-uuid --name agro-mx-2 --json\n",
     );
@@ -366,7 +366,7 @@ describe("remote-sandbox msb adapter", () => {
   it("msb_preflight runs agro node check through the console adapter", () => {
     const bin = stubMsb();
     expect(withMsb("msb_preflight", bin).code).toBe(0);
-    expect(calls(bin, "agro")).toBe("node check --free-tier --ssh-key key-uuid\n");
+    expect(calls(bin, "agro")).toBe("node check --ssh-key key-uuid\n");
   });
 
   it("msb_preflight fails without CONSOLE_SSH_IDENTITY", () => {
@@ -382,12 +382,12 @@ describe("remote-sandbox msb adapter", () => {
     expect(calls(bin, "agro")).toBe("");
   });
 
-  it("msb_create creates a free-tier console node and stores node, target, and guest", () => {
+  it("msb_create creates an n4 console node and stores node, target, and guest", () => {
     const bin = stubMsb();
     const result = withMsb('msb_create agro-mx-1 && cat "$STATE_DIR/msb-agro-mx-1"', bin);
     expect(result.code).toBe(0);
     expect(calls(bin, "agro")).toBe(
-      "node check --free-tier --ssh-key key-uuid\nnode create --spec n4 --ssh-key key-uuid --name agro-mx-1 --json --free-tier\n",
+      "node check --ssh-key key-uuid\nnode create --spec n4 --ssh-key key-uuid --name agro-mx-1 --json\n",
     );
     expect(result.stdout.trim().split("\n").at(-1)).toBe("node-1 sandbox@203.0.113.7 agro-mx-1");
   });

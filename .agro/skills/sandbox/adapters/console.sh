@@ -3,22 +3,20 @@ console_env() {
   [ -n "${CONSOLE_SSH_IDENTITY:-}" ] || { echo "console: set CONSOLE_SSH_IDENTITY" >&2; return 1; }
 }
 console_preflight() {
-  local out rc free=(--free-tier) key=()
+  local out rc key=()
   console_env || return 1
-  [ "${CONSOLE_FREE_TIER:-1}" = 0 ] && free=()
   [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
-  out=$(timeout 60 agro node check "${free[@]}" "${key[@]}" 2>&1); rc=$?
+  out=$(timeout 60 agro node check "${key[@]}" 2>&1); rc=$?
   printf '%s\n' "$out"
   return "$rc"
 }
 console_create() {
-  local out state rc free=(--free-tier) key=()
+  local out state rc key=()
   [ -z "${IMAGE:-}" ] || { echo "console: IMAGE is not supported, a console node has no image choice" >&2; exit 2; }
   console_env || exit 2
   console_preflight || { echo "console: agro node check failed, no node created" >&2; return 1; }
-  [ "${CONSOLE_FREE_TIER:-1}" = 0 ] && free=()
   [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
-  out=$(timeout 960 agro node create --spec "${CONSOLE_SPEC:-n4}" "${key[@]}" --name "$1" --json "${free[@]}"); rc=$?
+  out=$(timeout 960 agro node create --spec "${CONSOLE_SPEC:-n4}" "${key[@]}" --name "$1" --json); rc=$?
   printf '%s\n' "$out"
   state=$(printf '%s\n' "$out" | python3 -c "import json,sys; n=json.loads(sys.stdin.read().strip().splitlines()[-1]); s=(n.get('ssh') or '').split(); print(n['id'], s[-1] if s else '')" 2>/dev/null) || return 1
   printf '%s\n' "$state" >"$STATE_DIR/console-$1"

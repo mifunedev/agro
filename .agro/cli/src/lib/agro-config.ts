@@ -72,6 +72,14 @@ export interface LangfuseSettings {
   userId?: string;
 }
 
+export const HAND_PROVIDER_IDS = ["console", "exedev"] as const;
+
+export type HandProviderId = (typeof HAND_PROVIDER_IDS)[number];
+
+export interface HandsSettings {
+  provider?: HandProviderId;
+}
+
 export interface RunService {
   image: string;
   env?: Record<string, string>;
@@ -109,6 +117,7 @@ export interface AgroConfig {
   langfuse?: LangfuseSettings;
   composeOverrides?: string[];
   run?: RunSettings;
+  hands?: HandsSettings;
   [key: string]: unknown;
 }
 
@@ -260,6 +269,11 @@ export function validateAgroConfig(value: unknown): AgroConfig {
     expectString(langfuse, "userId", "langfuse.");
   }
 
+  const hands = expectSection(record, "hands");
+  if (hands) {
+    expectEnum(hands, "provider", "hands.", HAND_PROVIDER_IDS);
+  }
+
   if (record.composeOverrides !== undefined) {
     const list = record.composeOverrides;
     if (!Array.isArray(list)) throw fieldError("composeOverrides", "must be an array of strings");
@@ -408,6 +422,7 @@ export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "langfuse.environment", type: "string" },
   { path: "langfuse.userId", type: "string" },
   { path: "composeOverrides", type: "list" },
+  { path: "hands.provider", type: "enum", values: HAND_PROVIDER_IDS },
 ];
 
 export function findAgroConfigField(path: string): AgroConfigField | undefined {

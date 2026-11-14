@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  HAND_PROVIDER_IDS,
   configCheckout,
   defaultAgroConfig,
   AGRO_CONFIG_FIELDS,
@@ -16,6 +17,7 @@ import {
   type AgroConfig,
 } from "../agro-config.js";
 import { SECRET_KEYS } from "../secrets.js";
+import { resolveHandProviderId } from "../hands/provider.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -579,6 +581,76 @@ describe("run settings", () => {
     expect(() => setAgroConfigValue(defaultAgroConfig("demo"), "run.env", "A=1")).toThrow(
       /unknown agro\.json field "run\.env"/,
     );
+  });
+});
+
+describe("hands settings", () => {
+  it("registers hands.provider as an enum of the hand provider ids", () => {
+    expect(HAND_PROVIDER_IDS).toEqual(["console", "exedev"]);
+    expect(AGRO_CONFIG_FIELDS.find((field) => field.path === "hands.provider")).toEqual({
+      path: "hands.provider",
+      type: "enum",
+      values: ["console", "exedev"],
+    });
+  });
+
+  it.each(["console", "exedev"])("accepts hands.provider %s", (provider) => {
+    expect(validateAgroConfig({ version: 1, hands: { provider } }).hands?.provider).toBe(provider);
+  });
+
+  it("accepts an absent hands section and an absent provider key", () => {
+    expect(validateAgroConfig({ version: 1 }).hands).toBeUndefined();
+    expect(validateAgroConfig({ version: 1, hands: {} }).hands?.provider).toBeUndefined();
+  });
+
+  it("rejects any other hands.provider value", () => {
+    expect(() => validateAgroConfig({ version: 1, hands: { provider: "other" } })).toThrow(
+      /^agro\.json: hands\.provider must be one of console, exedev$/,
+    );
+    expect(() => validateAgroConfig({ version: 1, hands: "exedev" })).toThrow(
+      /^agro\.json: hands must be an object$/,
+    );
+  });
+
+  it("sets hands.provider through `agro config set` and rejects other values", () => {
+    const next = setAgroConfigValue(defaultAgroConfig("demo"), "hands.provider", "exedev");
+    expect(next.hands?.provider).toBe("exedev");
+    expect(() => setAgroConfigValue(defaultAgroConfig("demo"), "hands.provider", "other")).toThrow(
+      /^agro\.json: hands\.provider must be one of console, exedev$/,
+    );
+  });
+});
+
+describe("resolveHandProviderId", () => {
+  function writeHarnessConfig(root: string, config: Record<string, unknown>): void {
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify(config)}\n`, "utf8");
+  }
+
+  it("selects console when the harness agro.json is absent", () => {
+    const home = makeRoot();
+    expect(resolveHandProviderId({}, home)).toBe("console");
+  });
+
+  it("selects console when the harness agro.json has no hands.provider", () => {
+    const home = makeRoot();
+    writeHarnessConfig(join(home, ".agro", "workspaces", "harness"), { version: 1, name: "harness" });
+    expect(resolveHandProviderId({}, home)).toBe("console");
+  });
+
+  it("selects exedev from the default harness root", () => {
+    const home = makeRoot();
+    writeHarnessConfig(join(home, ".agro", "workspaces", "harness"), { version: 1, hands: { provider: "exedev" } });
+    expect(resolveHandProviderId({}, home)).toBe("exedev");
+  });
+
+  it("reads the harness root from ~/.agro/config.json", () => {
+    const home = makeRoot();
+    const root = join(home, "elsewhere", "harness");
+    writeHarnessConfig(root, { version: 1, hands: { provider: "exedev" } });
+    writeHarnessConfig(join(home, ".agro", "workspaces", "harness"), { version: 1, hands: { provider: "console" } });
+    writeFileSync(join(home, ".agro", "config.json"), `${JSON.stringify({ version: 1, harnessRoot: root })}\n`, "utf8");
+    expect(resolveHandProviderId({}, home)).toBe("exedev");
   });
 });
 

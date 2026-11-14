@@ -78,6 +78,7 @@ function harness(home: string, replies: Reply[], run: LifecycleRunner, overrides
     fetch: fetchStub,
     env: { AGRO_CONSOLE_TOKEN: TOKEN, AGRO_CONSOLE_URL: "https://c.example" },
     homeDir: () => home,
+    userHome: () => home,
     readFile: () => undefined,
     sleep: async () => {},
     now: () => 0,

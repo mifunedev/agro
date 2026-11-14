@@ -2,7 +2,7 @@ import { appendFileSync, copyFileSync, mkdirSync, mkdtempSync, rmSync } from "no
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { casesFile, gradeDecisions, gradeObservedFile, instructionFiles, loadCases, sourceProvenance } from "./helpers/sandbox-routing";
+import { caseIds, casesFile, gradeDecisions, gradeObservedFile, instructionFiles, loadCases, sourceProvenance } from "./helpers/sandbox-routing";
 
 const root = resolve(import.meta.dirname, "../../..");
 function syntheticRecord() {
@@ -24,8 +24,9 @@ type Synthetic = ReturnType<typeof syntheticRecord>;
 const gradeSynthetic = (record: unknown) => gradeDecisions(record, root, "synthetic-unit");
 
 describe("sandbox routing grader", () => {
-  it("accepts clearly synthetic unit decisions for exactly R1-R8", () => {
-    expect(loadCases(root).map((row) => row.id)).toEqual(["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"]);
+  it("accepts clearly synthetic unit decisions for exactly R1-R11", () => {
+    expect(caseIds).toEqual(["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11"]);
+    expect(loadCases(root).map((row) => row.id)).toEqual(caseIds);
     expect(() => gradeSynthetic(syntheticRecord())).not.toThrow();
   });
   it.each(["docs/lifecycle-commands.md", "docs/runtimes/openshell.md"])("invalidates provenance when %s bytes change", (document) => {
@@ -50,7 +51,7 @@ describe("sandbox routing grader", () => {
     ["wrong route", (r) => { r.decisions[0].response.route = "clarify"; }],
     ["missing case ID", (r) => { r.decisions.pop(); }],
     ["duplicate case ID", (r) => { r.decisions[1].caseId = "R1"; }],
-    ["unknown case ID", (r) => { r.decisions[0].caseId = "R9"; }],
+    ["unknown case ID", (r) => { r.decisions[0].caseId = "R12"; }],
     ["incorrect required owner", (r) => { r.decisions[7].response.owners = ["agro-run"]; }],
     ["missing required owner", (r) => { r.decisions[7].response.owners.pop(); }],
     ["unknown owner", (r) => { r.decisions[0].response.owners = ["raw-host"]; }],

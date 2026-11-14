@@ -7,7 +7,12 @@ import {
   asRecord,
   asText,
   callApi,
+  confirmDestroy,
+  CONSOLE_CONFIG_MISSING,
+  createConsoleNode,
   DEFAULT_CONSOLE_URL,
+  formatTable,
+  FREE_TIER_SPEC,
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
   resolveConsoleConfig,
@@ -21,21 +26,8 @@ import {
 } from "../lib/console-api.js";
 import * as prompt from "../lib/prompt.js";
 
-export {
-  DEFAULT_CONSOLE_URL,
-  NODE_FAST_POLL_INTERVAL_MS,
-  NODE_FAST_POLL_WINDOW_MS,
-  NODE_POLL_INTERVAL_MS,
-  NODE_READY_TIMEOUT_MS,
-  nodePollDelayMs,
-  resolveConsoleConfig,
-  type ConsoleConfig,
-  type ConsoleTokenSource,
-} from "../lib/console-api.js";
+export { FREE_TIER_SPEC } from "../lib/console-api.js";
 
-export const CONSOLE_CONFIG_MISSING = "not logged in to agro-console: run agro auth login";
-
-export const FREE_TIER_SPEC = "n4";
 export const LOCAL_SSH_KEY_MISSING = "no --ssh-key given and ~/.ssh/id_ed25519.pub not found";
 
 export type NodeIO = ConsoleIO;
@@ -75,25 +67,28 @@ export function nodeHelp(bin: string): string {
   return `${bin} node — Create, list, delete, and check agro-console sandbox nodes (remote VMs)
 
 Usage:
-  ${bin} node create --spec <spec> [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]
+  ${bin} node create [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--json]
   ${bin} node list [--json]
   ${bin} node delete <id> [--yes]
-  ${bin} node check [--free-tier] [--ssh-key <uuid>]...
+  ${bin} node check [--ssh-key <uuid>]...
 
 \`create\` waits up to 15 minutes for the node to reach \`running\`, then prints
-its SSH command. \`--free-tier\` requests the console free tier. The spec
-defaults to n4. \`--profile\` sets the node profile. The profile defaults to
-sandbox. \`--docker\` turns on Docker. \`--t3\` turns on T3. \`--code-server\`
-turns on code-server. Each app flag requires \`--profile agro\`. When
+its SSH command. The spec defaults to ${FREE_TIER_SPEC}. When the console
+refuses the spec with PAYMENTS_DISABLED, \`create\` prints a notice and
+creates ${FREE_TIER_SPEC} in the free tier. \`--profile\` sets the node profile.
+The profile defaults to sandbox. A sandbox-profile node from \`create\`
+is not a hand unless a brain manages the node. \`--docker\` turns on
+Docker. \`--t3\` turns on T3. \`--code-server\` turns on code-server. Each
+app flag requires \`--profile agro\`. When
 AGRO_CONSOLE_TOKEN is set, the verbs use it with AGRO_CONSOLE_URL. Otherwise
 the verbs use the token and the URL from the credentials file that
 \`${bin} auth login\` writes. The URL defaults to ${DEFAULT_CONSOLE_URL}.
 
 \`check\` sends only GET requests and creates nothing. It finds each
 \`--ssh-key\` id in the console SSH keys. Without \`--ssh-key\`, it finds
-~/.ssh/id_ed25519.pub there. \`--free-tier\` also checks free tier
-eligibility. \`check\` prints one line for each check and exits 0 only when
-each check passes.
+~/.ssh/id_ed25519.pub there. It also reads the free tier eligibility.
+\`check\` prints one line for each check and exits 0 only when no check fails.
+An account outside the free tier gets a warn line, not a failure.
 `;
 }
 
@@ -109,25 +104,20 @@ type NodeProfile = (typeof NODE_PROFILES)[number];
 type AppFlag = (typeof APP_FLAGS)[number];
 
 interface CreateArgs {
-  spec?: string;
+  spec: string;
   profile: NodeProfile;
   apps: Set<AppFlag>;
   sshKeyIds: string[];
   name?: string;
-  freeTier: boolean;
   json: boolean;
 }
 
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
-  const args: CreateArgs = { profile: "sandbox", apps: new Set(), sshKeyIds: [], freeTier: false, json: false };
+  const args: CreateArgs = { spec: FREE_TIER_SPEC, profile: "sandbox", apps: new Set(), sshKeyIds: [], json: false };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     if (token === "--json") {
       args.json = true;
-      continue;
-    }
-    if (token === "--free-tier") {
-      args.freeTier = true;
       continue;
     }
     if (isOneOf(APP_FLAGS, token)) {
@@ -151,8 +141,6 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
   }
   const sandboxApp = APP_FLAGS.find((flag) => args.profile === "sandbox" && args.apps.has(flag));
   if (sandboxApp !== undefined) return { ok: false, error: `${sandboxApp} requires --profile agro` };
-  if (args.spec === undefined && args.freeTier) args.spec = FREE_TIER_SPEC;
-  if (args.spec === undefined) return { ok: false, error: "--spec is required" };
   return { ok: true, args };
 }
 
@@ -201,13 +189,13 @@ async function resolveSshKeyId(
   return id === null ? { ok: false, error: "the console response has no SSH key id" } : { ok: true, id };
 }
 
-function printCreateResult(io: NodeIO, node: ConsoleNode, json: boolean): void {
+function printCreateResult(io: NodeIO, node: ConsoleNode, spec: string, json: boolean): void {
   const ssh = node.status === "running" ? sshCommand(node) : null;
   if (json) {
-    io.stdout(`${JSON.stringify({ id: node.id, status: node.status, ssh })}\n`);
+    io.stdout(`${JSON.stringify({ id: node.id, status: node.status, spec, ssh })}\n`);
     return;
   }
-  io.stdout(`id: ${node.id}\nstatus: ${node.status}\n${ssh === null ? "" : `${ssh}\n`}`);
+  io.stdout(`id: ${node.id}\nstatus: ${node.status}\nspec: ${spec}\n${ssh === null ? "" : `${ssh}\n`}`);
 }
 
 async function runCreate(
@@ -223,7 +211,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { spec, profile, apps, name, freeTier, json } = parsed.args;
+  const { spec, profile, apps, name, json } = parsed.args;
   let sshKeyIds = parsed.args.sshKeyIds;
   if (sshKeyIds.length === 0) {
     const resolved = await resolveSshKeyId(deps, config);
@@ -234,20 +222,25 @@ async function runCreate(
     sshKeyIds = [resolved.id];
   }
   const requestedAt = deps.now();
-  const created = await callApi(deps, config, "POST", "/api/nodes", {
-    profile,
-    spec,
-    sshKeyIds,
-    ...(name === undefined ? {} : { name }),
-    ...(freeTier ? { freeTier: true } : {}),
-    ...(apps.has("--docker") ? { docker: true } : {}),
-    ...(apps.has("--t3") ? { t3: true } : {}),
-    ...(apps.has("--code-server") ? { runtimeSettings: { codeServerEnabled: true } } : {}),
-  });
+  const created = await createConsoleNode(
+    deps,
+    config,
+    {
+      profile,
+      spec,
+      sshKeyIds,
+      ...(name === undefined ? {} : { name }),
+      ...(apps.has("--docker") ? { docker: true } : {}),
+      ...(apps.has("--t3") ? { t3: true } : {}),
+      ...(apps.has("--code-server") ? { runtimeSettings: { codeServerEnabled: true } } : {}),
+    },
+    (notice) => io.stderr(`${prefix}: ${notice}\n`),
+  );
   if (!created.ok) {
     io.stderr(`${prefix}: ${created.message}\n`);
     return 1;
   }
+  const createdSpec = created.spec ?? spec;
   let node = toNode(created.body);
   if (node === undefined) {
     io.stderr(`${prefix}: the console response has no node id\n`);
@@ -259,7 +252,7 @@ async function runCreate(
   );
   node = waited.node;
   if (!waited.ok && waited.reason === "timeout") {
-    printCreateResult(io, node, json);
+    printCreateResult(io, node, createdSpec, json);
     io.stderr(`${prefix}: node ${node.id} is not running after 15 minutes — last status ${node.status}\n`);
     return 1;
   }
@@ -267,7 +260,7 @@ async function runCreate(
     io.stderr(`${prefix}: node ${node.id}: ${waited.message}\n`);
     return 1;
   }
-  printCreateResult(io, node, json);
+  printCreateResult(io, node, createdSpec, json);
   if (!waited.ok) {
     io.stderr(`${prefix}: node ${node.id} failed — last status ${node.status}\n`);
     return 1;
@@ -302,14 +295,12 @@ async function runList(
     io.stdout("no nodes\n");
     return 0;
   }
-  const table = [
-    ["ID", "NAME", "PROFILE", "STATUS", "IPV4"],
-    ...rows.map((row) => [row.id, row.name ?? "-", row.profile ?? "-", row.status, row.ipv4 ?? "-"]),
-  ];
-  const widths = table[0].map((_, column) => Math.max(...table.map((cells) => cells[column].length)));
-  for (const cells of table) {
-    io.stdout(`${cells.map((cell, column) => cell.padEnd(widths[column])).join("  ").trimEnd()}\n`);
-  }
+  io.stdout(
+    formatTable(
+      ["ID", "NAME", "PROFILE", "STATUS", "IPV4"],
+      rows.map((row) => [row.id, row.name ?? "-", row.profile ?? "-", row.status, row.ipv4 ?? "-"]),
+    ),
+  );
   return 0;
 }
 
@@ -333,8 +324,7 @@ async function runDelete(
   }
   const [id] = ids;
   const yes = tokens.includes("--yes") || tokens.includes("-y");
-  if (!yes && !(await deps.confirm(`Destroy console node ${id}?`))) {
-    io.stderr(`${prefix}: aborted — node ${id} unchanged\n`);
+  if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy console node ${id}?`, subject: `node ${id}` }))) {
     return 1;
   }
   const deleted = await callApi(deps, config, "DELETE", `/api/nodes/${encodeURIComponent(id)}`);
@@ -351,18 +341,13 @@ async function runDelete(
 }
 
 interface CheckArgs {
-  freeTier: boolean;
   sshKeyIds: string[];
 }
 
 function parseCheck(tokens: string[]): { ok: true; args: CheckArgs } | { ok: false; error: string } {
-  const args: CheckArgs = { freeTier: false, sshKeyIds: [] };
+  const args: CheckArgs = { sshKeyIds: [] };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
-    if (token === "--free-tier") {
-      args.freeTier = true;
-      continue;
-    }
     const inline = token.startsWith("--ssh-key=") ? token.slice("--ssh-key=".length) : undefined;
     if (token !== "--ssh-key" && inline === undefined) {
       return { ok: false, error: token.startsWith("-") ? `unknown flag "${token}"` : `unexpected argument "${token}"` };
@@ -410,7 +395,7 @@ async function checkFreeTier(deps: NodeDeps, config: ConsoleConfig): Promise<str
   const code = asText(body?.code);
   const reason = asText(body?.reason) ?? asText(body?.message);
   const detail = [code, reason].filter((part) => part !== null).join(": ");
-  return `fail free-tier: not eligible${detail === "" ? "" : ` (${detail})`} — run agro auth login in the personal context, or create without --free-tier`;
+  return `warn free-tier: not eligible${detail === "" ? "" : ` (${detail})`} — the ${FREE_TIER_SPEC} fallback needs free tier eligibility; run agro auth login in the personal context`;
 }
 
 async function runCheck(
@@ -426,9 +411,9 @@ async function runCheck(
     return 1;
   }
   const lines = await checkSshKeys(deps, config, parsed.args.sshKeyIds);
-  if (parsed.args.freeTier) lines.push(await checkFreeTier(deps, config));
+  lines.push(await checkFreeTier(deps, config));
   for (const line of lines) io.stdout(`${line}\n`);
-  return lines.every((line) => line.startsWith("ok ")) ? 0 : 1;
+  return lines.some((line) => line.startsWith("fail ")) ? 1 : 0;
 }
 
 export async function runNode(

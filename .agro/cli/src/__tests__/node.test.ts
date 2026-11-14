@@ -2,16 +2,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { FREE_TIER_SPEC, LOCAL_SSH_KEY_MISSING, nodeHelp, runNode, type NodeDeps } from "../commands/node.js";
 import {
   CONSOLE_CONFIG_MISSING,
   DEFAULT_CONSOLE_URL,
-  LOCAL_SSH_KEY_MISSING,
   NODE_READY_TIMEOUT_MS,
-  nodeHelp,
   resolveConsoleConfig,
-  runNode,
-  type NodeDeps,
-} from "../commands/node.js";
+} from "../lib/console-api.js";
+import { createConsoleProvider } from "../lib/hands/console-provider.js";
 import { NODE_VERBS } from "../command-table.js";
 import type { ConsoleCredentials } from "../lib/console-auth.js";
 import { SECRET_KEYS } from "../lib/secrets.js";
@@ -168,6 +166,13 @@ function harness(replies: Reply[], overrides: Partial<NodeDeps> = {}) {
   };
 }
 
+const RETIRED_FLAG = ["--free", "tier"].join("-");
+
+const PAYMENTS_DISABLED: Reply = {
+  status: 403,
+  body: { error: "Payments are not available yet. Use the free tier.", code: "PAYMENTS_DISABLED" },
+};
+
 const CREATE_ARGS = ["create", "--spec", "small", "--ssh-key", "key-1", "--ssh-key", "key-2", "--name", "box"];
 
 describe("agro node create", () => {
@@ -290,50 +295,103 @@ describe("agro node create", () => {
       { status: 200, body: { id: "n6", status: "running", ipv4: "5.6.7.8", ssh: null } },
     ]);
     expect(await runNode([...CREATE_ARGS, "--json"], h.io, h.deps)).toBe(0);
-    expect(JSON.parse(h.stdout())).toEqual({ id: "n6", status: "running", ssh: "ssh sandbox@5.6.7.8" });
+    expect(JSON.parse(h.stdout())).toEqual({ id: "n6", status: "running", spec: "small", ssh: "ssh sandbox@5.6.7.8" });
   });
 
-  it("sends freeTier true with --free-tier", async () => {
-    const h = harness([{ status: 202, body: { id: "f1", status: "running", ipv4: "1.2.3.4" } }]);
-    expect(await runNode(["create", "--spec", "n4", "--ssh-key", "key-1", "--free-tier"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], freeTier: true });
-  });
-
-  it("sends no freeTier key without --free-tier", async () => {
+  it("sends no freeTier key on the first request", async () => {
     const h = harness([{ status: 202, body: { id: "f2", status: "running", ipv4: "1.2.3.4" } }]);
     expect(await runNode(["create", "--spec", "n4", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).not.toHaveProperty("freeTier");
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"] });
   });
 
-  it("defaults the spec to n4 with --free-tier", async () => {
+  it("sends the spec n4 without --spec", async () => {
     const h = harness([{ status: 202, body: { id: "f3", status: "running", ipv4: "1.2.3.4" } }]);
-    expect(await runNode(["create", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toMatchObject({ spec: "n4", freeTier: true });
-  });
-
-  it("sends a spec other than n4 with --free-tier unchanged", async () => {
-    const h = harness([{ status: 202, body: { id: "f4", status: "running", ipv4: "1.2.3.4" } }]);
-    expect(await runNode(["create", "--free-tier", "--spec", "small", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toMatchObject({ spec: "small", freeTier: true });
-  });
-
-  it("prints the HTTP status and code when payments are disabled", async () => {
-    const h = harness([
-      {
-        status: 403,
-        body: { error: "Payments are not available yet. Use the free tier.", code: "PAYMENTS_DISABLED" },
-      },
-    ]);
-    expect(await runNode(["create", "--spec", "n4", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toContain(
-      "agro node create: HTTP 403 PAYMENTS_DISABLED: Payments are not available yet. Use the free tier.",
-    );
+    expect(await runNode(["create", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(FREE_TIER_SPEC).toBe("n4");
     expect(h.calls).toHaveLength(1);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"] });
   });
 
-  it("requires --spec", async () => {
+  it("falls back to n4 in the free tier with a notice when payments are disabled", async () => {
+    const h = harness([
+      PAYMENTS_DISABLED,
+      { status: 202, body: { id: "f4", status: "running", ipv4: "1.2.3.4" } },
+    ]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1", "--name", "box"], h.io, h.deps)).toBe(0);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://console.example/api/nodes",
+      "POST https://console.example/api/nodes",
+    ]);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n8", sshKeyIds: ["key-1"], name: "box" });
+    expect(h.calls[1].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], name: "box", freeTier: true });
+    expect(h.stderr()).toContain("spec n8 is not in the free tier; creating n4\n");
+    expect(h.stdout()).toBe("id: f4\nstatus: running\nspec: n4\nssh sandbox@1.2.3.4\n");
+  });
+
+  it("prints the created spec n4 in the JSON line after the fallback", async () => {
+    const h = harness([
+      PAYMENTS_DISABLED,
+      { status: 202, body: { id: "f8", status: "running", ipv4: "1.2.3.4" } },
+    ]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toEqual({ id: "f8", status: "running", spec: "n4", ssh: "ssh sandbox@1.2.3.4" });
+    expect(h.stderr()).toContain("spec n8 is not in the free tier; creating n4\n");
+  });
+
+  it("prints the requested spec in the JSON line without the fallback", async () => {
+    const h = harness([{ status: 202, body: { id: "f9", status: "running", ipv4: "1.2.3.4" } }]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toEqual({ id: "f9", status: "running", spec: "n8", ssh: "ssh sandbox@1.2.3.4" });
+  });
+
+  it("prints the requested spec in the text output without the fallback", async () => {
+    const h = harness([{ status: 202, body: { id: "f10", status: "running", ipv4: "1.2.3.4" } }]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("id: f10\nstatus: running\nspec: n8\nssh sandbox@1.2.3.4\n");
+  });
+
+  it("retries n4 in the free tier without a notice when the requested spec is n4", async () => {
+    const h = harness([
+      PAYMENTS_DISABLED,
+      { status: 202, body: { id: "f5", status: "running", ipv4: "1.2.3.4" } },
+    ]);
+    expect(await runNode(["create", "--spec", "n4", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.calls).toHaveLength(2);
+    expect(h.calls[1].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], freeTier: true });
+    expect(h.stderr()).not.toContain("is not in the free tier");
+  });
+
+  it("sends no third request when the free tier retry fails", async () => {
+    const h = harness([
+      PAYMENTS_DISABLED,
+      { status: 403, body: { error: "a free node is live", code: "FREE_TIER_INELIGIBLE" } },
+      { status: 202, body: { id: "f6", status: "running" } },
+    ]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(2);
+    expect(h.stderr()).toContain("agro node create: HTTP 403 FREE_TIER_INELIGIBLE: a free node is live");
+  });
+
+  it.each([
+    [403, "FREE_TIER_INELIGIBLE"],
+    [403, "FORBIDDEN"],
+    [400, "PAYMENTS_DISABLED"],
+    [422, "INVALID_SPEC"],
+  ])("exits 1 after one request on HTTP %i %s", async (status, code) => {
+    const h = harness([
+      { status, body: { error: "refused", code } },
+      { status: 202, body: { id: "f7", status: "running" } },
+    ]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.stderr()).toContain(`agro node create: HTTP ${status} ${code}: refused`);
+    expect(h.stderr()).not.toContain("is not in the free tier");
+  });
+
+  it("rejects the retired free tier flag before any request", async () => {
     const h = harness([{ status: 202, body: {} }]);
-    expect(await runNode(["create", "--ssh-key", "k"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["create", "--spec", "n4", "--ssh-key", "key-1", RETIRED_FLAG], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro node create: unknown flag "${RETIRED_FLAG}"\n`);
     expect(h.calls).toHaveLength(0);
   });
 
@@ -379,7 +437,7 @@ describe("agro node create ssh key resolution", () => {
       ],
       { readFile: files.readFile },
     );
-    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(0);
+    expect(await runNode(["create"], h.io, h.deps)).toBe(0);
     expect(files.reads).toEqual([LOCAL_KEY_PATH]);
     expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       "GET https://console.example/api/ssh-keys",
@@ -399,7 +457,7 @@ describe("agro node create ssh key resolution", () => {
       ],
       { readFile: files.readFile },
     );
-    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(0);
+    expect(await runNode(["create"], h.io, h.deps)).toBe(0);
     expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       "GET https://console.example/api/ssh-keys",
       "POST https://console.example/api/ssh-keys",
@@ -415,13 +473,13 @@ describe("agro node create ssh key resolution", () => {
       [{ status: 200, body: { sshKeys: [] } }, { status: 201, body: { id: "top-key" } }, RUNNING],
       { readFile: localKey().readFile },
     );
-    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(0);
+    expect(await runNode(["create"], h.io, h.deps)).toBe(0);
     expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["top-key"] });
   });
 
   it("exits 1 when the local key file does not exist", async () => {
     const h = harness([RUNNING], { readFile: () => undefined });
-    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["create"], h.io, h.deps)).toBe(1);
     expect(h.stderr()).toContain("no --ssh-key given and ~/.ssh/id_ed25519.pub not found");
     expect(h.calls).toHaveLength(0);
   });
@@ -429,7 +487,7 @@ describe("agro node create ssh key resolution", () => {
   it("uses only the given --ssh-key flags and makes no ssh-keys call", async () => {
     const files = localKey();
     const h = harness([RUNNING], { readFile: files.readFile });
-    expect(await runNode(["create", "--free-tier", "--ssh-key", "a", "--ssh-key", "b"], h.io, h.deps)).toBe(0);
+    expect(await runNode(["create", "--ssh-key", "a", "--ssh-key", "b"], h.io, h.deps)).toBe(0);
     expect(files.reads).toEqual([]);
     expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual(["POST https://console.example/api/nodes"]);
     expect(h.calls[0].body).toMatchObject({ sshKeyIds: ["a", "b"] });
@@ -439,7 +497,7 @@ describe("agro node create ssh key resolution", () => {
     const h = harness([{ status: 403, body: { error: "forbidden", code: "FORBIDDEN" } }], {
       readFile: localKey().readFile,
     });
-    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["create"], h.io, h.deps)).toBe(1);
     expect(h.stderr()).toContain("HTTP 403 FORBIDDEN");
     expect(h.calls).toHaveLength(1);
   });
@@ -448,7 +506,7 @@ describe("agro node create ssh key resolution", () => {
     const h = harness([{ status: 200, body: { sshKeys: [] } }, { status: 201, body: {} }], {
       readFile: localKey().readFile,
     });
-    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["create"], h.io, h.deps)).toBe(1);
     expect(h.calls).toHaveLength(2);
   });
 });
@@ -548,7 +606,7 @@ describe("agro node create profile and app flags", () => {
   it("shows the new flags in the help", () => {
     const help = nodeHelp("agro");
     expect(help).toContain(
-      "agro node create --spec <spec> [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]",
+      "agro node create [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--json]",
     );
     for (const flag of ["--profile", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
   });
@@ -663,71 +721,77 @@ describe("agro node delete", () => {
 describe("agro node check", () => {
   const LOCAL_KEY = "ssh-ed25519 AAAAlocal op@laptop";
   const KEYS = { status: 200, body: { sshKeys: [{ id: "key-1", publicKey: "ssh-ed25519 AAAAlocal other@host" }, { id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } };
+  const ELIGIBLE = { status: 200, body: { eligible: true } };
   const withLocalKey = { readFile: (path: string) => (path === "/home/op/.ssh/id_ed25519.pub" ? `${LOCAL_KEY}\n` : undefined) };
   const methods = (calls: Recorded[]) => calls.map((c) => `${c.method} ${c.url}`);
+  const BOTH = ["GET https://console.example/api/ssh-keys", "GET https://console.example/api/free-tier"];
 
-  it("finds the local public key by identity with GET only", async () => {
-    const h = harness([KEYS], withLocalKey);
+  it("finds the local public key by identity and checks the free tier with GET only", async () => {
+    const h = harness([KEYS, ELIGIBLE], withLocalKey);
     expect(await runNode(["check"], h.io, h.deps)).toBe(0);
-    expect(h.stdout()).toBe("ok ssh-key key-1 ~/.ssh/id_ed25519.pub\n");
-    expect(methods(h.calls)).toEqual(["GET https://console.example/api/ssh-keys"]);
+    expect(h.stdout()).toBe("ok ssh-key key-1 ~/.ssh/id_ed25519.pub\nok free-tier\n");
+    expect(methods(h.calls)).toEqual(BOTH);
     expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
   });
 
   it("fails without a POST when the local public key is not registered", async () => {
-    const h = harness([{ status: 200, body: { sshKeys: [{ id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } }], withLocalKey);
+    const h = harness([{ status: 200, body: { sshKeys: [{ id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } }, ELIGIBLE], withLocalKey);
     expect(await runNode(["check"], h.io, h.deps)).toBe(1);
-    expect(h.stdout()).toMatch(/^fail ssh-key ~\/\.ssh\/id_ed25519\.pub: not registered in agro-console — .*--ssh-key <uuid>\n$/);
+    expect(h.stdout()).toMatch(/^fail ssh-key ~\/\.ssh\/id_ed25519\.pub: not registered in agro-console — .*--ssh-key <uuid>\nok free-tier\n$/);
     expect(h.calls.every((c) => c.method === "GET")).toBe(true);
   });
 
-  it("fails with a remedy when the local public key file is missing and calls nothing", async () => {
-    const h = harness([KEYS]);
+  it("fails with a remedy when the local public key file is missing and reads only the free tier", async () => {
+    const h = harness([ELIGIBLE]);
     expect(await runNode(["check"], h.io, h.deps)).toBe(1);
     expect(h.stdout()).toContain(`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`);
-    expect(h.calls).toEqual([]);
+    expect(methods(h.calls)).toEqual(["GET https://console.example/api/free-tier"]);
   });
 
   it("finds each --ssh-key id and fails on an unknown id", async () => {
-    const h = harness([KEYS]);
+    const h = harness([KEYS, ELIGIBLE]);
     expect(await runNode(["check", "--ssh-key", "key-2", "--ssh-key=key-9"], h.io, h.deps)).toBe(1);
     expect(h.stdout().split("\n")).toEqual([
       "ok ssh-key key-2",
       "fail ssh-key key-9: not found in agro-console — pass the id of an SSH key in agro-console",
+      "ok free-tier",
       "",
     ]);
-    expect(methods(h.calls)).toEqual(["GET https://console.example/api/ssh-keys"]);
+    expect(methods(h.calls)).toEqual(BOTH);
   });
 
   it("passes the free tier check when eligible", async () => {
-    const h = harness([KEYS, { status: 200, body: { eligible: true } }]);
-    expect(await runNode(["check", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    const h = harness([KEYS, ELIGIBLE]);
+    expect(await runNode(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
     expect(h.stdout()).toBe("ok ssh-key key-1\nok free-tier\n");
-    expect(methods(h.calls)).toEqual([
-      "GET https://console.example/api/ssh-keys",
-      "GET https://console.example/api/free-tier",
-    ]);
+    expect(methods(h.calls)).toEqual(BOTH);
   });
 
-  it("fails the free tier check with the code and the reason from the body", async () => {
+  it("warns with the code and the reason when the account is not eligible and keeps exit 0", async () => {
     const h = harness([KEYS, { status: 200, body: { eligible: false, code: "FREE_TIER_INELIGIBLE", reason: "a free node is live" } }]);
-    expect(await runNode(["check", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
     expect(h.stdout()).toContain("ok ssh-key key-1\n");
-    expect(h.stdout()).toContain("fail free-tier: not eligible (FREE_TIER_INELIGIBLE: a free node is live) — run agro auth login in the personal context");
+    expect(h.stdout()).toMatch(/\nwarn free-tier: not eligible \(FREE_TIER_INELIGIBLE: a free node is live\) — .*agro auth login in the personal context\n$/);
+  });
+
+  it("keeps exit 1 for a failed key check when the account is not eligible", async () => {
+    const h = harness([KEYS, { status: 200, body: { eligible: false } }]);
+    expect(await runNode(["check", "--ssh-key", "key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("warn free-tier: not eligible — ");
   });
 
   it("names onboarding and the personal context on a 403 onboarding reply", async () => {
     const h = harness([KEYS, { status: 403, body: { error: "Onboarding required" } }]);
-    expect(await runNode(["check", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
     expect(h.stdout()).toContain("fail free-tier: HTTP 403 no code: Onboarding required — finish agro-console onboarding, or run agro auth login in the personal context\n");
   });
 
   it("never sends a POST or a DELETE across every check outcome", async () => {
     const h = harness([{ status: 200, body: { sshKeys: [] } }, { status: 200, body: { eligible: false } }], withLocalKey);
-    expect(await runNode(["check", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(await runNode(["check"], h.io, h.deps)).toBe(1);
     expect(h.calls.length).toBe(2);
     expect(h.calls.map((c) => c.method)).toEqual(["GET", "GET"]);
-    expect(h.stdout()).toContain("fail free-tier: not eligible — ");
+    expect(h.stdout()).toContain("warn free-tier: not eligible — ");
   });
 
   it("rejects an unknown flag before any request", async () => {
@@ -737,8 +801,62 @@ describe("agro node check", () => {
     expect(h.calls).toEqual([]);
   });
 
+  it("rejects the retired free tier flag before any request", async () => {
+    const h = harness([KEYS]);
+    expect(await runNode(["check", RETIRED_FLAG], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro node check: unknown flag "${RETIRED_FLAG}"\n`);
+    expect(h.calls).toEqual([]);
+  });
+
   it("lists check in the verbs and the help", () => {
     expect(NODE_VERBS).toContain("check");
-    expect(nodeHelp("agro")).toContain("agro node check [--free-tier] [--ssh-key <uuid>]...");
+    expect(nodeHelp("agro")).toContain("agro node check [--ssh-key <uuid>]...");
+  });
+});
+
+describe("agro node help", () => {
+  it("names no free tier flag and describes the n4 fallback", () => {
+    const help = nodeHelp("agro");
+    expect(help).not.toContain(RETIRED_FLAG);
+    expect(help).toContain("agro node create [--spec <spec>]");
+    expect(help).toContain("creates n4 in the free tier");
+  });
+
+  it("states that a sandbox node is not a hand unless a brain manages it", () => {
+    expect(nodeHelp("agro")).toContain("is not a hand unless a brain manages the node");
+  });
+});
+
+describe("console hand provider create", () => {
+  function provider(replies: Reply[]) {
+    const h = harness(replies);
+    const notices: string[] = [];
+    const config = { url: "https://console.example", token: TOKEN, source: "env" as const };
+    const deps = { ...(h.deps as NodeDeps), pollDelayMs: () => 1000 };
+    return { h, notices, hands: createConsoleProvider(deps, config, (notice) => notices.push(notice)) };
+  }
+
+  it("falls back to n4 in the free tier with a notice when payments are disabled", async () => {
+    const { h, notices, hands } = provider([PAYMENTS_DISABLED, { status: 202, body: { id: "u1", status: "running" } }]);
+    const created = await hands.create({ name: "w", spec: "n8" }, () => {});
+    expect(created.ok).toBe(true);
+    expect(h.calls.map((c) => c.body)).toEqual([
+      { profile: "sandbox", name: "w", spec: "n8" },
+      { profile: "sandbox", name: "w", spec: "n4", freeTier: true },
+    ]);
+    expect(notices).toEqual(["spec n8 is not in the free tier; creating n4"]);
+  });
+
+  it("keeps the first body without a spec and retries n4 in the free tier", async () => {
+    const { h, hands } = provider([PAYMENTS_DISABLED, { status: 202, body: { id: "u2", status: "running" } }]);
+    expect((await hands.create({}, () => {})).ok).toBe(true);
+    expect(h.calls.map((c) => c.body)).toEqual([{ profile: "sandbox" }, { profile: "sandbox", spec: "n4", freeTier: true }]);
+  });
+
+  it("does not retry on another code", async () => {
+    const { h, notices, hands } = provider([{ status: 403, body: { code: "FREE_TIER_INELIGIBLE" } }]);
+    expect(await hands.create({ spec: "n8" }, () => {})).toEqual({ ok: false, error: "HTTP 403 FREE_TIER_INELIGIBLE" });
+    expect(h.calls).toHaveLength(1);
+    expect(notices).toEqual([]);
   });
 });

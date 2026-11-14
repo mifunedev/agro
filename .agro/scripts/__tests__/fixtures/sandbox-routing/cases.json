@@ -24,7 +24,7 @@
     {
       "id": "R5",
       "prompt": "I authorize creating a capable hand from this brain to offload the current branch of my existing acme/widget project, then fetching its committed result here. The hand supports agro run. I also authorize destroying that task-owned hand after acceptance. Keep application execution isolated and preserve source ownership.",
-      "oracle": { "route": "mifune-console", "owners": ["agro-hands", "agro-run"] }
+      "oracle": { "route": "hands", "owners": ["agro-hands", "agro-run"] }
     },
     {
       "id": "R6",
@@ -40,6 +40,21 @@
       "id": "R8",
       "prompt": "Set up a persistent OpenShell workspace, keep an interactive development server available after I disconnect, and give parallel implementation its own checkout. Identify the separate owners of workspace lifecycle, interactive processes, and checkout isolation.",
       "oracle": { "route": "lifecycle", "owners": ["lifecycle", "herdr", "worktrees"] }
+    },
+    {
+      "id": "R9",
+      "prompt": "This brain is an exe.dev VM, and its agro.json sets hands.provider to exedev. Offload the current branch of mifunedev/widget to hand sbx-dev-001, run pnpm test, commit, and fetch it here.",
+      "oracle": { "route": "hands", "owners": ["agro-hands", "agro-run"] }
+    },
+    {
+      "id": "R10",
+      "prompt": "This brain is an exe.dev VM, and its agro.json sets hands.provider to exedev. List my hands.",
+      "oracle": { "route": "hands", "owners": ["agro-hands"] }
+    },
+    {
+      "id": "R11",
+      "prompt": "This brain is an exe.dev VM, and its agro.json sets hands.provider to exedev. Pause hand sbx-dev-001.",
+      "oracle": { "route": "hands", "owners": ["agro-hands"] }
     }
   ]
 }

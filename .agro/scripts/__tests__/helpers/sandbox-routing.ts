@@ -5,9 +5,9 @@ import { join } from "node:path";
 export const instructionFiles = [
   ".agro/skills/sandbox/SKILL.md",
   ".agro/skills/sandbox/references/exedev.md",
+  ".agro/skills/sandbox/references/hands.md",
   ".agro/skills/sandbox/references/local-docker.md",
   ".agro/skills/sandbox/references/local-msb.md",
-  ".agro/skills/sandbox/references/mifune-console.md",
   ".agro/skills/sandbox/references/providers.md",
   ".agro/skills/sandbox/references/rationale.md",
   ".agro/skills/sandbox/references/validation.md",
@@ -16,9 +16,9 @@ export const instructionFiles = [
 ] as const;
 export const casesFile = ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json";
 export const decisionsFile = ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json";
-export const routes = ["local/docker", "local/msb", "mifune-console", "exedev", "validation", "lifecycle", "clarify"];
+export const routes = ["local/docker", "local/msb", "hands", "exedev", "validation", "lifecycle", "clarify"];
 export const owners = ["agro-run", "agro-hands", "exedev-api", "validation-driver", "lifecycle", "herdr", "worktrees"];
-const ids = Array.from({ length: 8 }, (_, i) => `R${i + 1}`);
+export const caseIds = Array.from({ length: 11 }, (_, i) => `R${i + 1}`);
 type ObjectValue = Record<string, unknown>;
 
 function object(value: unknown): ObjectValue {
@@ -66,7 +66,7 @@ export function loadCases(root: string) {
     if (!oracle.owners.length) throw new Error("missing oracle owners");
     return { id: row.id, prompt: row.prompt, oracle: { route: oracle.route, owners: oracle.owners } };
   });
-  if (JSON.stringify(cases.map((row) => row.id).sort()) !== JSON.stringify(ids)) throw new Error("expected exactly R1-R8");
+  if (JSON.stringify(cases.map((row) => row.id).sort()) !== JSON.stringify([...caseIds].sort())) throw new Error(`expected exactly ${caseIds.join(", ")}`);
   return cases;
 }
 export function gradeDecisions(value: unknown, root: string, kind: "observed" | "synthetic-unit" = "observed") {
