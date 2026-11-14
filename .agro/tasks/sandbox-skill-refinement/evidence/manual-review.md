@@ -100,7 +100,6 @@ Decision contexts created no workload or provider resource.
 
 The advisor executed the self-contained `verifierPython` program in `preservation.json` through `agro run`.
 The program exited 0 and emitted the recorded `structuralVerification` JSON.
-A fresh independent skeptic reproduced its output and both hashes without finding a preservation blocker.
 Three complete remote test modules differ from the base only by one exact path substitution each.
 The comparison removed no assertions, comments, or whitespace.
 The portability module and seven fixtures remain unchanged.
