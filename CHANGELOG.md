@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-11-14
+
 ### Added
 
 - Add the exe.dev hand provider to `agro hands`: the `agro.json` field `hands.provider` (`console` or `exedev`) selects the provider, an exe.dev hand is a VM with the tag `agro-hand`, and the verbs refuse untagged VMs and the brain; the sandbox skill route `mifune-console` becomes `hands` ([#1623](https://github.com/mifunedev/agro/issues/1623)).
