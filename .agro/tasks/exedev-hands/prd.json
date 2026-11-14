@@ -96,7 +96,7 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": "Criteria 1-14 executed/reasoned per worker report and advisor check: git grep for the flag and CONSOLE_FREE_TIER exit 1 (no lines); auth.ts has no node.js import; createConsoleNode retries once on 403 PAYMENTS_DISABLED with n4+freeTier and notices unless n4; formatTable and confirmDestroy shared; nodeHelp states the not-a-hand rule; ste-check on validation.md and providers.md exit 0; typecheck exit 0. Criterion 15: test:scripts 3351 passed, 8 failed = 7 baseline herdr-default + sandbox-routing.test.ts content-bound provenance hash, because US-004 must edit providers.md, validation.md, and docs/lifecycle-commands.md. decisions.json is owned by US-007, which renames the route and must record a fresh observed routing run; the advisor carries this failure to US-007 (open question 2).",
       "dependsOn": [
         "US-002",
@@ -117,7 +117,8 @@
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
       ],
       "external": false,
-      "commit": "3ea00826"
+      "commit": "3ea00826",
+      "rounds": 1
     },
     {
       "id": "US-005",
@@ -169,7 +170,7 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": "1-6, 8 executed: hands-exedev.test.ts pins new --json --name --tag agro-hand with ls wait and fail-closed paths, --project/--clone remote hand-<name>, cp --copy-tags, pause/resume/rm argv, untagged refusal with no write call, brain refusal by hostname label and ssh_dest label, --spec refusal before any ssh call, confirmDestroy yes/no/--yes; hands suites 110/110. Note: the destroy prompt precedes the guard; a refused destroy still asks first (no write occurs). 7 reasoned: handsHelp has Providers, Console hands (n4 fallback), exe.dev hands (tag enrollment), Guards, Projects sections. 9: typecheck exit 0; test:scripts 3395 passed, 9 failed = 7 baseline + 2 carried to US-007.",
       "dependsOn": [
         "US-005"
@@ -180,7 +181,8 @@
         ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
       ],
       "external": false,
-      "commit": "bcf63dd0"
+      "commit": "bcf63dd0",
+      "rounds": 1
     },
     {
       "id": "US-007",
