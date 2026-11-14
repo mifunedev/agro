@@ -14,14 +14,14 @@
       "docs/lifecycle-commands.md",
       "docs/runtimes/openshell.md"
     ],
-    "instructionSha256": "5433340a9d78a3524d18cc02ea4034589c6759a7c207a0f0752af90745d0066d",
-    "casesSha256": "a2350c8bdb6de1b0d6b9a7335b2822be3618d44b4f8f41af3e5c80bf2a72acec"
+    "instructionSha256": "6271886a94756a417cec5a17a99fc236199aef896ed493292857f9519c343ba0",
+    "casesSha256": "5a60ebb34d4dee76d10522f29445759958f3215e882f7c41950789f1e4a34a9e"
   },
   "decisions": [
     {
       "caseId": "R1",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R1",
+      "agentHandle": "replay4-R1",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -36,13 +36,13 @@
           "agro run -- <verification-command>",
           "agro run -- sh -c '<cmd1> && <cmd2>'"
         ],
-        "notes": "Suggestions only; nothing executed. Run from the host checkout (not nested in a sandbox); verify agro run --help first. The container mounts the checkout writable, and writes are not rolled back, so inspect the diff after. Record the exit code. Wrap shell operators with sh -c. Do not use --sandbox or lifecycle: no persistent workspace is in scope. No host-execution fallback."
+        "notes": "Suggestions only; nothing executed. The request names this host checkout and a disposable container, so the hand default does not apply. Run from the host, not nested in a sandbox. The verification command is a placeholder. Review checkout credentials. The repo is mounted writable; writes are not rolled back. If Docker is missing, stop; no raw-host fallback."
       }
     },
     {
       "caseId": "R2",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R2",
+      "agentHandle": "replay4-R2",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -52,18 +52,17 @@
           "agro-run"
         ],
         "commands": [
-          "agro --version",
           "agro run --help",
           "msb --version",
-          "agro run --isolation microvm -- <command...>"
+          "agro run --isolation microvm -- <command>"
         ],
-        "notes": "Suggestion only; nothing executed. Run on the host from the checkout. Confirm agro run --help lists --isolation microvm and msb reports exactly 0.7.13. Use sh -c if the command needs shell operators. agro run creates and removes the guest; checkout writes persist. If agro refuses, do not fall back to host execution."
+        "notes": "Suggestion only; nothing executed. A separate guest kernel on a KVM host with msb 0.7.13, no services, no egress allowlist matches local/msb. Confirm agro run --help lists --isolation microvm and msb reports exactly 0.7.13. Run on the host from the checkout. Use sh -c for shell operators. If refused, stop; no host or Docker fallback."
       }
     },
     {
       "caseId": "R3",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R3",
+      "agentHandle": "replay4-R3",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -75,15 +74,15 @@
         "commands": [
           "agro --version",
           "agro run --help",
-          "agro run -- pnpm test:integration"
+          "agro run -- <integration-test-command>"
         ],
-        "notes": "Suggestions only; nothing executed. On the host (not nested), check agro run --help. Declare run.services.postgres in agro.json (postgres:17-alpine, ready: pg_isready -U postgres) plus run.env TEST_DATABASE_URL=postgres://postgres:agro@postgres:5432/postgres. Each run gets a fresh service; agro run removes it best-effort after success or failure. The test script name is assumed. Inspect cleanup errors."
+        "notes": "Suggestions only; nothing executed. The operator named this Docker-capable host, so local/docker applies, not a hand. Declare run.services.postgres (postgres:17-alpine, ready: pg_isready -U postgres) and run.env TEST_DATABASE_URL in the checkout's agro.json; keep secrets out. Each run gets a fresh service, removed best-effort; check cleanup errors. If Docker is missing, stop; never the raw host."
       }
     },
     {
       "caseId": "R4",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R4",
+      "agentHandle": "replay4-R4",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -97,13 +96,13 @@
           "agro run --help",
           "agro run -- <dependency-verification-command>"
         ],
-        "notes": "Suggestions only; nothing executed. local/docker: the checkout's agro.json already sets access.egress allowlist, enforced by agro run through the Squid proxy on an internal network. Run on the host, not nested; do not use --sandbox (it bypasses egress). Keep the allowlist unchanged. If the run is refused, report the block; never fall back to the raw host. Check the exit code and checkout diff."
+        "notes": "Suggestions only; nothing executed. The operator named this Docker-capable host, so this location precedes the running-hand default. With access.egress allowlist, agro run adds an internal network and Squid proxy. Keep the allowlist unchanged and avoid --sandbox, which bypasses access.egress. If Docker is missing or a request is refused, stop and report; never fall back to the raw host."
       }
     },
     {
       "caseId": "R5",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R5",
+      "agentHandle": "replay4-R5",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -114,23 +113,22 @@
           "agro-run"
         ],
         "commands": [
-          "agro --version",
           "agro hands --help",
           "agro hands create --project acme/widget",
           "agro hands exec <hand> --project acme/widget -- agro run --help",
           "agro hands exec <hand> --project acme/widget -- agro run -- <command>",
-          "agro hands exec <hand> --project acme/widget -- git commit -am '<message>'",
+          "agro hands exec <hand> --project acme/widget -- git commit -am \"<message>\"",
           "agro hands fetch <hand> --project acme/widget",
           "agro hands list",
           "agro hands destroy <hand> --yes"
         ],
-        "notes": "Suggestions only; nothing executed. Read hands.provider (host config) and check installed help before creation. agro hands owns creation, transport, git push/fetch; agro run on the hand owns application execution. Commit on the hand before fetch. The brain accepts; destroy only this task-owned hand after acceptance. Stop and report on any guard refusal or HTTP 403."
+        "notes": "Suggestions only; nothing executed. agro hands creates the hand, pushes the current branch, and fetches committed results; agro run on the hand executes the application in isolation. Confirm remote agro run help first. Commit on the hand before fetching. The brain verifies and accepts, then destroys only this task-owned hand and confirms via agro hands list."
       }
     },
     {
       "caseId": "R6",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R6",
+      "agentHandle": "replay4-R6",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -141,15 +139,17 @@
         ],
         "commands": [
           "ssh exe.dev whoami --json",
+          "ssh exe.dev ls --json",
+          "ssh review-box.exe.xyz '<bounded read-only inspection command>'",
           "ssh exe.dev ls --json"
         ],
-        "notes": "Suggestions only; nothing executed. exedev route via the account API, read-only. Record review-box as borrowed with owner and allowed operations: inspection only. Do not run new, rm, restart, or pause. Confirm review-box still appears in ls --json afterward (retained). Do not run application work on the raw VM host or send tokens or .env files to it."
+        "notes": "Suggestions only; nothing executed. Record review-box as borrowed: no create, rm, or restart. Locate it in ls --json without treating the name as task ownership proof. Keep inspection bounded and read-only; no application work on the raw host; send no tokens or .env files. Afterward re-run ls --json to confirm it is retained."
       }
     },
     {
       "caseId": "R7",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R7",
+      "agentHandle": "replay4-R7",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -164,13 +164,13 @@
           "setsid nohup bash \"$SKILL/scripts/run.sh\" exedev > run.out 2>&1 < /dev/null &",
           "cat run.out"
         ],
-        "notes": "Suggestions only; nothing executed. Fresh-install release check goes through the validation procedure, not the exedev route. Run preflight first; stop if it refuses. The driver creates one agro-mx-* VM, runs checks/fresh-install.sh (F1-F4), then destroys that VM. Watch with a bounded completion monitor. Send no tokens or .env into the VM. Teardown proof: 'remaining agro-matrix resources on exedev: 0' and 'RUN DONE'."
+        "notes": "Suggestions only; nothing executed. Fresh-install validation scenario with the exedev adapter, not the exedev execution route. Prepare the adapter per providers.md, run preflight, stop on refusal. The run creates one agro-mx-* VM and destroys it unless KEEP=1. Monitor with a bounded completion monitor. Copy F1-F4 rows; expect 'remaining ... 0' and 'RUN DONE'. Delete only this run's VM."
       }
     },
     {
       "caseId": "R8",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R8",
+      "agentHandle": "replay4-R8",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -183,18 +183,18 @@
         ],
         "commands": [
           "agro sandbox install openshell --name <name>",
-          "agro shell <name>",
           "agro sandbox list",
-          "herdr (via /herdr) to start the dev server in a managed pane",
-          "git worktree add .worktrees/<branch> -b <branch> (via /worktrees)"
+          "agro shell <name>",
+          "herdr (via /herdr skill) to run the dev server in a persistent pane",
+          "git worktree add .worktrees/<branch> -b <branch> (via /worktrees skill)"
         ],
-        "notes": "Suggestions only; nothing executed. The sandbox skill owns none of these. The public lifecycle commands own the persistent OpenShell workspace (experimental, interactive-only; refuses --checkout/--home-mount). /herdr owns the dev server that survives disconnect without an attached shell. /worktrees owns an isolated checkout for parallel work."
+        "notes": "Suggestions only; nothing executed. The sandbox skill disclaims these jobs. Public lifecycle commands own the OpenShell workspace (experimental, interactive-only; needs host openshell CLI; refuses --checkout). /herdr owns the disconnect-surviving dev server. /worktrees owns the isolated checkout for parallel work. Get operator consent before creating anything."
       }
     },
     {
       "caseId": "R9",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R9",
+      "agentHandle": "replay4-R9",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -206,23 +206,21 @@
         ],
         "commands": [
           "agro hands --help",
-          "agro hands exec sbx-dev-001 -- git init -q projects/mifunedev/widget",
-          "agro hands exec sbx-dev-001 -- git -C projects/mifunedev/widget config receive.denyCurrentBranch updateInstead",
-          "git -C <harness-root>/projects/mifunedev/widget remote add hand-sbx-dev-001 sbx-dev-001.exe.xyz:projects/mifunedev/widget",
-          "GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=sbx-dev-001\" git -C <harness-root>/projects/mifunedev/widget push hand-sbx-dev-001 HEAD",
+          "agro hands list",
           "agro hands exec sbx-dev-001 --project mifunedev/widget -- agro run --help",
+          "git -C <harness-root>/projects/mifunedev/widget remote get-url hand-sbx-dev-001",
+          "GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=sbx-dev-001\" git -C <harness-root>/projects/mifunedev/widget push hand-sbx-dev-001 HEAD",
           "agro hands exec sbx-dev-001 --project mifunedev/widget -- agro run -- pnpm test",
           "agro hands exec sbx-dev-001 --project mifunedev/widget -- git commit -am '<message>'",
-          "agro hands fetch sbx-dev-001 --project mifunedev/widget",
-          "agro hands list"
+          "agro hands fetch sbx-dev-001 --project mifunedev/widget"
         ],
-        "notes": "Suggestions only; nothing executed. Hands route: an exe.dev VM used as a hand, not the raw exedev route. Confirm hands.provider in the host config first. sbx-dev-001 must already carry the agro-hand tag; if the guard refuses, stop and report, do not tag. Add the brain remote only if missing; stop if it differs. Run pnpm test via agro run on the hand, never on the raw host."
+        "notes": "Suggestions only; nothing executed. Hands route on the exedev provider: agro hands moves the branch and fetches; agro run on the hand runs pnpm test. sbx-dev-001 exists and must carry the agro-hand tag; do not tag it unless the operator asks. Push only if the remote is missing or matches. Stop on any guard refusal; never fall back to the raw host. Nothing billable."
       }
     },
     {
       "caseId": "R10",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R10",
+      "agentHandle": "replay4-R10",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -235,13 +233,13 @@
           "agro hands --help",
           "agro hands list"
         ],
-        "notes": "Suggestions only; nothing executed. Listing hands is a hands-route request owned by agro hands. With hands.provider=exedev, hands are exe.dev VMs tagged agro-hand, named by VM name. No application work, so agro run is not needed; not billable, so no create authority. If ssh exe.dev whoami fails (exit 2), ask the operator to register the brain SSH key."
+        "notes": "Suggestions only; nothing executed. 'List my hands.' maps to the hands route, which serves console and exe.dev hands, so hands.provider=exedev does not change the route to exedev. Owner is agro-hands only; no application work runs. Check installed help first. Listing creates nothing and costs nothing."
       }
     },
     {
       "caseId": "R11",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay3-R11",
+      "agentHandle": "replay4-R11",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -252,11 +250,92 @@
         ],
         "commands": [
           "agro hands --help",
-          "agro hands pause --help",
           "agro hands pause sbx-dev-001",
           "agro hands list"
         ],
-        "notes": "Suggestions only; nothing executed. Pause is a hands lifecycle verb the exedev provider supports; hands.provider=exedev selects it and sbx-dev-001 is the exe.dev VM name. Check installed help, then confirm paused state with list. If the tag or brain guard refuses, stop and report; do not tag the VM or bypass the guard. No application work, so agro run is not involved."
+        "notes": "Suggestions only; nothing executed. With hands.provider=exedev, sbx-dev-001 is the exe.dev VM name and the hands route applies; the exedev route is for non-hand VMs. Check installed help for pause. The exedev provider refuses untagged VMs and the brain itself; if a guard refuses, stop and report; do not tag the VM. Confirm paused state with agro hands list."
+      }
+    },
+    {
+      "caseId": "R12",
+      "observedModel": "claude-opus-5-5",
+      "agentHandle": "replay4-R12",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "hands",
+        "owners": [
+          "agro-hands",
+          "agro-run"
+        ],
+        "commands": [
+          "agro hands list",
+          "agro hands --help",
+          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --help",
+          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run -- <test-command>"
+        ],
+        "notes": "Suggestions only; nothing executed. Default order: a running hand takes committed application runs. Confirm agro-sbx-dev-001 shows running and hands.provider is exedev. Verify the hand runtime and test command (placeholder). If the project is absent, use the existing-hand push steps. On exec failure, stop and report, offer local/docker, switch only with operator agreement. Never resume or create a hand."
+      }
+    },
+    {
+      "caseId": "R13",
+      "observedModel": "claude-opus-5-5",
+      "agentHandle": "replay4-R13",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro hands list",
+          "agro run --help",
+          "agro run -- <test-suite command for mifunedev/widget>"
+        ],
+        "notes": "Suggestions only; nothing executed. agro-sbx-dev-001 is paused, so it is not a running hand; the default never resumes or creates a hand, so the run falls through to local/docker. Confirm the hand is still paused, then run tests via agro run from the widget checkout. If Docker is missing, stop and report rather than use the raw host. Resume only on explicit operator request."
+      }
+    },
+    {
+      "caseId": "R14",
+      "observedModel": "claude-opus-5-5",
+      "agentHandle": "replay4-R14",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro --version",
+          "agro run --help",
+          "agro run -- <project test command, e.g. pnpm test>"
+        ],
+        "notes": "Suggestions only; nothing executed. No hand exists, so the default order goes to local/docker; never create or resume a hand. Run from the mifunedev/widget checkout on the host. The test command is unknown, so check the project's scripts first. If Docker is missing, stop and report; no raw-host fallback."
+      }
+    },
+    {
+      "caseId": "R15",
+      "observedModel": "claude-opus-5-5",
+      "agentHandle": "replay4-R15",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro --version",
+          "agro run --help",
+          "agro run -- <test-command>"
+        ],
+        "notes": "Nothing executed. 'On this host' names the location, so rule 1 overrides the running-hand default; do not route to agro-sbx-dev-001. Local means this exe.dev brain, inside Docker, never the raw host. If Docker is missing, stop and report with no fallback. Run from the mifunedev/widget checkout; replace <test-command> with the repo's real one."
       }
     }
   ]
