@@ -75,7 +75,9 @@
         "The final commit excludes agro.json, runtime code, dependency changes, and unrelated main-checkout edits.",
         "Manual review evidence records reproducible commands, outputs, and limits for pinned PR links.",
         "Machine-checked whole-file comparisons prove which active driver/adapter/suite test bodies changed only by canonical path retargeting.",
-        "Observed checks prove canonical CI targets, provider links, payload inclusion, retired entrypoints and test-target binding without assigning rubric grades."
+        "Observed checks prove canonical CI targets, provider links, payload inclusion, retired entrypoints and test-target binding without assigning rubric grades.",
+        "Default-loader introspection records actual provider IDs and required function names with no provider operation; optional-hook and phase limits remain explicit.",
+        "Supplemental routing evidence exposes actual frozen prompt/route/required-owner comparisons and full guard outcomes without changing the recorded replies or command-grading scope."
       ],
       "priority": 3,
       "dependsOn": ["US-001", "US-002"],

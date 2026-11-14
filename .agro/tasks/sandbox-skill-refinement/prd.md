@@ -45,6 +45,8 @@ Status: APPROVED by the operator's active goal.
 - [ ] Manual review evidence records reproducible commands, outputs, and limits for pinned PR links.
 - [ ] Whole-file comparisons prove active test-body equivalence after exact canonical path retargeting.
 - [ ] Observed structural checks prove CI targets, links, payload, retirement, and test bindings without rubric grades.
+- [ ] Default-loader introspection records actual IDs and required functions without provider operations or broader live claims.
+- [ ] Supplemental routing evidence records frozen expected/observed decisions and full guard outcomes without changing replies or grading scope.
 
 ## Summary
 
@@ -121,6 +123,8 @@ Reopen only US-003 to strengthen reproducible preservation and CI/discovery evid
 Do not reopen accepted source guidance, alter the rubric, or change any budget.
 Verify complete test-file equivalence after exact path substitutions and validate canonical CI/payload/link targets.
 Record actual outputs and scope limits, not preferred check statuses.
+Record the default loader's actual IDs and function table without provider operations.
+Expose the existing real route/owner comparisons and complete guard outcomes, not only a summary count.
 All instruction, case, and observed-reply bytes remain unchanged; prove that identity.
 Evaluate a new evidence-bearing candidate with a fresh council after verification and CI.
 

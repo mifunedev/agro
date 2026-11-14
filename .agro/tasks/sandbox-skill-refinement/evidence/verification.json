@@ -23,7 +23,392 @@
     "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
     "actualResponseRecord": ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
     "captureAudit": ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json",
-    "limits": "Genuinely new decision-only routing sample at immutable1d17ba3c. Suggested commands are unexecuted/ungraded and allowed extra owners are unpenalized; no general agent reliability or live provider success is inferred."
+    "limits": "Genuinely new decision-only routing sample at immutable1d17ba3c. Suggested commands are unexecuted/ungraded and allowed extra owners are unpenalized; no general agent reliability or live provider success is inferred.",
+    "observedCaseVerification": {
+      "method": "Executed the real gradeObservedFile function, then exposed its unchanged frozen case/observed-response comparisons.",
+      "graderReturnedNormally": true,
+      "recordKind": "observed",
+      "provenance": {
+        "instructionFiles": [
+          ".agro/skills/sandbox/SKILL.md",
+          ".agro/skills/sandbox/references/exedev.md",
+          ".agro/skills/sandbox/references/local-docker.md",
+          ".agro/skills/sandbox/references/local-msb.md",
+          ".agro/skills/sandbox/references/mifune-console.md",
+          ".agro/skills/sandbox/references/providers.md",
+          ".agro/skills/sandbox/references/rationale.md",
+          ".agro/skills/sandbox/references/validation.md",
+          "docs/lifecycle-commands.md",
+          "docs/runtimes/openshell.md"
+        ],
+        "instructionSha256": "d92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee",
+        "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab"
+      },
+      "ownerRule": "All required owners must be present; additional allowed owners are unpenalized.",
+      "commandRule": "Suggested command strings and notes are preserved, not executed or wording-graded.",
+      "cases": [
+        {
+          "caseId": "R1",
+          "prompt": "Run one verification command against this host checkout. Docker is available. I need a disposable container, not a persistent workspace or another machine.",
+          "expectedRoute": "local/docker",
+          "observedRoute": "local/docker",
+          "requiredOwners": [
+            "agro-run"
+          ],
+          "observedOwners": [
+            "agro-run"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R2",
+          "prompt": "Run one command against this checkout with a separate guest kernel. This host has working KVM access and msb 0.7.13. The command needs no services or egress allowlist.",
+          "expectedRoute": "local/msb",
+          "observedRoute": "local/msb",
+          "requiredOwners": [
+            "agro-run"
+          ],
+          "observedOwners": [
+            "agro-run"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R3",
+          "prompt": "Run the integration tests once on this Docker-capable host. Give the test command a fresh PostgreSQL service for this run and remove the service when the command ends.",
+          "expectedRoute": "local/docker",
+          "observedRoute": "local/docker",
+          "requiredOwners": [
+            "agro-run"
+          ],
+          "observedOwners": [
+            "agro-run"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R4",
+          "prompt": "Run one dependency verification command on this Docker-capable host. The checkout already declares an egress allowlist. Keep that policy unchanged; do not relax it or run on the raw host.",
+          "expectedRoute": "local/docker",
+          "observedRoute": "local/docker",
+          "requiredOwners": [
+            "agro-run"
+          ],
+          "observedOwners": [
+            "agro-run"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R5",
+          "prompt": "I authorize creating a capable hand from this brain to offload the current branch of my existing acme/widget project, then fetching its committed result here. The hand supports agro run. I also authorize destroying that task-owned hand after acceptance. Keep application execution isolated and preserve source ownership.",
+          "expectedRoute": "mifune-console",
+          "observedRoute": "mifune-console",
+          "requiredOwners": [
+            "agro-hands",
+            "agro-run"
+          ],
+          "observedOwners": [
+            "agro-hands",
+            "agro-run",
+            "worktrees"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R6",
+          "prompt": "Use the borrowed exe.dev VM named review-box for a bounded control-plane inspection through its command API. Retain it afterward. I authorize neither creating a VM nor destroying this borrowed VM.",
+          "expectedRoute": "exedev",
+          "observedRoute": "exedev",
+          "requiredOwners": [
+            "exedev-api"
+          ],
+          "observedOwners": [
+            "exedev-api",
+            "lifecycle"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R7",
+          "prompt": "I authorize a fresh AGRO install validation on exe.dev, including creation and teardown of only the VM owned by this check. This is release validation, not an application workload. Use the existing validation procedure.",
+          "expectedRoute": "validation",
+          "observedRoute": "validation",
+          "requiredOwners": [
+            "validation-driver"
+          ],
+          "observedOwners": [
+            "validation-driver",
+            "exedev-api"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        },
+        {
+          "caseId": "R8",
+          "prompt": "Set up a persistent OpenShell workspace, keep an interactive development server available after I disconnect, and give parallel implementation its own checkout. Identify the separate owners of workspace lifecycle, interactive processes, and checkout isolation.",
+          "expectedRoute": "lifecycle",
+          "observedRoute": "lifecycle",
+          "requiredOwners": [
+            "lifecycle",
+            "herdr",
+            "worktrees"
+          ],
+          "observedOwners": [
+            "lifecycle",
+            "herdr",
+            "worktrees"
+          ],
+          "routeMatches": true,
+          "requiredOwnersPresent": true
+        }
+      ],
+      "limits": [
+        "No new model contexts or substituted responses.",
+        "No provider, workload or suggested-command execution.",
+        "This is a bounded eight-case decision sample, not general task reliability."
+      ],
+      "execution": {
+        "command": "agro run -- timeout 120s node --experimental-strip-types .agro/tasks/sandbox-skill-refinement/routing-proof.local.mjs",
+        "exitCode": 0,
+        "observedBatchSourceCommit": "1d17ba3c262ee1777f261d24b7ddd1be5269cf8e",
+        "observedRecordCommit": "a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14",
+        "inputAndReplyByteIdentityVerified": true,
+        "newModelContexts": 0,
+        "verifierSha256": "2e771c5ab52ab7afa599b9aee03182f05c915b41a8aa2093f7b012a87daacd86"
+      },
+      "verifierJavaScript": "import { readFileSync } from \"node:fs\";\nimport { resolve } from \"node:path\";\nimport { pathToFileURL } from \"node:url\";\nconst root = process.cwd();\nconst helper = await import(pathToFileURL(resolve(root, \".agro/scripts/__tests__/helpers/sandbox-routing.ts\")));\nhelper.gradeObservedFile(root);\nconst record = JSON.parse(readFileSync(resolve(root, helper.decisionsFile), \"utf8\"));\nconst cases = helper.loadCases(root);\nconsole.log(JSON.stringify({\n  method: \"Executed the real gradeObservedFile function, then exposed its unchanged frozen case/observed-response comparisons.\",\n  graderReturnedNormally: true,\n  recordKind: record.provenance.kind,\n  provenance: helper.sourceProvenance(root),\n  ownerRule: \"All required owners must be present; additional allowed owners are unpenalized.\",\n  commandRule: \"Suggested command strings and notes are preserved, not executed or wording-graded.\",\n  cases: cases.map(scenario => {\n    const observed = record.decisions.find(value => value.caseId === scenario.id);\n    return {\n      caseId: scenario.id,\n      prompt: scenario.prompt,\n      expectedRoute: scenario.oracle.route,\n      observedRoute: observed.response.route,\n      requiredOwners: scenario.oracle.owners,\n      observedOwners: observed.response.owners,\n      routeMatches: observed.response.route === scenario.oracle.route,\n      requiredOwnersPresent: scenario.oracle.owners.every(owner => observed.response.owners.includes(owner)),\n    };\n  }),\n  limits: [\"No new model contexts or substituted responses.\", \"No provider, workload or suggested-command execution.\", \"This is a bounded eight-case decision sample, not general task reliability.\"]\n}, null, 2));\n"
+    },
+    "fullGuardExecution": {
+      "command": "agro run -- timeout 180s pnpm exec vitest run .agro/scripts/__tests__/sandbox-skill.test.ts .agro/scripts/__tests__/sandbox-routing.test.ts --reporter=json --outputFile=.agro/tasks/sandbox-skill-refinement/routing-guards.local.json",
+      "monitor": 21,
+      "exitCode": 0,
+      "testsPassed": 43,
+      "testsSkipped": 0,
+      "assertions": [
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader accepts clearly synthetic unit decisions for exactly R1-R8",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader invalidates provenance when docs/lifecycle-commands.md bytes change",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader invalidates provenance when docs/runtimes/openshell.md bytes change",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects wrong route",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects missing case ID",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects duplicate case ID",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects unknown case ID",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects incorrect required owner",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects missing required owner",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects unknown owner",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects changed instruction digest",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects changed cases hash",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects changed source file list",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects executed true",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects nonfresh context",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects nondecision execution",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects missing model",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects missing handle",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects reused handle",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects invalid route enum",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects duplicate owner",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed record null",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed record {}",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed record undefined",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed record {\"schemaVersion\":\"1\"}",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed executed value \"false\"",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed executed value 0",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed executed value null",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed executed value undefined",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader does not accept synthetic unit data as observed evidence",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects a missing observed record without a fallback",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing grader rejects malformed response fields",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-routing.test.ts",
+          "name": "sandbox routing observed replay grades actual fresh decision-only records against current instructions",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill exposes one small canonical entrypoint with Pi-compatible metadata",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill links every route and bundled reference directly without broken local links",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill retains capability, isolation, authority, and credential guards",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill documents clone retrieval prerequisites before fetch and both run.env network triggers",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill requires checked remote isolation for public hands application examples",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill discloses writable linked-worktree metadata and mounted credential risk publicly",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill qualifies service and proxy readiness attempts without a hard wall-clock promise",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill scopes stop limitations to the retained adapter and qualifies cleanup",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill uses the source-backed brain checkout for setup and the hand checkout for SSH retrieval",
+          "status": "passed"
+        },
+        {
+          "file": ".agro/scripts/__tests__/sandbox-skill.test.ts",
+          "name": "sandbox skill keeps validation contracts without teaching shell polling or an archived phase driver",
+          "status": "passed"
+        }
+      ]
+    }
   },
   "focusedContracts": {
     "monitor": 19,
@@ -51,6 +436,32 @@
     "Monitor17 exited2 before any test because its default POSIX shell rejects pipefail. Monitor18 used an explicit Bash wrapper and passed; the failed launcher is not test evidence.",
     "Safety Net declined an unverifiable compound shell source. The named remedy was followed: direct literal check commands, no generated source/trap, no alternate-tool bypass. Literal prose/link/syntax/fresh-negative commands passed."
   ],
+  "historicalCiEvidence": {
+    "headSha": "cfa577addbf33db1fcd3ea0bafa3621194bb9c00",
+    "url": "https://github.com/mifunedev/agro/actions/runs/43547147473",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      "Typecheck, Build & Test: SUCCESS",
+      "Boot Path Lint: SUCCESS"
+    ],
+    "publicLogSummary": {
+      "testFilesPassed": 125,
+      "testsPassed": 3345,
+      "testsSkipped": 7,
+      "totalTests": 3352
+    },
+    "unskippedChangedSuites": {
+      "sandbox-skill.test.ts": 10,
+      "sandbox-routing.test.ts": 33
+    },
+    "conditionalSkipFiles": {
+      "hooks.test.ts": 3,
+      "bundle-identity.test.ts": 2,
+      "hermes-links.test.ts": 2
+    },
+    "scope": "Advisor independently queried the exact run/head/jobs and read its public test log. Local full verification ran all3352 without skips; CI has7conditional skips outside the two changed suites. This is evidence for the named historical source snapshot, not a claim that a later head is already green."
+  },
   "externalLimits": [
     "No new live provider VM, PostgreSQL-service boundary, egress boundary, or microVM validation.",
     "External skill registry publication is outside this change.",

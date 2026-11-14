@@ -6,6 +6,15 @@
   "exitCode": 0,
   "testFiles": 8,
   "testsPassed": 270,
+  "defaultLoaderObservation": {
+    "sourceCommit": "cd9fc67a98ab9dfd1951b0799f73bdc2546c6765",
+    "command": "agro run -- timeout 120s env MATRIX_OUT=/tmp/agro-pr1619-loader-proof REMOTE_SANDBOX_ADAPTERS= bash -c 'set -eu; test ! -e /tmp/agro-pr1619-loader-proof; . .agro/skills/sandbox/scripts/lib.sh; printf \"PROVIDERS\\n\"; valid_providers; printf \"REQUIRED_FUNCTIONS\\n\"; printf \"%s\\n\" \"${REQUIRED_FUNCTIONS[@]}\"'",
+    "exitCode": 0,
+    "providers": ["console", "exedev", "msb", "vercel"],
+    "requiredFunctions": ["preflight", "create", "exec", "destroy", "list"],
+    "providerOperations": 0,
+    "scope": "Actual default-loader/function-table introspection inside agro run. Adapter definitions load; no preflight/create/exec/destroy/list provider operation is invoked. This does not independently exercise optional hooks, extension override order or phase chaining."
+  },
   "selection": "Actual passing assertion names matching provider surfaces, images/identity/mounts/environment/egress, failure/cleanup, or project clone/fetch. This selected list is not an exhaustive coverage claim.",
   "selectedPassingAssertions": [
     ".agro/scripts/__tests__/standard-skills-link.test.ts > repository provider surfaces > .agents/skills is a tracked symlink that resolves into .agro/",

@@ -9,6 +9,9 @@ No context received an oracle, peer output, earlier score, or target score.
 The advisor captured actual replies without editing routes, owners, commands, or notes.
 The old batch remains in Git history at `ddd4889fe09826247a865ca55a7bae92d4ea3ab6`.
 The new batch is not a metadata-only relabel of old responses.
+The later evidence-only refinement creates no new model contexts.
+All ten instruction inputs and cases still match that source; reply bytes still match record `a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14`.
+Exact content identity preserves this batch's validity without changing its original handles, models, or source revision.
 
 The complete instruction-input SHA256 is `d92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee`.
 The unchanged cases SHA256 is `afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab`.
@@ -92,6 +95,43 @@ The operator's main-checkout changes remain untouched.
 Verification containers use `docker run --rm` through `agro run`.
 Unit fixtures use isolated temporary paths and cleanup.
 Decision contexts created no workload or provider resource.
+
+## Complete structural and decision evidence
+
+The advisor executed the self-contained `verifierPython` program in `preservation.json` through `agro run`.
+The program exited 0 and emitted the recorded `structuralVerification` JSON.
+A fresh independent skeptic reproduced its output and both hashes without finding a preservation blocker.
+Three complete remote test modules differ from the base only by one exact path substitution each.
+The comparison removed no assertions, comments, or whitespace.
+The portability module and seven fixtures remain unchanged.
+Actual source-copy/source/execute bindings still reach the canonical implementation.
+The CI workflow differs only by three path substitutions; both filters, all sixteen targets, links, retirement, and 24 payload files passed checks.
+These checks establish structural identity and path resolution, not live resource deletion.
+The evidence contains no bundled production-source replacement.
+
+Decode the `verifierPython` string in `preservation.json`.
+Before execution, inspect the decoded program.
+Save the program to `.agro/tasks/sandbox-skill-refinement/structural-proof.local.py`.
+Both pinned Git revisions must exist locally.
+
+```bash
+agro run -- timeout 120s python3 .agro/tasks/sandbox-skill-refinement/structural-proof.local.py
+```
+
+Expected and observed exit status: 0. The invocation emitted the captured JSON; the advisor then removed the temporary verifier copy.
+
+The advisor also sourced the real default loader inside `agro run` without invoking provider operations.
+Actual IDs were `console`, `exedev`, `msb`, and `vercel`.
+Actual required functions were `preflight`, `create`, `exec`, `destroy`, and `list`.
+`execution-contracts.json` records the exact command, result, and limits.
+This observation does not independently verify extension override order, optional hooks, or phase chaining.
+
+The real `gradeObservedFile` function completed without an error in a separate `agro run` invocation.
+`verification.json` contains its complete frozen prompt/expected/observed route and required-owner comparisons, plus the self-contained verifier.
+All eight comparisons match; the program creates no new model response.
+Monitor #21 separately produced a complete JSON reporter result: all 43 individual guard outcomes passed, with no skips.
+Suggested commands remain unexecuted and ungraded; additional allowed owners remain unpenalized.
+These programs are evidence recipes, not installed runtime dependencies or new skill resources.
 
 ## Limits
 
