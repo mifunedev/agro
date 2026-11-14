@@ -43,6 +43,8 @@ Status: APPROVED by the operator's active goal.
 - [ ] Manual review evidence includes a real positive command and an invalid-provider failure from fresh temporary state.
 - [ ] The final commit excludes `agro.json`, runtime code, dependency changes, and unrelated main-checkout edits.
 - [ ] Manual review evidence records reproducible commands, outputs, and limits for pinned PR links.
+- [ ] Whole-file comparisons prove active test-body equivalence after exact canonical path retargeting.
+- [ ] Observed structural checks prove CI targets, links, payload, retirement, and test bindings without rubric grades.
 
 ## Summary
 
@@ -109,6 +111,18 @@ Changed instruction bytes require eight genuinely new decision contexts and a ne
 | Parallel operation | Applied: one sequential worker in the existing isolated task worktree. |
 | Public documentation | Applied: fix inherited mount and SSH-example contradictions. |
 | Verification | Applied: focused guards, fresh routing decisions, preserved machinery, full checks, fresh council and final-head CI. |
+
+## Verification evidence refinement
+
+The third council's exact mean is 739/800 (0.924 displayed).
+All ten reports remain counted. Each report has no F status or critical-cap finding.
+Whole-contract inspection unknowns prevent the required mean.
+Reopen only US-003 to strengthen reproducible preservation and CI/discovery evidence.
+Do not reopen accepted source guidance, alter the rubric, or change any budget.
+Verify complete test-file equivalence after exact path substitutions and validate canonical CI/payload/link targets.
+Record actual outputs and scope limits, not preferred check statuses.
+All instruction, case, and observed-reply bytes remain unchanged; prove that identity.
+Evaluate a new evidence-bearing candidate with a fresh council after verification and CI.
 
 ## Test Plan (TDD)
 
