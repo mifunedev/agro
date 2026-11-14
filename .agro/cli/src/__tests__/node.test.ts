@@ -295,7 +295,7 @@ describe("agro node create", () => {
       { status: 200, body: { id: "n6", status: "running", ipv4: "5.6.7.8", ssh: null } },
     ]);
     expect(await runNode([...CREATE_ARGS, "--json"], h.io, h.deps)).toBe(0);
-    expect(JSON.parse(h.stdout())).toEqual({ id: "n6", status: "running", ssh: "ssh sandbox@5.6.7.8" });
+    expect(JSON.parse(h.stdout())).toEqual({ id: "n6", status: "running", spec: "small", ssh: "ssh sandbox@5.6.7.8" });
   });
 
   it("sends no freeTier key on the first request", async () => {
@@ -325,7 +325,29 @@ describe("agro node create", () => {
     expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n8", sshKeyIds: ["key-1"], name: "box" });
     expect(h.calls[1].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], name: "box", freeTier: true });
     expect(h.stderr()).toContain("spec n8 is not in the free tier; creating n4\n");
-    expect(h.stdout()).toContain("id: f4");
+    expect(h.stdout()).toBe("id: f4\nstatus: running\nspec: n4\nssh sandbox@1.2.3.4\n");
+  });
+
+  it("prints the created spec n4 in the JSON line after the fallback", async () => {
+    const h = harness([
+      PAYMENTS_DISABLED,
+      { status: 202, body: { id: "f8", status: "running", ipv4: "1.2.3.4" } },
+    ]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toEqual({ id: "f8", status: "running", spec: "n4", ssh: "ssh sandbox@1.2.3.4" });
+    expect(h.stderr()).toContain("spec n8 is not in the free tier; creating n4\n");
+  });
+
+  it("prints the requested spec in the JSON line without the fallback", async () => {
+    const h = harness([{ status: 202, body: { id: "f9", status: "running", ipv4: "1.2.3.4" } }]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toEqual({ id: "f9", status: "running", spec: "n8", ssh: "ssh sandbox@1.2.3.4" });
+  });
+
+  it("prints the requested spec in the text output without the fallback", async () => {
+    const h = harness([{ status: 202, body: { id: "f10", status: "running", ipv4: "1.2.3.4" } }]);
+    expect(await runNode(["create", "--spec", "n8", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("id: f10\nstatus: running\nspec: n8\nssh sandbox@1.2.3.4\n");
   });
 
   it("retries n4 in the free tier without a notice when the requested spec is n4", async () => {

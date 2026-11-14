@@ -189,13 +189,13 @@ async function resolveSshKeyId(
   return id === null ? { ok: false, error: "the console response has no SSH key id" } : { ok: true, id };
 }
 
-function printCreateResult(io: NodeIO, node: ConsoleNode, json: boolean): void {
+function printCreateResult(io: NodeIO, node: ConsoleNode, spec: string, json: boolean): void {
   const ssh = node.status === "running" ? sshCommand(node) : null;
   if (json) {
-    io.stdout(`${JSON.stringify({ id: node.id, status: node.status, ssh })}\n`);
+    io.stdout(`${JSON.stringify({ id: node.id, status: node.status, spec, ssh })}\n`);
     return;
   }
-  io.stdout(`id: ${node.id}\nstatus: ${node.status}\n${ssh === null ? "" : `${ssh}\n`}`);
+  io.stdout(`id: ${node.id}\nstatus: ${node.status}\nspec: ${spec}\n${ssh === null ? "" : `${ssh}\n`}`);
 }
 
 async function runCreate(
@@ -240,6 +240,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${created.message}\n`);
     return 1;
   }
+  const createdSpec = created.spec ?? spec;
   let node = toNode(created.body);
   if (node === undefined) {
     io.stderr(`${prefix}: the console response has no node id\n`);
@@ -251,7 +252,7 @@ async function runCreate(
   );
   node = waited.node;
   if (!waited.ok && waited.reason === "timeout") {
-    printCreateResult(io, node, json);
+    printCreateResult(io, node, createdSpec, json);
     io.stderr(`${prefix}: node ${node.id} is not running after 15 minutes — last status ${node.status}\n`);
     return 1;
   }
@@ -259,7 +260,7 @@ async function runCreate(
     io.stderr(`${prefix}: node ${node.id}: ${waited.message}\n`);
     return 1;
   }
-  printCreateResult(io, node, json);
+  printCreateResult(io, node, createdSpec, json);
   if (!waited.ok) {
     io.stderr(`${prefix}: node ${node.id} failed — last status ${node.status}\n`);
     return 1;

@@ -56,6 +56,10 @@ export type ApiResult =
   | { ok: true; status: number; body: unknown }
   | { ok: false; status?: number; code?: string; message: string };
 
+export type CreatedNodeResult =
+  | { ok: true; status: number; body: unknown; spec: string | undefined }
+  | { ok: false; status?: number; code?: string; message: string };
+
 export type BrainConfigResult = { ok: true; config: ConsoleConfig } | { ok: false; error: string };
 
 export type WaitResult =
@@ -237,9 +241,10 @@ export async function createConsoleNode(
   config: ConsoleConfig,
   body: Record<string, unknown> & { spec?: string },
   notice: (message: string) => void,
-): Promise<ApiResult> {
+): Promise<CreatedNodeResult> {
   const created = await callApi(deps, config, "POST", "/api/nodes", body);
-  if (created.ok || created.status !== 403 || created.code !== FREE_TIER_FALLBACK_CODE) return created;
+  if (created.ok) return { ...created, spec: body.spec };
+  if (created.status !== 403 || created.code !== FREE_TIER_FALLBACK_CODE) return created;
   if (body.spec !== FREE_TIER_SPEC) {
     notice(
       body.spec === undefined
@@ -247,7 +252,8 @@ export async function createConsoleNode(
         : `spec ${body.spec} is not in the free tier; creating ${FREE_TIER_SPEC}`,
     );
   }
-  return callApi(deps, config, "POST", "/api/nodes", { ...body, spec: FREE_TIER_SPEC, freeTier: true });
+  const retried = await callApi(deps, config, "POST", "/api/nodes", { ...body, spec: FREE_TIER_SPEC, freeTier: true });
+  return retried.ok ? { ...retried, spec: FREE_TIER_SPEC } : retried;
 }
 
 export function formatTable(header: string[], rows: string[][]): string {
