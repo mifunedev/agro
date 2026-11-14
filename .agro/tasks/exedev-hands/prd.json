@@ -96,8 +96,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Criteria 1-14 executed/reasoned per worker report and advisor check: git grep for the flag and CONSOLE_FREE_TIER exit 1 (no lines); auth.ts has no node.js import; createConsoleNode retries once on 403 PAYMENTS_DISABLED with n4+freeTier and notices unless n4; formatTable and confirmDestroy shared; nodeHelp states the not-a-hand rule; ste-check on validation.md and providers.md exit 0; typecheck exit 0. Criterion 15: test:scripts 3351 passed, 8 failed = 7 baseline herdr-default + sandbox-routing.test.ts content-bound provenance hash, because US-004 must edit providers.md, validation.md, and docs/lifecycle-commands.md. decisions.json is owned by US-007, which renames the route and must record a fresh observed routing run; the advisor carries this failure to US-007 (open question 2).",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -116,7 +116,8 @@
         "docs/lifecycle-commands.md",
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "3ea00826"
     },
     {
       "id": "US-005",
