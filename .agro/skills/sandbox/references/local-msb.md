@@ -48,10 +48,11 @@ The fields are `time`, `image`, `digest`, `bootToExitMs`, and `exitCode`.
 The digest can be null when image inspection cannot supply it.
 A usage-log write failure prints a warning without changing the command exit code.
 
-Inspect host file permissions after guest writes.
-A guest-created host file has mode 600; a directory has mode 700.
-The host file loses its executable bit.
-msb stores guest owner/mode in `user.msb.override_stat` extended attributes.
+Inspect actual host file modes after guest writes; do not infer modes from guest metadata.
+Historical tests with msb 0.7.13 in the tested guest configuration observed host file mode 600 and directory mode 700.
+The host file lost its executable bit.
+Those tests observed guest owner/mode storage in `user.msb.override_stat` extended attributes.
+These observations are not a new live verification or a guarantee for other configurations.
 
 ## Cleanup
 

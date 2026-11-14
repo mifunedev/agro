@@ -17,7 +17,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
-- Consolidate hands and remote validation guidance into the sandbox skill with four execution routes and unchanged validation adapters ([#1618](https://github.com/mifunedev/agro/issues/1618)).
+- Consolidate hands and remote validation guidance into the sandbox skill; add content-bound task-decision regression evidence checks ([#1618](https://github.com/mifunedev/agro/issues/1618)).
 
 ### Fixed
 

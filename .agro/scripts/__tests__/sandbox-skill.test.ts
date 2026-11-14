@@ -42,7 +42,7 @@ describe("sandbox skill", () => {
       expect(entrypoint).toContain(`\`${route}\``);
       expect(localLinks(entrypoint)).toContain(`references/${name}.md`);
       const headings = [...reference(name).matchAll(/^## (.+)$/gm)].map((match) => match[1]);
-      expect(headings).toEqual(sections);
+      expect(headings.filter((heading) => heading !== "Contents")).toEqual(sections);
     }
     const references = readdirSync(join(skill, "references")).filter((name) => name.endsWith(".md"));
     expect(references.sort()).toEqual([
@@ -83,6 +83,37 @@ describe("sandbox skill", () => {
     expect(hands).toContain("If no supported runtime is available, stop");
     expect(reference("local-msb")).toContain("exactly 0.7.13");
     expect(reference("exedev")).toContain("no stop/pause API");
+  });
+
+  it("documents clone retrieval prerequisites before fetch and both run.env network triggers", () => {
+    const hands = reference("mifune-console");
+    const clone = hands.slice(hands.indexOf("For a GitHub source"));
+    expect(clone.indexOf("matching brain checkout")).toBeLessThan(clone.indexOf("Then fetch"));
+    expect(clone).toContain("remote get-url hand-<index>");
+    expect(clone).toContain("sandbox@<recorded-ssh-host>:projects/<owner>/<repo>");
+    expect(clone).toContain("approved `/worktrees` project-clone workflow");
+    const publicDocs = readFileSync(join(root, "docs/lifecycle-commands.md"), "utf8");
+    const env = publicDocs.slice(publicDocs.indexOf("`run.env` holds"), publicDocs.indexOf("This example starts PostgreSQL"));
+    expect(env).toContain("`run.services`");
+    expect(env).toContain('`access.egress` is `allowlist`');
+    expect(env).toContain("With neither services nor an allowlist, `run.env` does not apply");
+  });
+
+  it("uses the source-backed brain checkout for setup and the hand checkout for SSH retrieval", () => {
+    const source = readFileSync(join(root, ".agro/cli/src/commands/hands.ts"), "utf8");
+    const brainBody = /function brainProjectPath\([^]*?\n\}/.exec(source)?.[0];
+    expect(brainBody).toBeDefined();
+    const segments = [...brainBody!.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+    expect(segments).not.toHaveLength(0);
+    const brainPath = `~/${segments.join("/")}/<owner>/<repo>`;
+    const handPath = /function handProjectPath\([^]*?return `([^`]+)`;/.exec(source)?.[1]
+      .replace("${slug.owner}", "<owner>").replace("${slug.repo}", "<repo>");
+    expect(handPath).toBeDefined();
+    const hands = reference("mifune-console");
+    const setupPaths = [...hands.matchAll(/^git -C (\S+)/gm)].map((match) => match[1]);
+    expect(setupPaths).toEqual([brainPath, brainPath, brainPath]);
+    expect(hands).toContain(`sandbox@<recorded-ssh-host>:${handPath}`);
+    expect(brainPath).not.toBe(`~/${handPath}`);
   });
 
   it("keeps validation contracts without teaching shell polling or an archived phase driver", () => {

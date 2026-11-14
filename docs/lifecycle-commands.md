@@ -218,8 +218,9 @@ service has these fields:
 - `ready`: a shell command that `agro run` executes in the service container with
   `sh -c`. Exit code 0 means that the service is ready. This field is optional.
 
-`run.env` holds environment variables for the command container. `run.env` applies
-only when `run.services` declares at least one service.
+`run.env` holds environment variables for the command container.
+It applies when `run.services` declares at least one service or `access.egress` is `allowlist`.
+With neither services nor an allowlist, `run.env` does not apply.
 
 This example starts PostgreSQL for a test command:
 
@@ -341,9 +342,11 @@ With a cached image, the boot-to-exit time on a KVM host is about 1.4 s.
 The microVM mode does not support `run.services` or `access.egress: "allowlist"` yet.
 With either setting, `agro run --isolation microvm` exits 1.
 
-Known caveat: a file that the guest creates in the mount has mode 600 on the host, and
-a directory has mode 700. The host file loses the executable bit. msb keeps the guest
-owner and mode in the extended attribute `user.msb.override_stat`.
+Historical tests with msb 0.7.13 in the tested guest configuration observed host file mode 600 and directory mode 700.
+The host file lost its executable bit.
+Those tests observed guest owner/mode storage in the extended attribute `user.msb.override_stat`.
+These observations are not a new live verification or a guarantee for other configurations.
+Inspect actual host file modes after guest writes; do not infer modes from guest metadata.
 
 The exit code of `agro run` is the exit code of the command. The decision is
 [ADR #1575](https://github.com/mifunedev/agro/issues/1575).

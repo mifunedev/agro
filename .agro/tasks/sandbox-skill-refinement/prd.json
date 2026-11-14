@@ -22,8 +22,8 @@
         "The existing changelog entry describes the added routing evidence and links issue #1618."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The unfiltered observed replay test intentionally remains unsatisfied until US-002 supplies genuine records; no synthetic observation or skip can satisfy it.",
       "files": [
         ".agro/skills/sandbox/references/mifune-console.md",
         ".agro/skills/sandbox/references/local-msb.md",

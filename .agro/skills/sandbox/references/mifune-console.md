@@ -1,5 +1,14 @@
 # mifune-console
 
+## Contents
+
+- [Choose when](#choose-when)
+- [Prerequisites](#prerequisites)
+- [Execute](#execute)
+- [Verify](#verify)
+- [Cleanup](#cleanup)
+- [Failure remedies](#failure-remedies)
+
 ## Choose when
 
 A brain is an AGRO node that holds the operator's projects and history.
@@ -37,9 +46,8 @@ Write the hand index without `#`; an unquoted `#7` starts a shell comment.
    agro hands create --project <owner>/<repo>
    ```
 
-   `--project` pushes the current branch of the brain project.
-   Use `agro hands create --clone <owner>/<repo>` to clone from GitHub instead.
-   Record the returned index and ownership.
+   `--project` pushes the current branch of the existing brain project and adds `hand-<index>` there.
+   Record the returned index, SSH host, and ownership.
 
 2. Use generic exec for bounded host/control-plane operations:
 
@@ -65,7 +73,22 @@ Write the hand index without `#`; an unquoted `#7` starts a shell comment.
    agro hands fetch <index> --project <owner>/<repo>
    ```
 
-   The brain remote for the hand is `hand-<index>`.
+For a GitHub source, `agro hands create --clone <owner>/<repo>` clones only on the hand.
+Before fetching clone results, the matching brain checkout and `hand-<index>` remote must exist.
+If the brain checkout is missing, complete the approved `/worktrees` project-clone workflow first.
+The brain checkout is `~/.agro/workspaces/harness/projects/<owner>/<repo>`; the hand checkout is `~/projects/<owner>/<repo>`.
+On the brain, inspect the checkout and remote:
+```bash
+git -C ~/.agro/workspaces/harness/projects/<owner>/<repo> status --short
+git -C ~/.agro/workspaces/harness/projects/<owner>/<repo> remote get-url hand-<index>
+```
+If only the remote is missing, add it using the SSH host recorded at creation:
+```bash
+git -C ~/.agro/workspaces/harness/projects/<owner>/<repo> remote add hand-<index> sandbox@<recorded-ssh-host>:projects/<owner>/<repo>
+```
+If an existing remote differs, stop for advisor review; do not overwrite it.
+Then fetch committed results with `agro hands fetch <index> --project <owner>/<repo>`.
+Do not inspect credentials or bypass lifecycle or HTTP 403 guards for this setup.
 
 For an approved fork, use `agro hands fork <index>` with flags from installed help.
 Do not infer fork authority from permission to create a different hand.

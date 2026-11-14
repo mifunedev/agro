@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "R1",
+      "prompt": "Run one verification command against this host checkout. Docker is available. I need a disposable container, not a persistent workspace or another machine.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R2",
+      "prompt": "Run one command against this checkout with a separate guest kernel. This host has working KVM access and msb 0.7.13. The command needs no services or egress allowlist.",
+      "oracle": { "route": "local/msb", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R3",
+      "prompt": "Run the integration tests once on this Docker-capable host. Give the test command a fresh PostgreSQL service for this run and remove the service when the command ends.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R4",
+      "prompt": "Run one dependency verification command on this Docker-capable host. The checkout already declares an egress allowlist. Keep that policy unchanged; do not relax it or run on the raw host.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R5",
+      "prompt": "I authorize creating a capable hand from this brain to offload the current branch of my existing acme/widget project, then fetching its committed result here. The hand supports agro run. I also authorize destroying that task-owned hand after acceptance. Keep application execution isolated and preserve source ownership.",
+      "oracle": { "route": "mifune-console", "owners": ["agro-hands", "agro-run"] }
+    },
+    {
+      "id": "R6",
+      "prompt": "Use the borrowed exe.dev VM named review-box for a bounded control-plane inspection through its command API. Retain it afterward. I authorize neither creating a VM nor destroying this borrowed VM.",
+      "oracle": { "route": "exedev", "owners": ["exedev-api"] }
+    },
+    {
+      "id": "R7",
+      "prompt": "I authorize a fresh AGRO install validation on exe.dev, including creation and teardown of only the VM owned by this check. This is release validation, not an application workload. Use the existing validation procedure.",
+      "oracle": { "route": "validation", "owners": ["validation-driver"] }
+    },
+    {
+      "id": "R8",
+      "prompt": "Set up a persistent OpenShell workspace, keep an interactive development server available after I disconnect, and give parallel implementation its own checkout. Identify the separate owners of workspace lifecycle, interactive processes, and checkout isolation.",
+      "oracle": { "route": "lifecycle", "owners": ["lifecycle", "herdr", "worktrees"] }
+    }
+  ]
+}
