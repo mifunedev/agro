@@ -24,8 +24,8 @@ type Synthetic = ReturnType<typeof syntheticRecord>;
 const gradeSynthetic = (record: unknown) => gradeDecisions(record, root, "synthetic-unit");
 
 describe("sandbox routing grader", () => {
-  it("accepts clearly synthetic unit decisions for exactly R1-R11", () => {
-    expect(caseIds).toEqual(["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11"]);
+  it("accepts clearly synthetic unit decisions for exactly R1-R15", () => {
+    expect(caseIds).toEqual(["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"]);
     expect(loadCases(root).map((row) => row.id)).toEqual(caseIds);
     expect(() => gradeSynthetic(syntheticRecord())).not.toThrow();
   });
@@ -51,7 +51,7 @@ describe("sandbox routing grader", () => {
     ["wrong route", (r) => { r.decisions[0].response.route = "clarify"; }],
     ["missing case ID", (r) => { r.decisions.pop(); }],
     ["duplicate case ID", (r) => { r.decisions[1].caseId = "R1"; }],
-    ["unknown case ID", (r) => { r.decisions[0].caseId = "R12"; }],
+    ["unknown case ID", (r) => { r.decisions[0].caseId = "R16"; }],
     ["incorrect required owner", (r) => { r.decisions[7].response.owners = ["agro-run"]; }],
     ["missing required owner", (r) => { r.decisions[7].response.owners.pop(); }],
     ["unknown owner", (r) => { r.decisions[0].response.owners = ["raw-host"]; }],

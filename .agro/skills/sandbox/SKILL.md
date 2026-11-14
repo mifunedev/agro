@@ -51,6 +51,21 @@ Read the selected execution reference before acting.
 
 Choose the route from the request's intent and the execution environment.
 Ask the operator only if the required host or isolation boundary remains unresolved.
+
+For application runs, use this default order:
+
+1. If the request names an explicit location, use that location.
+2. If `agro hands list` shows a hand with status `running`, run application runs of committed work on that hand:
+   `agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>`.
+3. Otherwise, use `local/docker`: `agro run -- <command>`.
+
+A hand with status `paused`, `stopped`, or `creating` is not a running hand.
+The default never resumes or creates a hand.
+If `agro hands exec` fails, stop and report the error. Offer `local/docker`, and switch only after the operator agrees.
+If the Docker engine is missing on the local route, stop and report. Never fall back to the raw host.
+For an inner loop on uncommitted edits, stay on `local/docker`.
+One agent at a time uses a project on a hand.
+For parallel agents on the same project, use separate hands, because `agro hands` has no worktree support on a hand.
 Do not infer billable authority from a route selection.
 
 ## Validation and supporting resources

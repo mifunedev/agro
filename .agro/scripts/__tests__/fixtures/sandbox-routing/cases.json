@@ -55,6 +55,26 @@
       "id": "R11",
       "prompt": "This brain is an exe.dev VM, and its host config sets hands.provider to exedev. Pause hand sbx-dev-001.",
       "oracle": { "route": "hands", "owners": ["agro-hands"] }
+    },
+    {
+      "id": "R12",
+      "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain. Run the test suite for mifunedev/widget.",
+      "oracle": { "route": "hands", "owners": ["agro-hands", "agro-run"] }
+    },
+    {
+      "id": "R13",
+      "prompt": "The only hand, agro-sbx-dev-001, is paused. Run the test suite for mifunedev/widget.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R14",
+      "prompt": "No hand exists for this brain. Run the test suite for mifunedev/widget.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R15",
+      "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain. Run the test suite for mifunedev/widget on this host.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
     }
   ]
 }

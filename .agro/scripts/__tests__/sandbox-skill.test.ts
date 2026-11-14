@@ -92,6 +92,34 @@ describe("sandbox skill", () => {
     expect(localLinks(exedev)).toContain("hands.md");
   });
 
+  it("defaults application runs to a running hand, else local Docker, never the raw host", () => {
+    const select = entrypoint.slice(entrypoint.indexOf("## Select a route"), entrypoint.indexOf("## Validation and supporting resources"));
+    const explicit = select.indexOf("If the request names an explicit location, use that location");
+    const running = select.indexOf("a hand with status `running`");
+    const local = select.indexOf("Otherwise, use `local/docker`: `agro run -- <command>`");
+    expect(explicit).toBeGreaterThan(-1);
+    expect(running).toBeGreaterThan(explicit);
+    expect(local).toBeGreaterThan(running);
+    expect(select).toContain("agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>");
+    expect(select).toContain("A hand with status `paused`, `stopped`, or `creating` is not a running hand");
+    expect(select).toContain("The default never resumes or creates a hand");
+    expect(select).toContain("If `agro hands exec` fails, stop and report the error");
+    expect(select).toContain("switch only after the operator agrees");
+    expect(select).toContain("Never fall back to the raw host");
+    expect(select).toContain("inner loop on uncommitted edits, stay on `local/docker`");
+    expect(select).toContain("One agent at a time uses a project on a hand");
+    expect(select).toContain("use separate hands, because `agro hands` has no worktree support on a hand");
+    const hands = reference("hands");
+    const choose = hands.slice(hands.indexOf("## Choose when"), hands.indexOf("## Prerequisites"));
+    expect(choose).not.toContain("Keep short, light work on the brain");
+    expect(choose).toContain("If a hand has status `running` in `agro hands list`, application runs of committed work default to that hand");
+    expect(choose).toContain("A hand with status `paused`, `stopped`, or `creating` is not a running hand");
+    expect(choose).toContain("An explicit location in the request overrides the default");
+    expect(choose).toContain("One agent at a time uses a project on a hand");
+    expect(choose).toContain("Get explicit operator authority before a billable create");
+    expect(hands).toContain("Do not silently run application work on the raw host");
+  });
+
   it("documents clone retrieval prerequisites before fetch and both run.env network triggers", () => {
     const hands = reference("hands");
     const clone = hands.slice(hands.indexOf("For a GitHub source"));
