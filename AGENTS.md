@@ -97,6 +97,11 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **host** means the laptop or VM that runs Docker and the root lifecycle commands.
 - **sandbox** means the project container defined by `.devcontainer/` and the
   persistent agent environment inside it.
+- **brain** means the AGRO node that holds the operator's projects and history
+  and creates hands.
+- **hand** means a node that a brain creates and manages through `agro hands`.
+- **console node** means an agro-console node created with operator authority
+  through `agro node`.
 - **control plane** means only the portable `.agro/` machinery that manages lifecycle,
   agent identity, task procedures, and checks.
 - **coding harness** means Claude Code, Codex, Pi, or another agent interface running

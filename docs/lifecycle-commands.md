@@ -23,7 +23,7 @@ any directory. See
 Host prerequisites and the CLI install are in [Installation](installation.md).
 For execution route selection, hand offload, and remote validation, use the
 [Sandbox skill](https://github.com/mifunedev/agro/blob/main/.agro/skills/sandbox/SKILL.md).
-The routes are `local/docker`, `local/msb`, `mifune-console`, and `exedev`.
+The routes are `local/docker`, `local/msb`, `hands`, and `exedev`.
 Here, `local` means the host running `agro`, even on a remote VM.
 
 ## The verbs
@@ -715,9 +715,16 @@ agro node check                  # check the SSH key and the free tier, create n
 
 ## Hands from a brain: `agro hands`
 
-`agro hands` runs on a brain. A hand is a sandbox node that the brain creates
-through the console. The brain keeps the project history, and the hand does the
-work. `agro hands` keeps no state. The console lists the hands.
+`agro hands` runs on a brain. A brain is the AGRO node that holds the project
+history. A hand is a node that the brain creates and manages through
+`agro hands`. The hand does the work. `agro hands` keeps no state. The provider
+API lists the hands.
+
+One brain uses one provider. The field `hands.provider` in
+`<harness-root>/agro.json` selects it: `console` (the default) or `exedev`.
+`<harness-root>` is `harnessRoot` in `~/.agro/config.json`, else
+`~/.agro/workspaces/harness`. `agro hands --help` states the same rule.
+Run `agro config set hands.provider exedev` to select exe.dev hands.
 
 Before application build/test/install workloads, inspect the hand's installed capabilities through SSH.
 After remote `agro run --help` and runtime checks confirm support, use the application example below.
@@ -736,6 +743,40 @@ agro hands fetch 4 --project <owner>/<repo>  # git fetch hand-4 in the brain pro
 agro hands destroy 4                         # destroy one hand after a confirmation
 ```
 
+On an exe.dev brain, `<hand>` is the VM name:
+
+```bash
+ssh exe.dev tag agro-sbx-dev-001 agro-hand   # enroll an existing VM as a hand
+agro hands exec agro-sbx-dev-001 --project <owner>/<repo> -- agro run -- npm test
+agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agro-sbx-dev-001
+```
+
+### Shared behavior
+
+- `create --project <owner>/<repo>` needs the brain project at
+  `<harness-root>/projects/<owner>/<repo>`. If the project does not exist, the
+  command exits 1 before it creates a hand. The command prepares
+  `~/projects/<owner>/<repo>` on the hand with `git init` and
+  `receive.denyCurrentBranch updateInstead`, adds the brain remote to the brain
+  project, and pushes the current branch.
+- `create --clone <owner>/<repo>` clones
+  `https://github.com/<owner>/<repo>.git` on the hand with the git credential of
+  the hand. The brain pushes nothing.
+- `agro hands exec` is SSH transport, not a container or runtime boundary.
+  It runs the command after the first `--` over SSH and exits with the command's exit status.
+  `--project` runs the command in the project folder of the hand.
+  The nested `agro run` in the application example supplies the runtime isolation; `exec` does not.
+- `agro hands fetch` runs `git fetch` for the brain remote in the brain project.
+  Commit the result on the hand before you fetch. A fetch transfers commits only.
+- SSH uses the default brain key. The first contact accepts the host key, and
+  the brain pins the key by the hand identity. A fork has a new identity and a
+  new host key.
+- `agro hands fork <hand>` copies the hand with its credentials. `--name` sets
+  the fork name.
+- `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
+
+### Console hands
+
 - Each verb reads the brain token from `/home/sandbox/.agro/brain-token` and the
   console URL from `/home/sandbox/.agro/brain-console-url`.
   `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` override them. If no token
@@ -744,37 +785,54 @@ agro hands destroy 4                         # destroy one hand after a confirma
   resolves, the verb exits 2. No output holds the token.
 - `<hand>` is `#<index>`, `<index>`, an alias, or a uuid. Quote `#<index>` in a
   shell, or write the index without `#`.
+- The brain remote is `hand-<index>`. SSH connects to `sandbox@<sshHost>`, and
+  the brain pins the host key by the hand uuid.
 - `agro hands create` requests a hand with the profile `sandbox`, waits up to
   15 minutes for the status `running`, then prints the index, the alias, and
-  the SSH host.
-- `create --project <owner>/<repo>` needs the brain project at
-  `~/.agro/workspaces/harness/projects/<owner>/<repo>`. If the project does not
-  exist, the command exits 1 before it creates a hand. The command prepares
-  `~/projects/<owner>/<repo>` on the hand with `git init` and
-  `receive.denyCurrentBranch updateInstead`, adds the remote `hand-<index>` to
-  the brain project, and pushes the current branch.
-- `create --clone <owner>/<repo>` clones
-  `https://github.com/<owner>/<repo>.git` on the hand with the git credential of
-  the hand. The brain pushes nothing.
-- `agro hands exec` is SSH transport, not a container or runtime boundary.
-  It runs the command after the first `--` over SSH and exits with the command's exit status.
-  `--project` runs the command in the project folder of the hand.
-  The nested `agro run` in the application example supplies the runtime isolation; `exec` does not.
-- `agro hands fetch` runs `git fetch hand-<index>` in the brain project.
-- SSH connects to `sandbox@<sshHost>` with the default brain key. The first
-  contact accepts the host key, and the brain pins the key by the hand uuid. A
-  fork has a new uuid and a new host key.
-- `agro hands fork <hand>` copies the hand with its credentials. The fork
-  takes the spec of the source hand. `--spec` sets another spec, and `--name`
-  sets the fork name. If the console response names the fork, the command
-  waits for the fork as `create` does and prints the same lines. Otherwise, the
-  command prints the job id and tells you to run `agro hands list` to find the
-  fork.
+  the SSH host. If the free tier does not offer the requested `--spec`, the
+  command prints `spec <spec> is not in the free tier; creating n4` and
+  creates `n4`.
+- The fork takes the spec of the source hand. `--spec` sets another spec. If
+  the console response names the fork, the command waits for the fork as
+  `create` does and prints the same lines. Otherwise, the command prints the
+  job id and tells you to run `agro hands list` to find the fork.
 - `pause` and `resume` call the matching console route.
-  `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
 - If the console returns HTTP 403, the command prints the console code
   (`BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN`), exits 1, and does
   not retry.
+
+### exe.dev hands
+
+- An exe.dev hand is a VM with the tag `agro-hand`. `agro hands list` shows
+  only tagged VMs. Enroll an existing VM with `ssh exe.dev tag <vm> agro-hand`.
+  Enrollment changes no AGRO state.
+- The verbs need no brain token. Each verb first runs `ssh exe.dev whoami`. If
+  the check fails, the verb exits 2 and prints the remedy: register the brain
+  SSH public key with the exe.dev account.
+- `<hand>` is the VM name. The brain remote is `hand-<vm>`. SSH connects to
+  the `ssh_dest` from `ssh exe.dev ls --json`, for example `<vm>.exe.xyz`, and
+  the brain pins the host key by the VM name.
+- Remote commands run in a login shell (`bash -lc`), so `agro` resolves on
+  `PATH`.
+- The verbs map to the exe.dev account API:
+
+  | Verb | exe.dev command |
+  |---|---|
+  | `list` | `ssh exe.dev ls --json`, filtered by the tag `agro-hand` |
+  | `create` | `ssh exe.dev new --json --name <name> --tag agro-hand` |
+  | `fork` | `ssh exe.dev cp <hand> [<name>] --copy-tags` |
+  | `pause` | `ssh exe.dev pause <hand>` |
+  | `resume` | `ssh exe.dev resume <hand>` |
+  | `destroy` | `ssh exe.dev rm <hand>` |
+
+- `create` waits up to 15 minutes for the status `running`. `--spec` applies
+  only to console hands. The exe.dev verbs refuse `--spec`.
+- Guards: `fork`, `pause`, `resume`, and `destroy` exit 1 without a change when
+  the VM lacks the tag `agro-hand`. Each write verb exits 1 without a change
+  when the hand, the fork name, or the create name names the brain. The brain
+  is the VM whose name or SSH host label equals the host name.
+- exe.dev account authority is broader than a brain token. The tag guard and the
+  brain guard are the only fence.
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`
 

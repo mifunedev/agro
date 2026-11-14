@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add the exe.dev hand provider to `agro hands`: the `agro.json` field `hands.provider` (`console` or `exedev`) selects the provider, an exe.dev hand is a VM with the tag `agro-hand`, and the verbs refuse untagged VMs and the brain; the sandbox skill route `mifune-console` becomes `hands` ([#1623](https://github.com/mifunedev/agro/issues/1623)).
+
+### Removed
+
+- **BREAKING:** Remove `--free-tier` from `agro node create` and `agro node check`, and remove the validation variable `CONSOLE_FREE_TIER`. `agro node create` defaults to `n4`, and a console create falls back to `n4` with a notice when the free tier does not offer the requested spec ([#1623](https://github.com/mifunedev/agro/issues/1623)).
+
 ## [0.35.0] - 2026-11-14
 
 ### Added

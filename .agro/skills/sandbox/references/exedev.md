@@ -5,6 +5,7 @@
 Use this route for approved work on an exe.dev VM.
 The SSH account API manages the VM; `agro` manages the supported sandbox inside it.
 Provider VM ownership does not authorize continuing application work on the raw VM host.
+To use an exe.dev VM as a hand, use the `hands` route in [hands](hands.md).
 
 ## Prerequisites
 
@@ -74,7 +75,7 @@ Do not share the VM publicly without operator authority.
 
 ## Cleanup
 
-An exe.dev VM has no stop/pause API in this adapter.
+The account API offers `pause` and `resume`. The validation adapter does not use them.
 The VM consumes account resources until deletion.
 For the exact owned VM within approved teardown scope, use:
 
@@ -90,7 +91,7 @@ For validation runs, the driver owns cleanup unless `KEEP=1`.
 
 For account SSH failures, stop and ask the operator to repair account/key access.
 Do not copy a private key or send an API token to the VM.
-The adapter supports `ssh exe.dev restart <name>` but has no pause operation.
+The adapter supports `ssh exe.dev restart <name>`.
 Restart only within explicit authority. A restart can lose recent unsynced writes.
 For a sandbox refusal, follow the named remedy or report the block.
 Do not silently switch to raw-host application execution.

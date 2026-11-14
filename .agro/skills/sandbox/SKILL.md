@@ -1,7 +1,7 @@
 ---
 name: sandbox
 description: |
-  Choose and use local/docker, local/msb, mifune-console, or exedev sandbox
+  Choose and use local/docker, local/msb, hands, or exedev sandbox
   execution. TRIGGER when: asked to use or configure agro run, run an isolated
   command, offload work to
   a hand, fork a hand, use agro hands, create an exe.dev VM, validate a fresh
@@ -18,7 +18,8 @@ license: MIT
 
 - Use `agro` as the control interface, not as a provider name.
 - Keep provider, runtime, and resource role separate. A hand is a remote
-  resource role in `mifune-console`, not another provider.
+  resource role, not another provider. The `hands` route serves console and
+  exe.dev hands.
 - `local` means the host running `agro`, even on a remote VM.
   `msb` means Microsandbox.
 - Run application workloads inside a supported sandbox. Do not continue
@@ -45,8 +46,8 @@ Read the selected execution reference before acting.
 |---|---|---|
 | `local/docker` | Run one command with container isolation, services, or an egress allowlist. | [Docker execution](references/local-docker.md) |
 | `local/msb` | Run one command with a separate kernel on a KVM host. | [Microsandbox execution](references/local-msb.md) |
-| `mifune-console` | Offload a project from a brain to a hand. | [Console hands](references/mifune-console.md) |
-| `exedev` | Use an approved exe.dev VM through the SSH command API. | [exe.dev execution](references/exedev.md) |
+| `hands` | Offload a project from a brain to a hand on either provider. | [Hands](references/hands.md) |
+| `exedev` | Use an approved exe.dev VM through the SSH command API, not as a hand. | [exe.dev execution](references/exedev.md) |
 
 Choose the route from the request's intent and the execution environment.
 Ask the operator only if the required host or isolation boundary remains unresolved.

@@ -9,7 +9,7 @@ const reference = (name: string) => readFileSync(join(skill, "references", `${na
 const routes = [
   ["local/docker", "local-docker"],
   ["local/msb", "local-msb"],
-  ["mifune-console", "mifune-console"],
+  ["hands", "hands"],
   ["exedev", "exedev"],
 ];
 const sections = ["Choose when", "Prerequisites", "Execute", "Verify", "Cleanup", "Failure remedies"];
@@ -46,7 +46,7 @@ describe("sandbox skill", () => {
     }
     const references = readdirSync(join(skill, "references")).filter((name) => name.endsWith(".md"));
     expect(references.sort()).toEqual([
-      "exedev.md", "local-docker.md", "local-msb.md", "mifune-console.md",
+      "exedev.md", "hands.md", "local-docker.md", "local-msb.md",
       "providers.md", "rationale.md", "validation.md",
     ]);
     for (const name of references) expect(localLinks(entrypoint)).toContain(`references/${name}`);
@@ -72,7 +72,7 @@ describe("sandbox skill", () => {
     expect(entrypoint).toContain("Installed help remains the authority");
     expect(entrypoint).toContain("/herdr");
     expect(entrypoint).toContain("/worktrees");
-    const hands = reference("mifune-console");
+    const hands = reference("hands");
     expect(hands).toContain("Never read, print, or copy the brain token");
     expect(hands).toContain("HTTP 403, stop. Do not retry");
     expect(hands).toContain("BRAIN_TOKEN_FORBIDDEN");
@@ -82,11 +82,18 @@ describe("sandbox skill", () => {
     expect(hands).toContain("-- agro run -- <command>");
     expect(hands).toContain("If no supported runtime is available, stop");
     expect(reference("local-msb")).toContain("exactly 0.7.13");
-    expect(reference("exedev")).toContain("no stop/pause API");
+    for (const guard of ["ssh exe.dev tag <vm> agro-hand", "`hands.provider`", "without the tag `agro-hand`", "to the brain itself",
+      "If a guard refuses, stop", "creating n4", "`--spec` applies only to console hands", "login shell", "`agro run --help`"]) {
+      expect(hands).toContain(guard);
+    }
+    const exedev = reference("exedev");
+    expect(exedev).not.toMatch(/no stop\/pause|no pause/);
+    expect(exedev).toContain("`pause` and `resume`");
+    expect(localLinks(exedev)).toContain("hands.md");
   });
 
   it("documents clone retrieval prerequisites before fetch and both run.env network triggers", () => {
-    const hands = reference("mifune-console");
+    const hands = reference("hands");
     const clone = hands.slice(hands.indexOf("For a GitHub source"));
     expect(clone.indexOf("matching brain checkout")).toBeLessThan(clone.indexOf("Then fetch"));
     expect(clone).toContain("remote get-url hand-<index>");
@@ -154,21 +161,36 @@ describe("sandbox skill", () => {
     expect(cleanup).toContain("Remove only resources that belong to the approved run");
   });
 
-  it("uses the source-backed brain checkout for setup and the hand checkout for SSH retrieval", () => {
+  it("uses the source-backed brain harness root for setup and the hand checkout for SSH retrieval", () => {
     const source = readFileSync(join(root, ".agro/cli/src/commands/hands.ts"), "utf8");
+    const provider = readFileSync(join(root, ".agro/cli/src/lib/hands/provider.ts"), "utf8");
+    const rootBody = /function brainHarnessRoot\([^]*?\n\}/.exec(provider)?.[0];
+    expect(rootBody).toContain("readHostConfig(env, home).harnessRoot ?? defaultHarnessRoot(env, home)");
     const brainBody = /function brainProjectPath\([^]*?\n\}/.exec(source)?.[0];
-    expect(brainBody).toBeDefined();
+    expect(brainBody).toContain("join(brainHarnessRoot(");
     const segments = [...brainBody!.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
-    expect(segments).not.toHaveLength(0);
-    const brainPath = `~/${segments.join("/")}/<owner>/<repo>`;
+    expect(segments).toEqual(["projects"]);
+    expect(brainBody).toContain('"projects", slug.owner, slug.repo');
+    const brainPath = `<harness-root>/${segments.join("/")}/<owner>/<repo>`;
     const handPath = /function handProjectPath\([^]*?return `([^`]+)`;/.exec(source)?.[1]
       .replace("${slug.owner}", "<owner>").replace("${slug.repo}", "<repo>");
     expect(handPath).toBeDefined();
-    const hands = reference("mifune-console");
+    expect(source).toContain(`${brainPath} on the brain`);
+    expect(source).toMatch(/harnessRoot\\?` in ~\/\.agro\/config\.json/);
+    const hands = reference("hands");
     const setupPaths = [...hands.matchAll(/^git -C (\S+)/gm)].map((match) => match[1]);
     expect(setupPaths).toEqual([brainPath, brainPath, brainPath]);
+    expect(hands).toContain(`brain checkout is \`${brainPath}\``);
+    expect(hands).toContain(`hand checkout is \`~/${handPath}\``);
     expect(hands).toContain(`sandbox@<recorded-ssh-host>:${handPath}`);
+    expect(hands).toContain(`<vm>.exe.xyz:${handPath}`);
+    expect(hands).toContain("agro hands --help");
+    expect(brainPath).not.toBe(handPath);
     expect(brainPath).not.toBe(`~/${handPath}`);
+    const worktrees = readFileSync(join(root, ".agro/skills/worktrees/SKILL.md"), "utf8");
+    expect(worktrees).toContain(brainPath);
+    expect(worktrees).toContain("agro hands --help");
+    for (const text of [hands, worktrees]) expect(text).not.toContain("workspaces/harness");
   });
 
   it("keeps validation contracts without teaching shell polling or an archived phase driver", () => {
