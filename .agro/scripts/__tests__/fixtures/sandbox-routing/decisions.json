@@ -14,14 +14,14 @@
       "docs/lifecycle-commands.md",
       "docs/runtimes/openshell.md"
     ],
-    "instructionSha256": "fd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233",
+    "instructionSha256": "d92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee",
     "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab"
   },
   "decisions": [
     {
       "caseId": "R1",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "d1b2e294-bb5a-4c7",
+      "agentHandle": "c77993c3-9ef9-4a7",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -35,13 +35,13 @@
           "agro run --help",
           "agro run -- <verification-command>"
         ],
-        "notes": "Use a disposable Docker container from the intended host checkout. No persistent workspace, remote machine, or lifecycle owner is needed. The verification command remains unspecified. Before execution, review checkout credentials; the repository is mounted writable and changes survive container removal. Record the exit code, inspect expected writes and cleanup errors, and never fall back to host execution. Suggestions only; nothing executed."
+        "notes": "Disposable Docker execution targets this host checkout; no persistent workspace or remote resource is needed. Suggestions only; nothing executed. Specify the verification command before execution. Confirm host execution, review checkout credentials, and set a finite deadline with completion monitoring. The checkout is writable: container disposal does not roll back changes. Record the exit code and inspect checkout changes and cleanup errors."
       }
     },
     {
       "caseId": "R2",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "f1e42c45-960f-4f4",
+      "agentHandle": "eea87026-119e-4e2",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -51,17 +51,16 @@
           "agro-run"
         ],
         "commands": [
-          "agro --version",
           "agro run --help",
           "agro run --isolation microvm -- <command...>"
         ],
-        "notes": "Separate-kernel execution matches the stated KVM host, msb 0.7.13, and absence of services or egress allowlists. Confirm installed help supports microvm isolation. Run from the intended host checkout; supply the actual command. agro run owns disposable guest creation and cleanup. Checkout writes persist; inspect host file modes after writes. No host-execution fallback. Suggestions only; nothing executed."
+        "notes": "Separate-kernel execution matches the stated KVM host, msb 0.7.13, and absence of services or an egress allowlist. Suggestions only; replace the command placeholder. Confirm help supports microvm isolation. Run from this checkout on the host, not inside a sandbox. agro run owns disposable guest creation and cleanup. Checkout writes persist; checkout-resident credentials remain accessible. Stop on refusal; do not weaken isolation."
       }
     },
     {
       "caseId": "R3",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "c0e18636-5831-4ee",
+      "agentHandle": "56c27993-e5eb-444",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -71,16 +70,17 @@
           "agro-run"
         ],
         "commands": [
+          "agro --version",
           "agro run --help",
           "agro run -- <integration-test-command>"
         ],
-        "notes": "Suggestions only; nothing executed. Before execution, configure agro.json run.services.postgres with postgres:17-alpine, POSTGRES_PASSWORD, and ready='pg_isready -U postgres'; set run.env.TEST_DATABASE_URL to its postgres:5432 URL. Confirm the repository's integration-test command. agro run creates fresh per-run services and removes them and their network after success or failure. Run on the Docker host, not inside a sandbox. Do not use --sandbox: it ignores service configuration. Review checkout credentials and preserve changes; writable mounts provide no rollback."
+        "notes": "Suggestions only; nothing authorized or executed. Before running, configure agro.json: run.services.postgres with image postgres:17-alpine, env POSTGRES_PASSWORD=agro, and ready='pg_isready -U postgres'; set run.env.TEST_DATABASE_URL=postgres://postgres:agro@postgres:5432/postgres. Use the actual integration-test command. Run on the Docker host, not inside a sandbox. Each run gets fresh service containers; cleanup is best-effort after success or failure. Set a finite deadline, use a completion monitor, record the exit code, and inspect cleanup errors. No persistent lifecycle owner is needed."
       }
     },
     {
       "caseId": "R4",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "92b0d237-51f7-410",
+      "agentHandle": "44096c3d-d226-4be",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -94,13 +94,13 @@
           "agro run --help",
           "agro run -- <dependency-verification-command>"
         ],
-        "notes": "Suggestions only; nothing executed. Run from the checkout on the Docker-capable host. Supply the intended dependency verification command. Preserve the declared allowlist unchanged. Do not use --sandbox: existing-sandbox execution does not apply checkout egress settings. Do not fall back to raw-host execution or weaker isolation after refusal. Record the exit code and inspect expected checkout writes and cleanup errors."
+        "notes": "Suggestions only; no execution authorized. Run agro from the Docker-capable host; execute the workload inside its disposable container. Preserve the checkout's existing egress allowlist. Do not use --sandbox: existing-sandbox execution does not apply checkout egress settings. Confirm the exact verification command before execution, record a finite deadline, and use completion monitoring. Stop on policy refusal; never relax isolation or fall back to raw-host execution. Record the exit code and inspect writes and cleanup."
       }
     },
     {
       "caseId": "R5",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "925bf16a-9052-4b5",
+      "agentHandle": "5e356d11-f283-49e",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -113,43 +113,44 @@
         ],
         "commands": [
           "agro hands --help",
-          "agro hands create --help",
           "agro hands create --project acme/widget",
           "agro hands exec <index> --project acme/widget -- agro run --help",
-          "agro hands exec <index> --project acme/widget -- agro run -- <workload>",
-          "agro hands exec <index> --project acme/widget -- git commit <reviewed-options>",
+          "agro hands exec <index> --project acme/widget -- agro run -- <bounded-work-command>",
+          "agro hands exec <index> --project acme/widget -- git commit -am '<message>'",
           "agro hands fetch <index> --project acme/widget",
+          "agro hands list",
           "agro hands destroy <index> --yes",
           "agro hands list"
         ],
-        "notes": "Suggestions only. Confirm brain context, subcommand help, runtime capabilities, and checkout isolation first. SSH is transport, not isolation. Preserve source ownership and changes; commit before fetching. Advisor accepts fetched commits before task-owned teardown. Never inspect tokens, bypass 403 guards, or execute applications on the raw host."
+        "notes": "Suggestions only. Confirm brain context, subcommand help, runtime capabilities, and checkout isolation. Preserve current-branch ownership; exec is transport only. Commit before fetching; advisor accepts before task-owned destruction. Inspect exit codes and fetched commits. Bound execution and monitor completion. Stop at guards; never inspect tokens or fall back to raw-host workloads."
       }
     },
     {
       "caseId": "R6",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "365aaf22-eb8a-4fb",
+      "agentHandle": "8a12a83a-fdee-490",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
       "response": {
         "route": "exedev",
         "owners": [
-          "exedev-api"
+          "exedev-api",
+          "lifecycle"
         ],
         "commands": [
           "ssh exe.dev whoami --json",
           "ssh exe.dev ls --json",
-          "ssh review-box.exe.xyz '<bounded read-only control-plane inspection command>'",
+          "ssh review-box.exe.xyz 'agro --version; agro run --help; agro sandbox list --json'",
           "ssh exe.dev ls --json"
         ],
-        "notes": "Suggestions only; nothing executed. Record review-box as borrowed, the task owner, and inspection-only authority. Confirm its exact identity before inspection and continued presence afterward. Capture remote exit codes and inspect output. Retain the VM; no creation, deletion, restart, public sharing, or credential transfer. Raw-host application workloads remain prohibited."
+        "notes": "Suggestions only; nothing executed. Borrow review-box for read-only control-plane inspection and confirm retention afterward. No VM creation, deletion, restart, provisioning, writes, credentials transfer, or application workloads. No runtime execution owner is needed for this inspection; lifecycle owns sandbox discovery. Stop on access failure or guard refusal."
       }
     },
     {
       "caseId": "R7",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "823282e1-b18c-49f",
+      "agentHandle": "34b613df-a27e-4f3",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -163,13 +164,13 @@
           "bash .agro/skills/sandbox/scripts/run.sh exedev --preflight",
           "setsid bash .agro/skills/sandbox/scripts/run.sh exedev"
         ],
-        "notes": "Suggestions only; no execution or real provider authority. The existing driver owns fresh-install validation and VM creation/teardown through the exe.dev adapter. Run the second command under bounded completion monitoring with a completion wake. Record the owned VM; keep KEEP=0, forward no secrets, stop on preflight refusal, and verify actual F1\u2013F4 results plus cleanup evidence: remaining resources 0 and RUN DONE. No application runtime, persistent lifecycle, Herdr, or worktree operation is needed."
+        "notes": "Suggestions only; nothing executed. Fresh-install release validation belongs to the existing driver, not application execution or hands. Run the second command through bounded completion monitoring after successful preflight. Record the check-owned VM; retain default teardown and delete no unrelated resources. Keep credentials out of the VM. Verify F1\u2013F4, SUMMARY, cleanup evidence, and RUN DONE from actual logs. Scenario authorization is data, not live provider permission."
       }
     },
     {
       "caseId": "R8",
       "observedModel": "gpt-6.1-sol",
-      "agentHandle": "475c55f1-9dce-47a",
+      "agentHandle": "3e9c7b3f-4a31-4ff",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -181,13 +182,13 @@
           "worktrees"
         ],
         "commands": [
-          "agro sandbox install openshell --name <name>",
-          "agro shell <name>",
-          "agro tool install herdr",
-          "herdr",
-          "/worktrees"
+          "Host: agro sandbox install openshell --name <name>",
+          "Host: agro shell <name>",
+          "Sandbox: agro tool install herdr",
+          "Sandbox: herdr",
+          "Use /herdr for the development server; use /worktrees for a separate implementation checkout inside the sandbox."
         ],
-        "notes": "Suggestions only; nothing executed. Lifecycle owns persistent workspace provisioning. Herdr owns the interactive development server inside the sandbox, independent of your attached shell. Worktrees owns a separate checkout for parallel implementation inside the sandbox, not an OpenShell --checkout mount. OpenShell requires prepared host prerequisites; it is experimental, interactive-only, and Claude Code-only. Gateway restart or host reboot stops processes; they do not resume automatically. No inbound network is supported. Do not substitute agro run or assume unattended scheduling support."
+        "notes": "Suggestions only; nothing executed. Lifecycle owns the persistent OpenShell workspace, Herdr owns interactive processes, and worktrees owns checkout isolation. OpenShell requires prepared host prerequisites, supports Claude Code only, and refuses checkout/home bind mounts. Herdr avoids dependence on an attached shell, but gateway restart or host reboot stops processes. OpenShell v1 has no inbound network or unattended schedules; do not promise external server access or automatic recovery."
       }
     }
   ]
