@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "kind": "observed",
+    "instructionFiles": [
+      ".agro/skills/sandbox/SKILL.md",
+      ".agro/skills/sandbox/references/exedev.md",
+      ".agro/skills/sandbox/references/local-docker.md",
+      ".agro/skills/sandbox/references/local-msb.md",
+      ".agro/skills/sandbox/references/mifune-console.md",
+      ".agro/skills/sandbox/references/providers.md",
+      ".agro/skills/sandbox/references/rationale.md",
+      ".agro/skills/sandbox/references/validation.md"
+    ],
+    "instructionSha256": "5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7",
+    "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab"
+  },
+  "decisions": [
+    {
+      "caseId": "R1",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "d1b2e294-bb5a-4c7",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro --version",
+          "agro run --help",
+          "agro run -- <verification-command>"
+        ],
+        "notes": "Use a disposable Docker container from the intended host checkout. No persistent workspace, remote machine, or lifecycle owner is needed. The verification command remains unspecified. Before execution, review checkout credentials; the repository is mounted writable and changes survive container removal. Record the exit code, inspect expected writes and cleanup errors, and never fall back to host execution. Suggestions only; nothing executed."
+      }
+    },
+    {
+      "caseId": "R2",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "f1e42c45-960f-4f4",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/msb",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro --version",
+          "agro run --help",
+          "agro run --isolation microvm -- <command...>"
+        ],
+        "notes": "Separate-kernel execution matches the stated KVM host, msb 0.7.13, and absence of services or egress allowlists. Confirm installed help supports microvm isolation. Run from the intended host checkout; supply the actual command. agro run owns disposable guest creation and cleanup. Checkout writes persist; inspect host file modes after writes. No host-execution fallback. Suggestions only; nothing executed."
+      }
+    },
+    {
+      "caseId": "R3",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "c0e18636-5831-4ee",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro run --help",
+          "agro run -- <integration-test-command>"
+        ],
+        "notes": "Suggestions only; nothing executed. Before execution, configure agro.json run.services.postgres with postgres:17-alpine, POSTGRES_PASSWORD, and ready='pg_isready -U postgres'; set run.env.TEST_DATABASE_URL to its postgres:5432 URL. Confirm the repository's integration-test command. agro run creates fresh per-run services and removes them and their network after success or failure. Run on the Docker host, not inside a sandbox. Do not use --sandbox: it ignores service configuration. Review checkout credentials and preserve changes; writable mounts provide no rollback."
+      }
+    },
+    {
+      "caseId": "R4",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "92b0d237-51f7-410",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro --version",
+          "agro run --help",
+          "agro run -- <dependency-verification-command>"
+        ],
+        "notes": "Suggestions only; nothing executed. Run from the checkout on the Docker-capable host. Supply the intended dependency verification command. Preserve the declared allowlist unchanged. Do not use --sandbox: existing-sandbox execution does not apply checkout egress settings. Do not fall back to raw-host execution or weaker isolation after refusal. Record the exit code and inspect expected checkout writes and cleanup errors."
+      }
+    },
+    {
+      "caseId": "R5",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "925bf16a-9052-4b5",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "mifune-console",
+        "owners": [
+          "agro-hands",
+          "agro-run",
+          "worktrees"
+        ],
+        "commands": [
+          "agro hands --help",
+          "agro hands create --help",
+          "agro hands create --project acme/widget",
+          "agro hands exec <index> --project acme/widget -- agro run --help",
+          "agro hands exec <index> --project acme/widget -- agro run -- <workload>",
+          "agro hands exec <index> --project acme/widget -- git commit <reviewed-options>",
+          "agro hands fetch <index> --project acme/widget",
+          "agro hands destroy <index> --yes",
+          "agro hands list"
+        ],
+        "notes": "Suggestions only. Confirm brain context, subcommand help, runtime capabilities, and checkout isolation first. SSH is transport, not isolation. Preserve source ownership and changes; commit before fetching. Advisor accepts fetched commits before task-owned teardown. Never inspect tokens, bypass 403 guards, or execute applications on the raw host."
+      }
+    },
+    {
+      "caseId": "R6",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "365aaf22-eb8a-4fb",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "exedev",
+        "owners": [
+          "exedev-api"
+        ],
+        "commands": [
+          "ssh exe.dev whoami --json",
+          "ssh exe.dev ls --json",
+          "ssh review-box.exe.xyz '<bounded read-only control-plane inspection command>'",
+          "ssh exe.dev ls --json"
+        ],
+        "notes": "Suggestions only; nothing executed. Record review-box as borrowed, the task owner, and inspection-only authority. Confirm its exact identity before inspection and continued presence afterward. Capture remote exit codes and inspect output. Retain the VM; no creation, deletion, restart, public sharing, or credential transfer. Raw-host application workloads remain prohibited."
+      }
+    },
+    {
+      "caseId": "R7",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "823282e1-b18c-49f",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "validation",
+        "owners": [
+          "validation-driver",
+          "exedev-api"
+        ],
+        "commands": [
+          "bash .agro/skills/sandbox/scripts/run.sh exedev --preflight",
+          "setsid bash .agro/skills/sandbox/scripts/run.sh exedev"
+        ],
+        "notes": "Suggestions only; no execution or real provider authority. The existing driver owns fresh-install validation and VM creation/teardown through the exe.dev adapter. Run the second command under bounded completion monitoring with a completion wake. Record the owned VM; keep KEEP=0, forward no secrets, stop on preflight refusal, and verify actual F1\u2013F4 results plus cleanup evidence: remaining resources 0 and RUN DONE. No application runtime, persistent lifecycle, Herdr, or worktree operation is needed."
+      }
+    },
+    {
+      "caseId": "R8",
+      "observedModel": "gpt-6.1-sol",
+      "agentHandle": "475c55f1-9dce-47a",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "lifecycle",
+        "owners": [
+          "lifecycle",
+          "herdr",
+          "worktrees"
+        ],
+        "commands": [
+          "agro sandbox install openshell --name <name>",
+          "agro shell <name>",
+          "agro tool install herdr",
+          "herdr",
+          "/worktrees"
+        ],
+        "notes": "Suggestions only; nothing executed. Lifecycle owns persistent workspace provisioning. Herdr owns the interactive development server inside the sandbox, independent of your attached shell. Worktrees owns a separate checkout for parallel implementation inside the sandbox, not an OpenShell --checkout mount. OpenShell requires prepared host prerequisites; it is experimental, interactive-only, and Claude Code-only. Gateway restart or host reboot stops processes; they do not resume automatically. No inbound network is supported. Do not substitute agro run or assume unattended scheduling support."
+      }
+    }
+  ]
+}

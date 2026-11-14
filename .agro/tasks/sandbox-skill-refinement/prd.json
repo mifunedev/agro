@@ -22,6 +22,7 @@
         "The existing changelog entry describes the added routing evidence and links issue #1618."
       ],
       "priority": 1,
+      "commit": "7bbf3209a6af04513b7f7f8881dc9d10415884a6",
       "passes": true,
       "notes": "Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The unfiltered observed replay test intentionally remains unsatisfied until US-002 supplies genuine records; no synthetic observation or skip can satisfy it.",
       "files": [
@@ -48,8 +49,8 @@
       ],
       "priority": 2,
       "dependsOn": ["US-001"],
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: eight unique fresh contexts at immutable7bbf3209 produced the expected R1-R8 routes and required owners on their first attempts; actual JSON responses, observed gpt-6.1-sol model names, handles and prompt hashes were captured, not synthesized. Advisor audited every tool call as git-show-only source inspection, with no oracle/plan access or provider execution. Current instruction digest5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7 and cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab match capture. Monitor9 exit0: all37 routing/skill tests passed unfiltered, including the real observed-record gate and negative wrong-route/stale/missing/schema/provenance mutations; no skips. Suggested command wording remains ungraded and unexecuted, explicitly disclosed.",
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
         ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json"
