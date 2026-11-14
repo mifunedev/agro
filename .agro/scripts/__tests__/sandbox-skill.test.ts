@@ -92,6 +92,21 @@ describe("sandbox skill", () => {
     expect(localLinks(exedev)).toContain("hands.md");
   });
 
+  it("states one ordered hand default that never falls back to the raw host", () => {
+    const select = entrypoint.slice(entrypoint.indexOf("## Select a route"), entrypoint.indexOf("## Validation and supporting resources"));
+    const steps = [...select.matchAll(/^(\d+)\. /gm)].map((match) => Number(match[1]));
+    expect(steps).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    for (const term of ["`running`", "`git status --porcelain`", "`agro run --isolation microvm`", "`agro hands list`", "`hand-<hand>`",
+      "-- agro run -- <command>", "`local/docker`"]) {
+      expect(select).toContain(term);
+    }
+    expect(select).toMatch(/Never[^.\n]*raw host/);
+    const hands = reference("hands");
+    const choose = hands.slice(hands.indexOf("## Choose when"), hands.indexOf("## Prerequisites"));
+    expect(localLinks(choose)).toContain("../SKILL.md");
+    expect(choose).toContain("../SKILL.md#select-a-route");
+  });
+
   it("documents clone retrieval prerequisites before fetch and both run.env network triggers", () => {
     const hands = reference("hands");
     const clone = hands.slice(hands.indexOf("For a GitHub source"));

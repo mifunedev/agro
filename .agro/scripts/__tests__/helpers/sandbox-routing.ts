@@ -18,7 +18,7 @@ export const casesFile = ".agro/scripts/__tests__/fixtures/sandbox-routing/cases
 export const decisionsFile = ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json";
 export const routes = ["local/docker", "local/msb", "hands", "exedev", "validation", "lifecycle", "clarify"];
 export const owners = ["agro-run", "agro-hands", "exedev-api", "validation-driver", "lifecycle", "herdr", "worktrees"];
-export const caseIds = Array.from({ length: 11 }, (_, i) => `R${i + 1}`);
+export const caseIds = Array.from({ length: 17 }, (_, i) => `R${i + 1}`);
 type ObjectValue = Record<string, unknown>;
 
 function object(value: unknown): ObjectValue {

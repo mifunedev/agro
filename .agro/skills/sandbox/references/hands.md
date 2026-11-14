@@ -15,7 +15,16 @@ A brain is an AGRO node that holds the operator's projects and history.
 A hand is a node that a brain creates and manages through `agro hands`.
 The hand does heavy or parallel work. The brain keeps the history.
 Choose a hand for more CPU, memory, or disk, isolated parallel work, or potentially damaging commands.
-Keep short, light work on the brain. A hand uses paid provider resources from creation until destruction.
+For application runs, follow the default order in [Select a route](../SKILL.md#select-a-route). These steps support steps 5 and 6:
+
+- A hand holds a project when `agro hands exec <hand> -- git -C projects/<owner>/<repo> rev-parse HEAD` exits 0.
+- To push the current branch, follow [Put a project on an existing hand](#put-a-project-on-an-existing-hand) steps 2 and 3.
+- Compare `git -C <harness-root>/projects/<owner>/<repo> rev-parse HEAD` on the brain with the hand result. If the values differ, stop and report.
+- A run on a hand keeps the isolation runtime from step 1, for example `agro run --isolation microvm -- <command>`.
+- Parallel agents on the same project use separate hands, because `agro hands` has no worktree support on a hand.
+
+A hand uses paid provider resources from creation until destruction.
+Get explicit operator authority before a billable create.
 
 One brain uses one provider. `hands.provider` in the host config `${AGRO_HOME:-~/.agro}/config.json` selects the provider:
 

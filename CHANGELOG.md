@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- Route application runs of committed work to a running hand that holds the project by default in the `sandbox` skill. Otherwise, and for uncommitted edits, the run uses `local/docker`. Isolation needs still select the runtime, an explicit location in the request wins, the default never resumes or creates a hand, and the raw host never runs application work ([#1633](https://github.com/mifunedev/agro/issues/1633)).
+
 ## [0.37.0] - 2026-11-14
 
 ### Changed
