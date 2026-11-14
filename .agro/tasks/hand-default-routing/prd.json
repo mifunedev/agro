@@ -101,8 +101,8 @@
         "At the end, `ssh exe.dev ls --json` lists the same VMs, status, and tags as at the start."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: gate agro hands list --json running before any write. 2 executed: hands exec --project ryaneggz/microsandbox-ubuntu-dind -- agro run -- bash -n check exit 0. 3 executed: pause -> paused; local agro run check in brain project exit 0; resume -> running at +5 s, exec true exit 0 at +6 s. 4 executed: exec no-such-vm exit 1 'no exe.dev VM named no-such-vm'. 5 executed: agro auth status login: dev about 35 s after resume (fetch failed for about 30 s during reconnect). 6 external, reasoned: no create, fork, destroy, or tag; pause/resume approved by the plan. 7 executed: reduced ls --json before and after byte-identical.",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -110,7 +110,8 @@
       "files": [
         ".agro/tasks/hand-default-routing/evidence/manual-review.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "evidence-only"
     }
   ],
   "pr": 1634
