@@ -58,7 +58,7 @@
     },
     {
       "id": "R12",
-      "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain. Run the test suite for mifunedev/widget.",
+      "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain and holds mifunedev/widget. Run the test suite for mifunedev/widget.",
       "oracle": { "route": "hands", "owners": ["agro-hands", "agro-run"] }
     },
     {
@@ -74,6 +74,16 @@
     {
       "id": "R15",
       "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain. Run the test suite for mifunedev/widget on this host.",
+      "oracle": { "route": "local/docker", "owners": ["agro-run"] }
+    },
+    {
+      "id": "R16",
+      "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain and holds mifunedev/widget. Run this command for mifunedev/widget with a separate guest kernel.",
+      "oracle": { "route": "hands", "owners": ["agro-hands", "agro-run"] }
+    },
+    {
+      "id": "R17",
+      "prompt": "A hand agro-sbx-dev-001 is running on this exe.dev brain and holds mifunedev/widget. I have uncommitted edits in mifunedev/widget. Run the test suite.",
       "oracle": { "route": "local/docker", "owners": ["agro-run"] }
     }
   ]

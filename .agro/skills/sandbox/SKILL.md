@@ -52,20 +52,27 @@ Read the selected execution reference before acting.
 Choose the route from the request's intent and the execution environment.
 Ask the operator only if the required host or isolation boundary remains unresolved.
 
-For application runs, use this default order:
+For application runs, decide in this order:
 
-1. If the request names an explicit location, use that location.
-2. If `agro hands list` shows a hand with status `running`, run application runs of committed work on that hand:
-   `agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>`.
-3. Otherwise, use `local/docker`: `agro run -- <command>`.
+1. Isolation needs select the runtime. The default selects only the host.
+   For a separate kernel, use `agro run --isolation microvm`.
+   For services or an egress allowlist, use the container runtime.
+   Use that runtime on the host that the steps below select.
+2. If the request names an explicit location, use that location.
+3. If `git status --porcelain` in the project is not empty, use `local/docker`.
+4. Run `agro hands list`. If the command fails or the host is not a brain, report the error and use `local/docker`.
+5. Use a hand only if its status is `running` and it holds this project.
+   Any other status does not count. If more than one running hand holds the project, ask the operator which hand to use.
+   If no running hand holds the project, use `local/docker`. Only when the operator asks, put the project on a hand.
+6. On the selected hand, push the current branch and confirm that the hand HEAD equals the brain HEAD.
+   Then run `agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>`.
+   [Hands § Choose when](references/hands.md#choose-when) gives the commands.
+7. Otherwise, use `local/docker`: `agro run -- <command>`.
 
-A hand with status `paused`, `stopped`, or `creating` is not a running hand.
 The default never resumes or creates a hand.
 If `agro hands exec` fails, stop and report the error. Offer `local/docker`, and switch only after the operator agrees.
-If the Docker engine is missing on the local route, stop and report. Never fall back to the raw host.
-For an inner loop on uncommitted edits, stay on `local/docker`.
+If the Docker engine is missing, stop and report. Never fall back to the raw host.
 One agent at a time uses a project on a hand.
-For parallel agents on the same project, use separate hands, because `agro hands` has no worktree support on a hand.
 Do not infer billable authority from a route selection.
 
 ## Validation and supporting resources

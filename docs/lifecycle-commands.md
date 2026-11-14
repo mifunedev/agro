@@ -753,10 +753,12 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
 
 ### Shared behavior
 
-- The sandbox skill sends application runs of committed work to a hand with
-  status `running` in `agro hands list`. If no hand is running, the run uses
-  `agro run` on the brain. An explicit location in the request overrides this
-  default, and the default never resumes or creates a hand.
+- The `sandbox` skill gives agents a routing policy for application runs. An
+  agent sends a run of committed work to a hand with status `running` that
+  holds the project. Otherwise, the agent uses `agro run` on the brain. An
+  explicit location in the request overrides this policy, and the policy never
+  resumes or creates a hand. `agro run` and `agro hands` do not forward runs on
+  their own.
 - `create --project <owner>/<repo>` needs the brain project at
   `<harness-root>/projects/<owner>/<repo>`. If the project does not exist, the
   command exits 1 before it creates a hand. The command prepares
