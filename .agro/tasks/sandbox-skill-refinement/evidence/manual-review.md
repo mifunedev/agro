@@ -23,13 +23,13 @@ Native transcripts show twenty source-only `git show` calls, unique handles, and
 
 Prerequisites: a Docker-capable host, AGRO with `agro run`, and this PR checkout with installed dependencies.
 Location: the isolated PR worktree on the host. Execution occurs inside a disposable container.
-Tested source snapshot: `a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14`.
+Tested source snapshot: `c950dd42cab79c8375b31ff2de59417d55ed3709`.
 
 ```bash
 agro run -- timeout 600s sh -c 'set -eu; pnpm run lint; pnpm typecheck; pnpm build; pnpm test'
 ```
 
-Advisor monitor #18 exited 0. Its final output was:
+Advisor monitor #22 exited 0. Its final output was:
 
 ```text
 Test Files 125 passed (125)

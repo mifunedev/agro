@@ -171,6 +171,14 @@ None. The active goal authorizes bounded implementation and evaluation through P
 
 ## Lessons
 
+Selected assertion names do not establish complete caller retargeting or CI path resolution.
+The evidence refinement executes whole-file path-only comparisons, complete fixture checks, and canonical CI/link/payload checks.
+A fresh skeptic reproduced the structural output and hashes without a blocker.
+Real loader introspection and complete route/guard outcomes expose measured facts without assigning rubric grades.
+Outcome: fixed in this PR's verification evidence.
+Historical CI has seven conditional skips outside the changed routing/skill suites; local verification ran all 3352 tests.
+Outcome: dropped because these existing platform conditions require no source change in this task; the evidence records both scopes.
+
 The second raw council mean exceeded the target, but a source-confirmed unsafe SSH example activated the unchanged safety cap.
 Numerical agreement cannot override a verified isolation violation.
 The bounded repair aligns public application examples, writable Git mounts, readiness attempts, best-effort cleanup, and adapter-local capability claims.
