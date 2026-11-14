@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "project": "Sandbox skill readiness refinement",
+  "branchName": "feat/1618-sandbox-skill",
+  "description": "Refine existing PR #1619 under the active goal: fresh ten-member council mean at least 0.930, then undraft on exact-head green CI.",
+  "issue": 1618,
+  "pr": 1619,
+  "goalId": "5928aadb-abe3-40d8-a0ba-15e061c97f93",
+  "rubricSha256": "9b0281a76335f6a25431c8ce0f46521b00eb554e7bf7010708387b772f126f66",
+  "minimumCouncilMean": 0.93,
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Clarify workflows and add a routing-decision grader",
+      "description": "As an operator, I want accurate execution guidance and a strict decision grader so that review checks task decisions rather than prose presence.",
+      "acceptanceCriteria": [
+        "Clone-result retrieval names the required brain checkout and hand remote before fetch.",
+        "Public documentation matches allowlist-only run.env behavior.",
+        "MicroVM permission guidance distinguishes historical observations from fresh runtime evidence.",
+        "Eight routing cases cover the frozen R1 through R8 tasks without changing the rubric.",
+        "Grader tests reject wrong routes, missing or duplicate cases, invalid owners, stale instruction hashes, and invented execution claims.",
+        "The existing changelog entry describes the added routing evidence and links issue #1618."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "files": [
+        ".agro/skills/sandbox/references/mifune-console.md",
+        ".agro/skills/sandbox/references/local-msb.md",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/sandbox-routing.test.ts",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Execute fresh routing decisions and bind their evidence",
+      "description": "As an advisor, I want eight fresh decision-only runs so that regression evidence records actual model decisions against the current skill.",
+      "acceptanceCriteria": [
+        "Each case uses a fresh context without answer keys, peer outputs, or inherited advisor preferences.",
+        "Actual responses satisfy the expected routes and required ownership decisions for all eight cases.",
+        "The evidence identifies its cases, observed model, worker handles, and exact instruction hashes.",
+        "The grader rejects a mutated wrong-route response and stale source evidence.",
+        "No replay runs a provider command, reads credentials, or creates infrastructure."
+      ],
+      "priority": 2,
+      "dependsOn": ["US-001"],
+      "passes": false,
+      "notes": "",
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+        ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Verify the candidate and prepare review evidence",
+      "description": "As a reviewer, I want reproducible verification and a complete PR body so that the scored revision has an auditable acceptance path.",
+      "acceptanceCriteria": [
+        "Full tests, typecheck, and build pass inside agro run.",
+        "Skill structure, provider links, shell syntax, and changed prose pass relevant checks.",
+        "All sixteen moved machinery files retain their original blobs and modes.",
+        "Manual review evidence includes a real positive command and an invalid-provider failure from fresh temporary state.",
+        "The final commit excludes agro.json, runtime code, dependency changes, and unrelated main-checkout edits.",
+        "The PR body uses pinned evidence links and records known verification limits."
+      ],
+      "priority": 3,
+      "dependsOn": ["US-001", "US-002"],
+      "passes": false,
+      "notes": "",
+      "files": [".agro/tasks/sandbox-skill-refinement/evidence/manual-review.md"]
+    }
+  ]
+}
