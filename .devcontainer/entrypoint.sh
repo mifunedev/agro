@@ -455,20 +455,17 @@ if [ -n "${GH_TOKEN:-}" ]; then
 fi
 
 if [ -n "${GITLAB_TOKEN:-}" ]; then
-  GITLAB_LOGIN_HOST="${GITLAB_HOST:-gitlab.com}"
-  GITLAB_LOGIN_HOST="${GITLAB_LOGIN_HOST#*://}"
-  GITLAB_LOGIN_HOST="${GITLAB_LOGIN_HOST%%/*}"
-  if ! gosu sandbox env -u GITLAB_TOKEN glab auth status --hostname "$GITLAB_LOGIN_HOST" &>/dev/null; then
+  if ! gosu sandbox env -u GITLAB_TOKEN glab auth status --hostname gitlab.com &>/dev/null; then
     if printf '%s' "$GITLAB_TOKEN" | gosu sandbox env -u GITLAB_TOKEN \
-         glab auth login --hostname "$GITLAB_LOGIN_HOST" --stdin --git-protocol https \
+         glab auth login --hostname gitlab.com --stdin --git-protocol https \
          --setup-git-credential-helper &>/dev/null \
-       && gosu sandbox env -u GITLAB_TOKEN glab auth status --hostname "$GITLAB_LOGIN_HOST" &>/dev/null; then
-      echo "[entrypoint] GitLab CLI authenticated to ${GITLAB_LOGIN_HOST} via GITLAB_TOKEN (persisted to ~/.config/glab-cli)"
+       && gosu sandbox env -u GITLAB_TOKEN glab auth status --hostname gitlab.com &>/dev/null; then
+      echo "[entrypoint] GitLab CLI authenticated via GITLAB_TOKEN (persisted to ~/.config/glab-cli)"
     else
-      echo "[entrypoint] GITLAB_TOKEN provided but glab auth login to ${GITLAB_LOGIN_HOST} failed"
+      echo "[entrypoint] GITLAB_TOKEN provided but glab auth login failed"
     fi
   else
-    echo "[entrypoint] GitLab CLI already authenticated to ${GITLAB_LOGIN_HOST} on disk — skipping glab auth login"
+    echo "[entrypoint] GitLab CLI already authenticated on disk — skipping glab auth login"
   fi
 fi
 

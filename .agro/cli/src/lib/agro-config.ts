@@ -34,7 +34,6 @@ export type PullPolicy = "missing" | "always" | "never";
 export interface GitIdentity {
   userName?: string;
   userEmail?: string;
-  gitlabHost?: string;
 }
 
 export type EgressMode = "open" | "allowlist";
@@ -227,7 +226,6 @@ export function validateAgroConfig(value: unknown): AgroConfig {
   if (git) {
     expectString(git, "userName", "git.");
     expectString(git, "userEmail", "git.");
-    expectString(git, "gitlabHost", "git.");
   }
 
   const access = expectSection(record, "access");
@@ -392,7 +390,6 @@ export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "timezone", type: "string" },
   { path: "git.userName", type: "string" },
   { path: "git.userEmail", type: "string" },
-  { path: "git.gitlabHost", type: "string" },
   { path: "access.ssh", type: "boolean" },
   { path: "access.sshPort", type: "port" },
   { path: "access.sshPasswordAuth", type: "boolean" },

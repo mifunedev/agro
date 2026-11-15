@@ -50,7 +50,6 @@ export function renderComposeVars(config: AgroConfig): RenderedVar[] {
 
   put("GIT_USER_NAME", config.git?.userName);
   put("GIT_USER_EMAIL", config.git?.userEmail);
-  put("GITLAB_HOST", config.git?.gitlabHost);
 
   put("DOCKER_SOCKET", config.access?.dockerSocket);
   put("AGRO_EGRESS", config.access?.egress);

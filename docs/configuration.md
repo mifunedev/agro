@@ -95,7 +95,6 @@ or the CLI consumes the field itself.
 | --- | --- | --- | --- | --- |
 | `git.userName` | string | unset | `GIT_USER_NAME` | `user.name` for commits made inside the sandbox. Spaces are fine. |
 | `git.userEmail` | string | unset | `GIT_USER_EMAIL` | `user.email` for commits made inside the sandbox. |
-| `git.gitlabHost` | string | unset | `GITLAB_HOST` | GitLab instance host for `glab`. When `GITLAB_TOKEN` is set, the entrypoint logs `glab` in to this host, or to `gitlab.com` when the field is unset. See [GitLab](integrations/gitlab.md). |
 
 ### Harness and tool installs
 
