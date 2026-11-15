@@ -79,7 +79,8 @@
         "The `local/msb` route, `references/local-msb.md`, and `checks/agro-run-matrix.sh` keep their behavior.",
         "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox-adapters.test.ts .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/sandbox-skill.test.ts .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0.",
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/sandbox/SKILL.md .agro/skills/sandbox/references/validation.md .agro/skills/sandbox/references/providers.md` exits 0.",
-        "Typecheck passes"
+        "Typecheck passes",
+        "`decisions.json` holds 17 fresh decision-only records that the advisor collects against the final instruction files at d7c4d881. Each record matches its oracle. The worker writes the file with provenance from `sourceProvenance()`."
       ],
       "priority": 3,
       "passes": false,
@@ -93,8 +94,10 @@
         ".agro/skills/sandbox/references/providers.md",
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts",
         ".agro/scripts/__tests__/remote-sandbox-suite.test.ts",
-        ".agro/scripts/__tests__/sandbox-skill.test.ts"
-      ]
+        ".agro/scripts/__tests__/sandbox-skill.test.ts",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "rounds": 1
     },
     {
       "id": "US-004",
