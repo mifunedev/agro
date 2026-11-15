@@ -53,15 +53,16 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Verified in the task-branch worktree (main checkout holds an uncommitted agro.json edit). 1 executed: Dockerfile has 4 FROM lines, last stage final. 2 executed: git grep publish-msb-image .github empty. 3 executed: msb job test removed; -msb latest-promotion guard kept; publishedNoop guard count 4->3. 4 reasoned: entry removed (diff). 5 executed: git grep exit 1. 6 executed: agro run -- vitest release-reservation + ci-workflow-contract exit 0 (53 tests). 7 executed: hadolint exit 1 with only preexisting line 77 SC2016 info, identical on HEAD (worker compared). Typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".devcontainer/Dockerfile",
         ".github/workflows/release.yml",
         ".agro/scripts/__tests__/release-reservation.test.ts",
         ".agro/scripts/__tests__/ci-workflow-contract.test.ts"
-      ]
+      ],
+      "commit": "e4579ab7"
     },
     {
       "id": "US-003",
