@@ -12,6 +12,7 @@ Documentation: https://langfuse.com/docs/api-and-data-platform/features/cli
 ```bash
 # Run directly (recommended)
 npx langfuse-cli api <resource> <action>
+bunx langfuse-cli api <resource> <action>
 
 # Or install globally
 npm i -g langfuse-cli
