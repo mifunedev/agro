@@ -35,19 +35,21 @@ Status: DRAFT
 - [ ] `agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0. If DL3002 fires on `USER root` in stage `base`, the story adds DL3002 to `.hadolint.yaml` with a one-line reason.
 - [ ] `docker buildx build --target mifunetu --load -t mifunetu:dev -f .devcontainer/Dockerfile .` exits 0 on the brain.
 
-### US-003: Performance 1, one apt transaction in mifunetu
+### US-003: Performance 1, cut mifunetu image bytes
 
-**Description:** As the operator, I want stage `mifunetu` to install all apt packages in one `apt-get update` and one `apt-get install`. A cold build then spends less time on package index downloads and holds fewer layers.
+**Description:** As the operator, I want stage `mifunetu` to drop unused bytes. A cold build then exports less data. The apt merge of `ad2cf369` made the cold build slower (`evidence/perf-apt.md`: mean 132.0 s before, 163.4 s after), so this story reverts that merge.
 
 **Acceptance Criteria:**
 
-- [ ] Stage `mifunetu` registers the GitHub CLI and Docker apt repositories before the single package install. The stage keeps the keyring paths `/usr/share/keyrings/githubcli-archive-keyring.gpg` and `/etc/apt/keyrings/docker.asc`.
-- [ ] Stage `mifunetu` runs `apt-get update` exactly one time. `.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the count.
-- [ ] Each `command -v` and library check of the current apt layer still runs in the build.
-- [ ] `.agro/tasks/mifunetu-base-image/evidence/perf-apt.md` records the wall time of two cold runs of `docker buildx build --target mifunetu --load -t mifunetu:dev -f .devcontainer/Dockerfile .` at the US-002 commit and two cold runs at the US-003 commit. Before each cold run, the story runs `docker builder prune -af`.
-- [ ] The file records the layer count of `mifunetu:dev` from `docker history` before and after. The after count is lower.
-- [ ] The mean cold wall time after the change is lower than the mean before the change. If the mean is not lower, the story reports the numbers and the advisor decides.
-- [ ] `docker run --rm mifunetu:dev bash -lc 'gh --version && docker --version && docker compose version && hadolint --version && bun --version && uv --version && pnpm --version'` exits 0.
+- [ ] Stage `mifunetu` keeps the three apt layers of commit `dd2ab0bc`. The single apt `RUN` of commit `ad2cf369` is gone.
+- [ ] The Dockerfile installs no bun. `git grep -n -i -w bun -- .devcontainer .agro/scripts docs` prints no match.
+- [ ] `.agro/scripts/verify-sandbox-image.sh` and `.agro/scripts/__tests__/verify-sandbox-image.test.ts` check no bun. `docs/installation.md` does not list Bun.
+- [ ] `docker run --rm mifunetu:dev bash -lc 'cd /tmp && pnpm --version'` prints `10.33.0` and downloads nothing.
+- [ ] `docker run --rm mifunetu:dev bash -lc 'gh --version && docker --version && docker compose version && hadolint --version && uv --version'` exits 0.
+- [ ] `.agro/tasks/mifunetu-base-image/evidence/perf-bytes.md` records two cold runs at `dd2ab0bc` and two cold runs at the story commit. The runs alternate, and `docker builder prune -af` runs before each. The file records the image size of each.
+- [ ] The mean cold wall time and the image size at the story commit are lower than at `dd2ab0bc`.
+- [ ] `agro run -- pnpm exec vitest run` on `mifunetu-image.test.ts`, `sandbox-base-image.test.ts`, `verify-sandbox-image.test.ts`, `check-pnpm-pin.test.ts`, and `node-pnpm-parity.test.ts` in `.agro/scripts/__tests__/` exits 0.
+- [ ] `agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0.
 
 ### US-004: Performance 2, cache the agro CLI dependency layer
 
@@ -112,7 +114,7 @@ ADR #1635 (accepted) moves the general layers of stage `base` into a new root st
 
 The operator asked for two performance improvements in this change:
 
-- Stage `base` runs three `apt-get update` commands today (`.devcontainer/Dockerfile:10`, `:27`, `:35`). US-003 merges them into one apt transaction.
+- A merge of the three apt layers made the cold build slower, so US-003 removes unused bytes instead. bun (103 MB) has no caller in the repository, and the operator asked for its removal.
 - `COPY .agro/cli/ /opt/agro/` precedes `npm install` (`:69-70`), and `prepare` in `.agro/cli/package.json` runs the build. Each source change therefore reruns the full install. `.dockerignore` excludes only the root `node_modules/`, so a local build context carries the 37 MB `.agro/cli/node_modules`. US-004 copies the manifests first and excludes nested `node_modules`.
 
 ## Key Integration Points
@@ -177,5 +179,6 @@ None.
 - [ ] CI on the pull request is green.
 - [ ] `docker buildx build --target mifunetu` and the default target both build from the task branch head.
 - [ ] US-003 and US-004 each record a lower mean wall time after the change.
+- [ ] No image installs bun.
 
 ## Lessons
