@@ -134,3 +134,8 @@ None.
 - [ ] Each refused path names the delete command.
 
 ## Lessons
+
+1. A line-number fix for an STE finding overwrote the US-002 description in `prd.md`, and the `prd.json` conversion then merged US-002 into US-003. Evidence: commit `e3d991ad` restores the description and regenerates `prd.json`. Outcome: fixed in this PR; the advisor now checks the story and criterion counts after each conversion.
+2. The CLI has no snapshot, convert, or disk verb, so the HTTP 409 `NODE_DISPOSABLE` rule for those paths lives only in the help text. Evidence: `agro node --help` and `agro hands --help`. Outcome: dropped; the supervisor accepted help text for those operations.
+3. The usage lines of `agro node create` and `agro hands create` in `docs/lifecycle-commands.md` do not show `--disposable`. Evidence: the file stays unchanged because the sandbox routing replay hashes the file. Outcome: dropped; the supervisor kept the file unchanged, and the CLI help and `CHANGELOG.md` state the flag.
+4. `herdr-default.test.ts` fails 7 tests on this host. Evidence: the same 7 tests fail on `origin/development` `ef52a983`. Outcome: dropped; baseline failure outside this change.
