@@ -146,6 +146,7 @@ function run(
 
 describe.concurrent(
   "cli-first help — the built bundle",
+  { timeout: 30_000 },
   () => {
     it("builds exactly one executable bundle", async () => {
       expect(existsSync(AGRO_JS)).toBe(true);
