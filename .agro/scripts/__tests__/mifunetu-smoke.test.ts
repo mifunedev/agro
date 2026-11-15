@@ -23,7 +23,7 @@ if [[ $last == "npm i -g "* || $last == "cat > /tmp/agro.tgz && "* ]]; then
   echo 0.38.0
   exit 0
 fi
-[[ "$*" == "run --rm $FAKE_IMAGE bash -lc "* ]] || { echo "unexpected docker invocation: $*" >&2; exit 64; }
+[[ "$*" == "run --rm --pull=never $FAKE_IMAGE bash -lc "* ]] || { echo "unexpected docker invocation: $*" >&2; exit 64; }
 [[ $fail == user ]] && echo user=node || echo user=sandbox
 [[ $fail == uid ]] && echo uid=0 || echo uid=1000
 [[ $fail == workdir ]] && echo workdir=/ || echo workdir=/home/sandbox
@@ -87,10 +87,11 @@ describe("mifunetu-smoke.sh", () => {
     expect(result.stdout).toContain("mifunetu-smoke: agro --version 0.38.0");
     const [probe, install] = calls();
     expect(calls()).toHaveLength(2);
-    expect(probe.startsWith(`run --rm ${IMAGE} bash -lc `)).toBe(true);
+    expect(probe.startsWith(`run --rm --pull=never ${IMAGE} bash -lc `)).toBe(true);
     expect(probe).toContain("cd /tmp && COREPACK_ENABLE_NETWORK=0 pnpm --version");
-    expect(install).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
+    expect(install).toBe(`run --rm --pull=never ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
     expect(calls().join("\n")).not.toContain("sudo");
+    for (const call of calls()) expect(call.startsWith("run --rm --pull=never ")).toBe(true);
     expect(existsSync(dockerStdin)).toBe(false);
   });
 
@@ -109,7 +110,7 @@ describe("mifunetu-smoke.sh", () => {
 
     expect(result.status).toBe(0);
     expect(calls()[1]).toBe(
-      `run --rm -i ${IMAGE} bash -lc cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version`,
+      `run --rm --pull=never -i ${IMAGE} bash -lc cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version`,
     );
     expect(calls().join("\n")).not.toMatch(/(^|\s)(-v|--volume|--mount)[\s=]\S*:/);
     expect(readFileSync(dockerStdin, "utf8")).toBe("tarball-bytes\n");
@@ -139,7 +140,7 @@ describe("mifunetu-smoke.sh", () => {
     const result = run([IMAGE, "@mifune/agro@0.38.0"]);
 
     expect(result.status).toBe(0);
-    expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro@0.38.0 >&2 && agro --version`);
+    expect(calls()[1]).toBe(`run --rm --pull=never ${IMAGE} bash -lc npm i -g @mifune/agro@0.38.0 >&2 && agro --version`);
     expect(existsSync(dockerStdin)).toBe(false);
   });
 
@@ -167,7 +168,7 @@ describe("mifunetu-smoke.sh", () => {
       const result = run([IMAGE, spec], "", fixture);
 
       expect(result.status).toBe(0);
-      expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g ${spec} >&2 && agro --version`);
+      expect(calls()[1]).toBe(`run --rm --pull=never ${IMAGE} bash -lc npm i -g ${spec} >&2 && agro --version`);
       expect(existsSync(dockerStdin)).toBe(false);
     },
   );
@@ -177,7 +178,7 @@ describe("mifunetu-smoke.sh", () => {
     const result = run([IMAGE, "agro"], "", fixture);
 
     expect(result.status).toBe(0);
-    expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g agro >&2 && agro --version`);
+    expect(calls()[1]).toBe(`run --rm --pull=never ${IMAGE} bash -lc npm i -g agro >&2 && agro --version`);
     expect(existsSync(dockerStdin)).toBe(false);
   });
 
@@ -187,7 +188,7 @@ describe("mifunetu-smoke.sh", () => {
 
     expect(result.status).toBe(0);
     expect(calls()[1]).toBe(
-      `run --rm -i ${IMAGE} bash -lc cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version`,
+      `run --rm --pull=never -i ${IMAGE} bash -lc cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version`,
     );
     expect(readFileSync(dockerStdin, "utf8")).toBe("tar-gz-bytes\n");
   });
@@ -196,7 +197,7 @@ describe("mifunetu-smoke.sh", () => {
     const result = run([IMAGE, "@mifune/agro"]);
 
     expect(result.status).toBe(0);
-    expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
+    expect(calls()[1]).toBe(`run --rm --pull=never ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
   });
 
   it("exits 2 with a usage line when the image is missing", () => {

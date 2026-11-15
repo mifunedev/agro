@@ -23,7 +23,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
-- The pnpm 10.33.0 corepack pin now holds for user `sandbox` outside a project, with no download. The image build fills the corepack cache of user `sandbox` with the pinned version. The image sets no shared `COREPACK_HOME`, and user `sandbox` owns no path under `/usr/local` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+- The pnpm 10.33.0 corepack pin now holds for user `sandbox` outside a project in a new image home, with no download. The image build fills the corepack cache of user `sandbox` with the pinned version. A persisted home that already has `~/.cache` keeps its current behavior, because the entrypoint seeds only missing top-level entries. The image sets no shared `COREPACK_HOME`, and user `sandbox` owns no path under `/usr/local` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
 
 ## [0.37.0] - 2026-11-14
 

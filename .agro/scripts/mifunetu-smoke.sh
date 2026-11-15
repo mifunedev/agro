@@ -35,7 +35,7 @@ pass() {
 }
 
 probe_status=0
-probe=$(docker run --rm "$image" bash -lc '
+probe=$(docker run --rm --pull=never "$image" bash -lc '
 printf "user=%s\n" "$(id -un)"
 printf "uid=%s\n" "$(id -u)"
 printf "workdir=%s\n" "$(pwd)"
@@ -83,7 +83,7 @@ if [[ $tarball == true ]]; then
 fi
 
 install_status=0
-agro_version=$(docker run --rm ${run_flags[@]+"${run_flags[@]}"} "$image" bash -lc "$install_command" <"$install_input") || install_status=$?
+agro_version=$(docker run --rm --pull=never ${run_flags[@]+"${run_flags[@]}"} "$image" bash -lc "$install_command" <"$install_input") || install_status=$?
 if [[ $install_status -ne 0 ]]; then
   if [[ $install_input != /dev/null ]]; then
     fail agro-install "'$install_command' exited $install_status (tarball $agro_package streamed on standard input)"
