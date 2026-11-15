@@ -17,12 +17,13 @@
         "After the story, `docker images` lists no `mifunetu-baseline` image. The story deletes only images and build cache that it created."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed by worker, re-checked by advisor: evidence/perf-baseline.md records docker 29.1.3, buildx 0.30.1, nproc 2, free memory 3905 MiB, free disk 8.0 GB (AC1). Cold --target base runs at 0171d542 after docker builder prune -af: 113.9 s and 129.1 s, mean 121.5 s (AC2). Stage base has 3 apt-get update commands; image size 391353542 bytes (AC3). Warm runs after a temp-context cli.ts change: 9.3 s and 10.2 s; npm install re-ran (AC4). Worktree context 39.95 MB vs 1.55 MB from git archive; .agro/cli/node_modules is 37 MB (AC5). docker images lists no mifunetu-baseline image; build cache 0 B (AC6). Evidence is not committed: .gitignore keeps task run artifacts local.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/mifunetu-base-image/evidence/perf-baseline.md"
-      ]
+      ],
+      "commit": "none: evidence stays local under the .gitignore task-artifact rule"
     },
     {
       "id": "US-002",
@@ -180,5 +181,6 @@
         ".agro/tasks/mifunetu-base-image/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1637
 }
