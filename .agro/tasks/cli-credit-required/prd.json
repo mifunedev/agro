@@ -51,8 +51,8 @@
         "`npm run typecheck` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at e26dd087 (advisor): checkCredit reads GET /api/billing/balance after the free-tier read; payments off -> ok; balance > 0 -> ok with auto top-up suffix; <= 0 without auto top-up -> warn with the top-up link; read failure -> warn with the callApi message (HTTP 404 named); negative balance prints -$0.04; reply without balanceMicros -> warn (not in plan, untested). Exit status unchanged. npx vitest run node.test.ts hands.test.ts: 153 pass (red first: 18 failed). npm run typecheck: exit 0.",
       "dependsOn": [
         "US-001"
       ],
@@ -60,7 +60,8 @@
         ".agro/cli/src/commands/node.ts",
         ".agro/cli/src/__tests__/node.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "e26dd087"
     },
     {
       "id": "US-003",
