@@ -44,8 +44,8 @@
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, c9987517): criteria 1-6 pinned by 13 tests in self-upgrade.test.ts (npm args both prefix layouts, npm failure, standalone replace content+0755, pinned shebang, no-#! and failing --version leave target and dir unchanged, refusal of /opt/agro and checkout dist/agro.js, dry-run both paths); (7) alias + vendor-flag tests pass; (8) wc -l self-upgrade.ts = 120; (9) reasoned: help text reviewed, no .prev/downgrade/PATH-shadow/version-check text; (10) agro run -- pnpm exec vitest run self-upgrade, cli-first-help, bundle-identity -> exit 0, 46 passed; (11) agro run -- pnpm typecheck -> exit 0. git grep compareSemver|parseSemver|classifyInstallation in .agro/cli/src -> no match.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/self-upgrade.ts",
@@ -54,7 +54,8 @@
         ".agro/cli/src/__tests__/cli-first-help.test.ts",
         ".agro/cli/src/__tests__/bundle-identity.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "c9987517"
     },
     {
       "id": "US-003",
