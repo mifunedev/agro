@@ -20,13 +20,14 @@
         "`agro run -- pnpm test` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: test -e on the 5 paths, none exist. 2 executed: egress-policy.yaml holds version + network_policies; egress-policy.test.ts asserts the 6-host list, passes. 3 executed: defaultImage in lib/execution/index.ts, run.ts:328 uses it; run.test.ts default-image cases pass. 4 executed: tool-catalog and agro-config tests pass with docker-only values. 5 executed: sandbox.test.ts asserts exit 1 and unknown runtime message, passes. 6 reasoned: diff review shows install path, execution-target branch, openshellFiles, egress refusal, verbs.ts, entryRuntime, help lines deleted; docker paths unchanged. 7 executed: git grep -n -i openshell -- .agro/cli .devcontainer exit 1 (no output). 8 executed: agro run -- pnpm run typecheck exit 0. 9 executed: agro run -- pnpm test exit 1; only failures are docs-reference.test.ts (2) for docs/configuration.md:130 and docs/security-considerations.md:253 links to the renamed policy, owned by US-002, added to US-002 criteria; cli-first-help failures were a concurrent-run race and pass alone (27/27).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src",
         ".devcontainer"
-      ]
+      ],
+      "commit": "b9e9100d"
     },
     {
       "id": "US-002",
@@ -39,7 +40,8 @@
         "`instructionFiles` in `.agro/scripts/__tests__/helpers/sandbox-routing.ts` does not list `docs/runtimes/openshell.md`. The provenance test in `.agro/scripts/__tests__/sandbox-routing.test.ts` names only existing documents.",
         "`CHANGELOG.md` `## [Unreleased]` has a `### Removed` entry for `agro sandbox install openshell` and the OpenShell runtime.",
         "`git grep -n -i openshell -- ':!.agro/tasks' ':!CHANGELOG.md' ':!.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json'` prints nothing.",
-        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file in `docs/` and `.agro/skills/sandbox/`."
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file in `docs/` and `.agro/skills/sandbox/`.",
+        "`docs/configuration.md` and `docs/security-considerations.md` link `.devcontainer/egress-policy.yaml`, and `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
       ],
       "priority": 2,
       "passes": false,
