@@ -134,8 +134,8 @@
         "`agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-ran: vitest mifunetu-smoke, mifunetu-image, release-reservation, sandbox-privilege-boundary, sandbox-base-image exits 0, 130 tests (AC9, AC10, AC3/AC4 assertions); agro run shellcheck exits 0 (AC12); bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev exits 0, all 6 checks pass (AC1, AC11); no argument exits 2 with usage (AC2); inspected release.yml diff: mifunetu build after agro build, smoke before both pushes, mifunetu push after agro push, no latest, job list unchanged (AC5-AC8). Worker executed: login PATH holds both dirs; CMD /bin/bash -l with node entrypoint passthrough.",
       "dependsOn": [
         "US-004"
       ],
@@ -146,7 +146,8 @@
         ".agro/scripts/__tests__/release-reservation.test.ts",
         ".devcontainer/Dockerfile",
         ".agro/scripts/__tests__/mifunetu-image.test.ts"
-      ]
+      ],
+      "commit": "5066c7d1"
     },
     {
       "id": "US-006",
@@ -156,6 +157,7 @@
         "`docs/deployment-prebuilt-image.md` has a section `## The mifunetu base image` that names the two tags, user `sandbox` with uid 1000, the start directory `/home/sandbox`, the absence of agro, and `npm i -g @mifune/agro`.",
         "`.agro/skills/release/SKILL.md` \u00a7 Artifact set lists the two mifunetu tags. \u00a7 Operator prerequisites states that the operator sets the GHCR package `mifunedev/mifunetu` to public after its first push.",
         "`CHANGELOG.md` `## [Unreleased]` has an `### Added` entry for mifunetu that links #1635.",
+        "`CHANGELOG.md` `## [Unreleased]` records the removal of bun from the image, the pnpm 10.33.0 pin for every image user, and the faster image rebuild after an agro CLI change.",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/deployment-prebuilt-image.md` reports no finding on the new section."
       ],
       "priority": 6,

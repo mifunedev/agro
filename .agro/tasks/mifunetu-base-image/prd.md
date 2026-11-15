@@ -94,6 +94,7 @@ Status: DRAFT
 - [ ] `docs/deployment-prebuilt-image.md` has a section `## The mifunetu base image` that names the two tags, user `sandbox` with uid 1000, the start directory `/home/sandbox`, the absence of agro, and `npm i -g @mifune/agro`.
 - [ ] `.agro/skills/release/SKILL.md` § Artifact set lists the two mifunetu tags. § Operator prerequisites states that the operator sets the GHCR package `mifunedev/mifunetu` to public after its first push.
 - [ ] `CHANGELOG.md` `## [Unreleased]` has an `### Added` entry for mifunetu that links #1635.
+- [ ] `CHANGELOG.md` `## [Unreleased]` records the removal of bun from the image, the pnpm 10.33.0 pin for every image user, and the faster image rebuild after an agro CLI change.
 - [ ] `bash .agro/skills/ste/scripts/ste-check.sh docs/deployment-prebuilt-image.md` reports no finding on the new section.
 
 ### US-007: Manual review evidence
