@@ -845,7 +845,7 @@ describe("runRun", () => {
     function microvm(dir: string, run: LifecycleRunner, extra: Partial<Parameters<typeof runRun>[0]> = {}) {
       const out = io();
       const done = runRun(
-        { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", cwd: dir, env: HOST_ENV, run, runId: () => ID, access: allowKvm, usageLogPath: join(dir, "usage.jsonl"), ...extra },
+        { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", cwd: dir, env: HOST_ENV, run, runId: () => ID, access: allowKvm, usageLogPath: join(dir, "usage.jsonl"), version: "1.2.3", ...extra },
         out.io,
       );
       return { out, done };
@@ -938,10 +938,21 @@ describe("runRun", () => {
         return args[args.indexOf("--") - 1];
       }
 
-      it("prefers --image, then run.microvm.image, then the published agro-msb image", async () => {
-        expect(await imageFor(withMicrovmImage("configured-msb:1"), "flag:1")).toBe("flag:1");
-        expect(await imageFor(withMicrovmImage("configured-msb:1"))).toBe("configured-msb:1");
-        expect(await imageFor(withMicrovmImage(undefined))).toBe(`${officialImageRef(AGRO_VERSION)}-msb`);
+      it("prefers --image, then run.microvm.image, then the mifunetu image for the CLI version", async () => {
+        expect(await imageFor(withMicrovmImage("configured:1"), "flag:1")).toBe("flag:1");
+        expect(await imageFor(withMicrovmImage("configured:1"))).toBe("configured:1");
+        expect(await imageFor(withMicrovmImage(undefined))).toBe("ghcr.io/mifunedev/mifunetu:1.2.3");
+      });
+
+      it("exits 1 with the --image remedy and runs no msb command for a CLI version without a release tag", async () => {
+        const dir = withMicrovmImage(undefined);
+        const { run, calls } = msbRunner({ toplevel: dir });
+        const { out, done } = microvm(dir, run, { version: "0.0.0-dev" });
+        expect(await done).toBe(1);
+        expect(out.stderr.join("")).toBe(
+          "agro run: ghcr.io/mifunedev/mifunetu has no image for CLI version 0.0.0-dev; pass --image or set run.microvm.image\n",
+        );
+        expect(msbArgs(calls)).toEqual([]);
       });
     });
 

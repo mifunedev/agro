@@ -48,6 +48,7 @@ export interface RunOptions {
   now?: () => number;
   usageLogPath?: string;
   appendUsage?: (path: string, line: string) => void;
+  version?: string;
 }
 
 interface RunNetwork {
@@ -250,7 +251,7 @@ async function runMicrovm(
   if (Object.keys(settings.services ?? {}).length > 0 || config.access?.egress === "allowlist") {
     throw new Error("--isolation microvm with run.services or access.egress \"allowlist\" is not supported yet");
   }
-  const image = opts.image ?? nonEmpty(settings.microvm?.image) ?? microvmImageRef(AGRO_VERSION);
+  const image = opts.image ?? nonEmpty(settings.microvm?.image) ?? microvmImageRef(opts.version ?? AGRO_VERSION);
   const target = new MicrovmExecutionTarget({
     worktreeRoot: root,
     image,
