@@ -115,5 +115,6 @@
       "commit": "ae89bd9d"
     }
   ],
-  "pr": 1645
+  "pr": 1645,
+  "blocked": "Close gate: npx vitest run fails .agro/scripts/__tests__/sandbox-routing.test.ts (\"stale source: instructionSha256\"). docs/lifecycle-commands.md is a hashed instruction file of the observed routing replay (.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json); US-003 changed it as directed, so the 17-case replay is stale. Precedent (msb-guest-mifunetu round 1): re-record R1-R17 with 17 fresh decision-only agents. That spend conflicts with the usage guidance (82%, keep workers few). Options: (A) re-record the 17 cases with fresh decision-only agents; (B) move the credit text out of docs/lifecycle-commands.md (conflicts with the supervisor direction); (C) other direction. The 7 herdr-default.test.ts failures also fail on origin/development ef52a983 (baseline, not this task). Everything else passes: typecheck 0; 126 of 128 test files; US-001..US-003 accepted; US-004 local evidence done, live check external."
 }
