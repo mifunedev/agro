@@ -187,15 +187,16 @@
         "After the story, `docker images` lists only the images present before the story. The story deletes the build cache that it created."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker executed at f8e40e55, advisor reviewed transcript: default and mifunetu targets build (AC2); id sandbox identical to 0.37.0: uid=1000(sandbox) gid=1000(sandbox) groups=1000(sandbox),1001(docker) (AC3); image-environment diff: +COREPACK_HOME (this task) and 4 lines only in 0.37.0 (OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_EXPORTER_OTLP_TRACES_PROTOCOL, OTEL_TRACES_EXPORTER, TRACEPARENT) that come from the CI BuildKit environment at release build time, not from this change; reasoned as build-host noise (AC4); smoke on new mifunetu exits 0 (AC5); agro run --image mifunetu-review:agro -- agro --version prints 0.37.0 (AC6); agro image 401711573 vs 454419882 bytes, no bun (AC7); docker images back to the before set, cache pruned (AC1, AC8).",
       "dependsOn": [
         "US-005",
         "US-006"
       ],
       "files": [
         ".agro/tasks/mifunetu-base-image/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "none: evidence stays local under the .gitignore task-artifact rule"
     }
   ],
   "pr": 1637
