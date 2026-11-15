@@ -91,8 +91,12 @@ RUN npm install -g cc-safety-net@2.6.8 --prefix /usr/local \
 
 COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/openshell-policy.yaml /opt/agro-assets/.devcontainer/
 COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/cli/package.json .agro/cli/package-lock.json /opt/agro/
+RUN cd /opt/agro && npm install --ignore-scripts --no-audit --no-fund \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
 COPY .agro/cli/ /opt/agro/
-RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
+RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
  && chmod +x /opt/agro/dist/agro.js \
  && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
  && npm cache clean --force \

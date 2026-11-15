@@ -121,4 +121,23 @@ describe("base stage on mifunetu", () => {
   ])("does not repeat the general layer %s", (text) => {
     expect(baseText).not.toContain(text);
   });
+
+  it("installs the agro CLI dependencies before it copies the CLI source", () => {
+    const steps = [
+      "COPY .agro/cli/package.json .agro/cli/package-lock.json /opt/agro/",
+      "npm install --ignore-scripts --no-audit --no-fund",
+      "COPY .agro/cli/ /opt/agro/",
+      "npm run build",
+    ];
+    const positions = steps.map((step) => baseText.indexOf(step));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+});
+
+describe("docker build context", () => {
+  it("excludes every nested node_modules directory", () => {
+    const ignore = readFileSync(path.join(repoRoot, ".dockerignore"), "utf8").split("\n");
+    expect(ignore).toContain("**/node_modules/");
+  });
 });
