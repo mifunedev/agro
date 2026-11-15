@@ -226,12 +226,12 @@ describe("sandbox skill", () => {
     expect(validation).not.toMatch(/until .*RUN DONE|do sleep/);
     expect(validation).not.toMatch(/msb guest|MSB_|IMAGE_SIZE_BYTES/);
     expect(validation).toContain("SKILL=.agro/skills/sandbox");
-    expect([...validation.matchAll(/^### (?:Main|Second|Third|Fourth|Fifth|Sixth) scenario:/gm)]).toHaveLength(6);
+    expect([...validation.matchAll(/^### (?:Main|Second|Third|Fourth|Fifth) scenario:/gm)]).toHaveLength(5);
     for (const fn of ["preflight", "create", "exec", "destroy", "list"]) {
       expect(validation).toContain(`<p>_${fn}`);
     }
     expect(readdirSync(join(skill, "adapters")).sort()).toEqual(["console.sh", "exedev.sh", "vercel.sh"]);
-    expect(readdirSync(join(skill, "checks"))).toHaveLength(7);
+    expect(readdirSync(join(skill, "checks"))).toHaveLength(6);
     expect(readdirSync(join(skill, "scripts"))).toHaveLength(4);
     for (const dir of ["checks", "scripts"]) {
       for (const file of readdirSync(join(skill, dir))) {
