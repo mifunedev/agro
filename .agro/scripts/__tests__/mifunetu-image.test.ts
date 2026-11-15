@@ -20,6 +20,11 @@ function instructions(lines: string[]): string[] {
 
 const mifunetu = stage("mifunetu");
 const mifunetuText = mifunetu.join("\n");
+const aptInstall = mifunetuText.indexOf("apt-get install -y --no-install-recommends gh docker-ce-cli");
+const instructionStarts = mifunetu.flatMap((line, index) => (line.trim() !== "" && !/^\s/.test(line) ? [index] : []));
+const aptRuns = instructionStarts
+  .map((start, index) => mifunetu.slice(start, instructionStarts[index + 1]).join("\n"))
+  .filter((text) => text.startsWith("RUN ") && text.includes("apt-get"));
 const base = stage("base");
 const baseText = base.join("\n");
 
@@ -32,11 +37,10 @@ describe("mifunetu image stage", () => {
   });
 
   it.each([
-    ["the apt tool set", "apt-get install -y --no-install-recommends \\"],
-    ["gh", "install -y --no-install-recommends gh"],
-    ["the docker CLI and compose plugin", "docker-ce-cli docker-compose-plugin"],
+    ["gh, the docker CLI, and the compose plugin", "gh docker-ce-cli docker-compose-plugin"],
     ["hadolint 2.12.0", "ARG HADOLINT_VERSION=2.12.0"],
-    ["bun", "https://bun.sh/install"],
+    ["bun under /usr/local", "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash"],
+    ["the bun check", "test -x /usr/local/bin/bun"],
     ["uv", "https://astral.sh/uv/install.sh"],
     ["pnpm 10.33.0", "corepack prepare pnpm@10.33.0 --activate"],
     ["the timezone", "ENV TZ=America/Denver"],
@@ -68,6 +72,38 @@ describe("mifunetu image stage", () => {
     },
   );
 
+  it("runs apt-get in one RUN instruction with at most two updates", () => {
+    expect(aptRuns).toHaveLength(1);
+    const updates = mifunetuText.match(/apt-get update/g) ?? [];
+    expect(updates.length).toBeGreaterThanOrEqual(1);
+    expect(updates.length).toBeLessThanOrEqual(2);
+    expect(aptRuns[0].match(/apt-get update/g)).toHaveLength(updates.length);
+  });
+
+  it.each([
+    ["the GitHub CLI keyring", "/usr/share/keyrings/githubcli-archive-keyring.gpg"],
+    ["the Docker keyring", "/etc/apt/keyrings/docker.asc"],
+    ["the GitHub CLI repository", "/etc/apt/sources.list.d/github-cli.list"],
+    ["the Docker repository", "https://download.docker.com/linux/debian trixie stable"],
+  ])("registers %s before the package install", (_, text) => {
+    const position = mifunetuText.indexOf(text);
+    expect(position).toBeGreaterThanOrEqual(0);
+    expect(position).toBeLessThan(aptInstall);
+  });
+
+  it.each([
+    "command -v lsof",
+    "command -v htop",
+    "command -v telnet",
+    "command -v shellcheck",
+    "test -x /usr/bin/python3",
+    "ldconfig -p | grep -q libatomic.so.1",
+    "command -v gh",
+    "command -v docker",
+  ])("checks %s after the package install", (text) => {
+    expect(mifunetuText.indexOf(text)).toBeGreaterThan(aptInstall);
+  });
+
   it("ends as user sandbox in the home directory", () => {
     expect(instructions(mifunetu).slice(-2)).toEqual(["USER sandbox", "WORKDIR /home/sandbox"]);
   });
@@ -92,7 +128,7 @@ describe("base stage on mifunetu", () => {
   });
 
   it.each([
-    "apt-get install",
+    "apt-get",
     "HADOLINT_VERSION",
     "bun.sh",
     "astral.sh",
