@@ -310,17 +310,23 @@ prints the remedy:
   (`sudo usermod -aG kvm $USER`) and start a new login session.
 
 The image is `--image <ref>`, else `run.microvm.image` in `agro.json`, else
-`ghcr.io/mifunedev/agro:<version>-msb` for the CLI version. Each release builds the
-`agro-msb` target of `.devcontainer/Dockerfile` and publishes the `<version>-msb` and
-`sha-<commit>-msb` tags.
+`ghcr.io/mifunedev/mifunetu:<version>` for the CLI version. The `mifunetu` image has
+Node and the general tools, but no `agro`. The `mifunetu` image has no `latest` tag.
+If the CLI version has no release tag, `agro run` exits 1 before `msb run` and tells
+you to pass `--image`.
 
 ```json
 {
   "run": {
-    "microvm": { "image": "ghcr.io/mifunedev/agro:0.31.0-msb" }
+    "microvm": { "image": "ghcr.io/mifunedev/mifunetu:0.38.0" }
   }
 }
 ```
+
+An existing `run.microvm.image` pin to an old `ghcr.io/mifunedev/agro` image keeps
+working at that version. If a guest command needs `agro`, pass `--image` with an
+image that holds `agro`, or install `@mifune/agro` in the guest with
+`npm i -g @mifune/agro`.
 
 The microVM gets these limits:
 

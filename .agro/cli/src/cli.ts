@@ -387,7 +387,8 @@ official image for this CLI version.
 With \`--isolation microvm\`, the command runs as the user sandbox in a throwaway
 msb microVM with its own kernel. The run needs msb ${MSB_VERSION} and read and write
 access to ${KVM_DEVICE}. The image is \`--image\`, else \`run.microvm.image\` in
-${stateNames(bin).configFile}, else the official agro-msb image for this CLI version.
+${stateNames(bin).configFile}, else ghcr.io/mifunedev/mifunetu:<version> for this CLI
+version. A CLI version without a release tag needs \`--image\` or \`run.microvm.image\`.
 The microVM mode does not support \`run.services\` or \`access.egress: "allowlist"\` yet.
 
 With \`--sandbox <name>\`, the command runs in an existing sandbox in place of a

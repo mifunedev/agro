@@ -217,28 +217,28 @@ describe("sandbox skill", () => {
     for (const text of [hands, worktrees]) expect(text).not.toContain("workspaces/harness");
   });
 
-  it("keeps validation contracts without teaching shell polling or an archived phase driver", () => {
+  it("keeps validation contracts without teaching shell polling or the msb guest", () => {
     const validation = reference("validation");
     expect(validation).toContain("REMOTE_SANDBOX_ADAPTERS");
     expect(validation).toContain("RESULT <id> <PASS|FAIL|SKIPPED> <detail>");
     expect(validation).toContain("MonitorCreate");
     expect(validation).toContain("onDone");
     expect(validation).not.toMatch(/until .*RUN DONE|do sleep/);
-    expect(validation).toContain("No bundled driver orchestrates the full chain");
+    expect(validation).not.toMatch(/msb guest|MSB_|IMAGE_SIZE_BYTES/);
     expect(validation).toContain("SKILL=.agro/skills/sandbox");
-    expect([...validation.matchAll(/^### (?:Main|Second|Third|Fourth|Fifth|Sixth|Seventh) scenario:/gm)]).toHaveLength(7);
+    expect([...validation.matchAll(/^### (?:Main|Second|Third|Fourth|Fifth|Sixth) scenario:/gm)]).toHaveLength(6);
     for (const fn of ["preflight", "create", "exec", "destroy", "list"]) {
       expect(validation).toContain(`<p>_${fn}`);
     }
-    expect(readdirSync(join(skill, "adapters")).sort()).toEqual(["console.sh", "exedev.sh", "msb.sh", "vercel.sh"]);
-    expect(readdirSync(join(skill, "checks"))).toHaveLength(8);
+    expect(readdirSync(join(skill, "adapters")).sort()).toEqual(["console.sh", "exedev.sh", "vercel.sh"]);
+    expect(readdirSync(join(skill, "checks"))).toHaveLength(7);
     expect(readdirSync(join(skill, "scripts"))).toHaveLength(4);
     for (const dir of ["checks", "scripts"]) {
       for (const file of readdirSync(join(skill, dir))) {
         if (file !== "lib.sh") expect(statSync(join(skill, dir, file)).mode & 0o111).toBe(0o111);
       }
     }
-    for (const adapter of ["console", "msb", "exedev", "vercel"]) {
+    for (const adapter of ["console", "exedev", "vercel"]) {
       const source = readFileSync(join(skill, "adapters", `${adapter}.sh`), "utf8");
       for (const fn of ["preflight", "create", "exec", "destroy", "list"]) {
         expect(source).toContain(`${adapter}_${fn}()`);

@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- `agro run --isolation microvm` boots `ghcr.io/mifunedev/mifunetu:<version>` by default, so the guest holds no unused agro control plane and no unused `dockerd` (ADR #1635). The `mifunetu` image has no `latest` tag, so a CLI version without a release tag exits 1 before `msb run` and names `--image` as the remedy. An existing `run.microvm.image` pin to an old `-msb` image keeps working at that version. When a guest command needs `agro`, pass `--image` or install `@mifune/agro` in the guest ([#1642](https://github.com/mifunedev/agro/issues/1642)).
+
+### Removed
+
+- Remove the `agro-msb` stage of `.devcontainer/Dockerfile`, the `<version>-msb` and `sha-<sha>-msb` release tags, and the `msb` validation adapter ([#1642](https://github.com/mifunedev/agro/issues/1642)).
+
 ## [0.38.0] - 2026-11-15
 
 ### Added

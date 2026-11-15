@@ -3,8 +3,6 @@
 ## Choose when
 
 Use Microsandbox (`msb`) for one command with a separate kernel on the host running `agro`.
-This route is not the remote validation adapter named `msb`.
-That adapter creates a console node and a guest for validation.
 
 ## Prerequisites
 
@@ -15,7 +13,9 @@ That adapter creates a console node and a guest for validation.
 - The configuration must not declare services or `access.egress: "allowlist"`.
   MicroVM mode refuses both settings.
 - Select the image in this order: `--image <ref>`, `run.microvm.image`,
-  then `ghcr.io/mifunedev/agro:<version>-msb` for the CLI version.
+  then `ghcr.io/mifunedev/mifunetu:<version>` for the CLI version.
+  The default image has no `agro` and no `latest` tag, so a CLI version
+  without a release tag needs `--image`.
 
 ## Execute
 

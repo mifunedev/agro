@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1642-msb-guest-mifunetu",
+  "description": "mifunetu is the default agro run --isolation microvm guest; retire stage agro-msb, the -msb tags, the publish-msb-image job, and the msb validation adapter (ADR #1635 amendment).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Default `agro run --isolation microvm` image is mifunetu",
+      "description": "As an operator, I want `agro run --isolation microvm` to boot `ghcr.io/mifunedev/mifunetu:<version>` by default so that the guest carries no unused agro control plane and no unused dockerd.",
+      "acceptanceCriteria": [
+        "`microvmImageRef(\"1.2.3\")` returns `ghcr.io/mifunedev/mifunetu:1.2.3` (`.agro/cli/src/__tests__/microvm-target.test.ts`).",
+        "The precedence test in `.agro/cli/src/__tests__/run.test.ts` asserts `--image`, then `run.microvm.image`, then `ghcr.io/mifunedev/mifunetu:<AGRO_VERSION>`.",
+        "The `IMAGE` constant in `microvm-target.test.ts` names a mifunetu reference.",
+        "`agro run --help` names the mifunetu image as the default (`.agro/cli/src/cli.ts`).",
+        "`docs/lifecycle-commands.md` and `.agro/skills/sandbox/references/local-msb.md` name `ghcr.io/mifunedev/mifunetu:<version>` as the default and contain no `-msb` image reference.",
+        "`docs/lifecycle-commands.md` states that an existing `run.microvm.image` pin to `agro:<old>-msb` keeps working at that version. The page also tells the reader to pass `--image` or to install `@mifune/agro` in the guest when a guest command needs `agro`.",
+        "For a CLI version that `officialImageRef` maps to `latest`, `agro run --isolation microvm` with no `--image` and no `run.microvm.image` exits 1 before `msb run`. The message names `--image` as the remedy, because mifunetu has no `latest` tag.",
+        "`CHANGELOG.md` `## [Unreleased]` has a `### Changed` entry for the new default, with a reference to ADR #1635. The section also has a `### Removed` entry for the `agro-msb` stage, the `-msb` tags, and the msb validation adapter.",
+        "`agro run -- pnpm run typecheck` exits 0.",
+        "`agro run -- pnpm exec vitest run .agro/cli/src/__tests__/microvm-target.test.ts .agro/cli/src/__tests__/run.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Verified on the integrated task branch in the task worktree (main checkout holds an uncommitted agro.json edit). 1-3 executed: microvm-target.test and run.test pass (part of full suite, exit 0). 4 executed: cli.ts:390 names ghcr.io/mifunedev/mifunetu:<version>. 5 executed: no -msb in lifecycle-commands.md or local-msb.md (git grep). 6 reasoned: docs say an old ghcr.io/mifunedev/agro pin keeps working and name --image / npm i -g @mifune/agro; literal agro:<old>-msb omitted because criterion 5 forbids -msb references. 7 executed: refusal tests for 0.0.0-dev and v1.2.3 assert exit 1, the --image message, and no msb call. 8 reasoned: Unreleased has Changed (ADR #1635, #1642) and Removed entries; review round fixed punctuation and the stale local-msb.md adapter sentences (2061dc5c). 9 executed: agro run -- pnpm run typecheck exit 0. 10 executed: agro run -- pnpm test exit 0 (128 files, 3492 tests). Precedence test uses an injected version 1.2.3 because AGRO_VERSION is 0.0.0-dev under vitest.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/execution/microvm-target.ts",
+        ".agro/cli/src/lib/version.ts",
+        ".agro/cli/src/commands/run.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/microvm-target.test.ts",
+        ".agro/cli/src/__tests__/run.test.ts",
+        "docs/lifecycle-commands.md",
+        ".agro/skills/sandbox/references/local-msb.md",
+        "CHANGELOG.md",
+        ".agro/cli/src/lib/execution/index.ts"
+      ],
+      "commit": "64a492d4 2061dc5c"
+    },
+    {
+      "id": "US-002",
+      "title": "Retire the agro-msb stage and the publish-msb-image job",
+      "description": "As a maintainer, I want the release to stop building and publishing `agro:<v>-msb` so that each release runs one fewer unsmoked image job.",
+      "acceptanceCriteria": [
+        "`.devcontainer/Dockerfile` has no `agro-msb` stage, and the default build target is still stage `final`.",
+        "`.github/workflows/release.yml` has no `publish-msb-image` job, and no other job lists that job in `needs`.",
+        "`release-reservation.test.ts` has no test for the `publish-msb-image` job. The test \"rejects an -msb tag as a release version for latest promotion\" stays unchanged.",
+        "`ci-workflow-contract.test.ts` has no `publish-msb-image` entry.",
+        "`git grep -n 'agro-msb\\|publish-msb-image' -- .devcontainer .github .agro/scripts` prints no line.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/release-reservation.test.ts .agro/scripts/__tests__/ci-workflow-contract.test.ts` exits 0.",
+        "`hadolint .devcontainer/Dockerfile` reports no new finding.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Verified in the task-branch worktree (main checkout holds an uncommitted agro.json edit). 1 executed: Dockerfile has 4 FROM lines, last stage final. 2 executed: git grep publish-msb-image .github empty. 3 executed: msb job test removed; -msb latest-promotion guard kept; publishedNoop guard count 4->3. 4 reasoned: entry removed (diff). 5 executed: git grep exit 1. 6 executed: agro run -- vitest release-reservation + ci-workflow-contract exit 0 (53 tests). 7 executed: hadolint exit 1 with only preexisting line 77 SC2016 info, identical on HEAD (worker compared). Typecheck exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/scripts/__tests__/ci-workflow-contract.test.ts"
+      ],
+      "commit": "e4579ab7"
+    },
+    {
+      "id": "US-003",
+      "title": "Delete the msb validation adapter and the msb guest scenario",
+      "description": "As a maintainer, I want the long-lived msb validation guest removed so that the sandbox skill keeps no adapter without a consumer.",
+      "acceptanceCriteria": [
+        "`.agro/skills/sandbox/adapters/msb.sh` and `.agro/skills/sandbox/checks/msb-guest.sh` do not exist.",
+        "`valid_providers` lists `exedev`, `vercel`, and `console`, and does not list `msb` (`remote-sandbox-adapters.test.ts`).",
+        "`remote-sandbox-adapters.test.ts` has no `remote-sandbox msb adapter` block, and `remote-sandbox-suite.test.ts` has no `checks/msb-guest.sh` block.",
+        "`sandbox-skill.test.ts` expects three adapters, seven checks, and six validation scenarios.",
+        "`references/validation.md` has no msb guest scenario and no `MSB_*` or `IMAGE_SIZE_BYTES` variable row. The scenarios keep their order and use the headings Main through Sixth.",
+        "`references/providers.md` has no `## msb` section and no `msb` adapter ID.",
+        "`.agro/skills/sandbox/SKILL.md` lists no msb adapter and no msb guest check, and its description has no \"msb guest\" trigger.",
+        "The `local/msb` route, `references/local-msb.md`, and `checks/agro-run-matrix.sh` keep their behavior.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox-adapters.test.ts .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/sandbox-skill.test.ts .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/sandbox/SKILL.md .agro/skills/sandbox/references/validation.md .agro/skills/sandbox/references/providers.md` exits 0.",
+        "Typecheck passes",
+        "`decisions.json` holds 17 fresh decision-only records that the advisor collects against the final instruction files at d7c4d881. Each record matches its oracle. The worker writes the file with provenance from `sourceProvenance()`."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Round 1 repair: sandbox-routing replay went stale (instructionSha256) because the story edits hashed instruction files; 17 fresh decision-only agents re-recorded R1-R17 at d7c4d881, all matched their oracles (advisor graded route and required owners); worker wrote decisions.json with sourceProvenance (instructionSha256 a92bc280...). 1 executed: adapters dir has console/exedev/vercel; checks has 7 files. 2-4 executed: remote-sandbox-adapters, remote-sandbox-suite, sandbox-skill pass. 5-7 executed: git grep msb in SKILL.md/providers.md/validation.md shows only local/msb route and agro-run-matrix X08 lines. 8 reasoned: local-msb.md changed only by US-001; agro-run-matrix.sh untouched. 9 executed: agro run -- pnpm test exit 0 incl. sandbox-routing. 10 executed: ste-check on the three docs plus local-msb.md, no findings. 11 executed: typecheck exit 0. 12 executed: see repair note; link-providers --check exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/sandbox/adapters/msb.sh",
+        ".agro/skills/sandbox/checks/msb-guest.sh",
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/validation.md",
+        ".agro/skills/sandbox/references/providers.md",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts",
+        ".agro/scripts/__tests__/remote-sandbox-suite.test.ts",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "rounds": 1,
+      "commit": "d7c4d881 eef18398"
+    },
+    {
+      "id": "US-004",
+      "title": "Manual review transcript on the brain",
+      "description": "As the advisor, I want a transcript of the new default on a real KVM host. The transcript proves that the guest runs harness checks.",
+      "acceptanceCriteria": [
+        "`external`: the operator approves the local msb run on the brain before the story starts.",
+        "Before any run, the transcript shows `msb --version` reporting `0.7.13` and `test -r /dev/kvm -a -w /dev/kvm` exiting 0. If either check fails, the story sets `blocked` and runs nothing.",
+        "From the branch build, `agro run --isolation microvm --json -- sh -c 'id -un; node -v; exit 7'` prints `sandbox` and a `v24` version, exits 7, and reports a mifunetu image reference.",
+        "`agro run --isolation microvm -- pnpm run typecheck` on the harness worktree exits 0.",
+        "`agro run --isolation microvm -- pnpm exec vitest run .agro/cli/src/__tests__/microvm-target.test.ts` exits 0.",
+        "After the runs, `msb ls` shows no sandbox that the story created, and the story removes the image that msb pulled with `msb image rm`.",
+        "The transcript is in `.agro/tasks/msb-guest-mifunetu/evidence/manual-review.md`."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor-run on the brain host with the branch build. 1 reasoned: operator approved the full plan, which names this local, no-cost msb run. 2 executed: msb 0.7.13; /dev/kvm rw exit 0. 3 executed with deviation: --json does not exist on agro run (exit 1, unknown flag); without it the run printed sandbox and v24.22.1 and exited 7; the run record in ~/.agro/runs/microvm.jsonl names ghcr.io/mifunedev/mifunetu:0.38.0. 4 executed: microVM pnpm run typecheck exit 0. 5 executed: microVM vitest microvm-target.test exit 0 (27 tests). 6 executed: msb ls shows only the existing agro-console sandbox; msb image rm mifunetu ok. 7 executed: evidence/manual-review.md written.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/msb-guest-mifunetu/evidence/manual-review.md"
+      ],
+      "commit": "evidence only (gitignored evidence/manual-review.md)"
+    }
+  ],
+  "pr": 1643
+}

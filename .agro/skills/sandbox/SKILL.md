@@ -6,8 +6,8 @@ description: |
   command, offload work to
   a hand, fork a hand, use agro hands, create an exe.dev VM, validate a fresh
   AGRO install or release, run a hosting matrix, cgroup probe, restart test,
-  OpenShell journey, Hermes home, Docker egress, msb guest, agro run matrix,
-  or add a validation adapter. Does not own persistent workspace lifecycle,
+  OpenShell journey, Hermes home, Docker egress, agro run matrix, or add a
+  validation adapter. Does not own persistent workspace lifecycle,
   interactive process management, or checkout isolation.
 license: MIT
 ---
@@ -77,24 +77,24 @@ Do not infer billable authority from a route selection.
 
 ## Validation and supporting resources
 
-- For fresh-install checks and all seven validation scenarios, read
+- For fresh-install checks and all six validation scenarios, read
   [Validation](references/validation.md). It holds commands, variables, result
   grammar, and the adapter contract.
 - For validation adapter setup and owned-resource cleanup, read
   [Validation providers](references/providers.md) directly.
-  Internal adapter IDs remain `console`, `msb`, `exedev`, and `vercel`.
+  Internal adapter IDs remain `console`, `exedev`, and `vercel`.
   These IDs are not the execution route vocabulary.
 - For row purpose, historical baselines, and driver failure evidence, read
   [Validation rationale](references/rationale.md).
 - Validation drivers: [run](scripts/run.sh), [restart](scripts/restart-test.sh),
   [summarize](scripts/summarize.sh), and [shared library](scripts/lib.sh).
   Run these only through the validation procedure.
-- Adapters: [console](adapters/console.sh), [msb](adapters/msb.sh),
-  [exedev](adapters/exedev.sh), and [vercel](adapters/vercel.sh).
+- Adapters: [console](adapters/console.sh), [exedev](adapters/exedev.sh), and
+  [vercel](adapters/vercel.sh).
 - Checks: [fresh install](checks/fresh-install.sh), [cgroups](checks/cg-probe.sh),
   [hosting rows](checks/agro-rows.sh), [OpenShell](checks/openshell-journey.sh),
   [Hermes home](checks/hermes-home.sh), [Docker egress](checks/docker-egress.sh),
-  [msb guest](checks/msb-guest.sh), and [run matrix](checks/agro-run-matrix.sh).
+  and [run matrix](checks/agro-run-matrix.sh).
 
 ## Boundaries
 
