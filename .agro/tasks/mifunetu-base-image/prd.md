@@ -274,7 +274,7 @@ None.
 - Claim: bun never reached user `sandbox`, because `BUN_INSTALL` applied to `curl` and not to `bash`. Evidence: `ghcr.io/mifunedev/agro:0.37.0` resolves bun at `/root/.bun/bin/bun`, and no repository code calls bun. Outcome: fixed in this PR. The image no longer installs bun.
 - Claim: the corepack pnpm pin did not hold for user `sandbox` outside a project. Evidence: `pnpm --version` in `/tmp` downloaded pnpm 12.21.0. Outcome: fixed in this PR with a shared `COREPACK_HOME`.
 - Claim: a login shell drops `~/.local/bin` from `PATH`, so `agro` from `npm i -g` does not resolve. Evidence: `bash -lc 'echo $PATH'` before US-005. Outcome: fixed in this PR with `/etc/profile.d/mifunetu-path.sh`.
-- Claim: `/etc/agro/image-environment` in `ghcr.io/mifunedev/agro:0.37.0` holds `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`, `OTEL_TRACES_EXPORTER`, and `TRACEPARENT` from the CI build environment. Evidence: the `evidence/manual-review.md` diff. The four keys are absent from a local build. Outcome: proposed issue for the operator, because a traced client in the sandbox can export to a missing socket.
+- Claim: `/etc/agro/image-environment` in `ghcr.io/mifunedev/agro:0.37.0` holds `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`, `OTEL_TRACES_EXPORTER`, and `TRACEPARENT` from the CI build environment. Evidence: the `evidence/manual-review.md` diff. The four keys are absent from a local build. Outcome: issue #1639, opened with operator approval.
 - Claim: the secret-exposure guard blocked a design that fetched a CA bundle into the image. Evidence: the US-003 round 0 report. Outcome: dropped. The design changed, and no command routed around the guard.
 - Claim: `standard-skills-link.test.ts` times out under `agro run`. Evidence: 5 failures at Close, the same as on `development`. Outcome: dropped, because CI passes the file.
 
@@ -285,5 +285,12 @@ None.
 - Claim: an edit of the vendored langfuse skill broke its `skills.lock` hash. Evidence: the `behavioral-training-docs.test.ts` failure. Outcome: fixed in this PR by a revert. The vendored skill stays byte-identical.
 - Claim: a shared `COREPACK_HOME` owned by uid 1000 let user `sandbox` change code that root runs. Evidence: the second `/code-review`. Outcome: fixed in this PR (US-008).
 - Claim: ten `/code-review` rounds ran. From round 4, most findings repeated an earlier disposition. Evidence: rounds 4 to 10 each held at most two new findings. Outcome: dropped, because the PR records each disposition.
-- Claim: a release rerun after a partial failure pushes the `<version>` and `sha-<sha>` tags again with no existence check. The gap applies to the agro tags and the mifunetu tags. Evidence: review rounds 1 to 10. Outcome: proposed issue for the operator, because the gap is in the release design outside this PR.
+- Claim: a release rerun after a partial failure pushes the `<version>` and `sha-<sha>` tags again with no existence check. The gap applies to the agro tags and the mifunetu tags. Evidence: review rounds 1 to 10. Outcome: issue #1638, opened with operator approval.
 - Claim: the image installs the CLI dependencies with `npm install` and not `npm ci`. Evidence: the tenth `/code-review`. Outcome: dropped, because the Dockerfile used `npm install` before this PR.
+
+### Operator decisions at Close
+
+- The operator accepted the US-003 byte cut in place of the apt merge.
+- The operator accepted the US-007 transcript and the US-013 test as the evidence for `/etc/agro/image-environment`, because the container-inspect guard blocked a re-run.
+- The operator accepted the `standard-skills-link.test.ts` timeouts in the long-lived task worktree as an environment effect. The file passes in a fresh worktree at the head commit, on `development`, and in CI.
+- The operator approved issues #1638 and #1639.
