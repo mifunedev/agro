@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-11-15
+
 ### Added
 
 - Publish the base image `ghcr.io/mifunedev/mifunetu` with each release, tagged `<X.Y.Z>` and `sha-<sha>`, with no `latest` tag. The image holds Node 24 on Debian Trixie slim and the general tools, but no agro. It runs as user `sandbox` (uid 1000) in `/home/sandbox`, and `npm i -g @mifune/agro` installs agro without `sudo`. The agro image builds `FROM` the `mifunetu` stage (ADR #1635) ([#1636](https://github.com/mifunedev/agro/issues/1636)).
