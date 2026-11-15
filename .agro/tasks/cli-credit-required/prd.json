@@ -21,8 +21,8 @@
         "`npm run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 9c3e3ef6 (advisor): CREDIT_REFUSALS lists 403 PAYMENTS_DISABLED and 402 CREDIT_REQUIRED; GET /api/free-tier gates the retry; eligible:false prints the top-up line and returns the first refusal; a failed read (brain token) or a body without eligible keeps the free retry; a failed retry prints the top-up line. npx vitest run node.test.ts hands.test.ts: 142 pass, exit 0 (red first: 15 failed). npm run typecheck: exit 0. console-provider.ts unchanged (already passes config and notice).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/console-api.ts",
@@ -31,7 +31,8 @@
         ".agro/cli/src/__tests__/node.test.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "9c3e3ef6"
     },
     {
       "id": "US-002",
