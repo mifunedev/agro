@@ -22,8 +22,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Verified on the integrated task branch in the task worktree (main checkout holds an uncommitted agro.json edit). 1-3 executed: microvm-target.test and run.test pass (part of full suite, exit 0). 4 executed: cli.ts:390 names ghcr.io/mifunedev/mifunetu:<version>. 5 executed: no -msb in lifecycle-commands.md or local-msb.md (git grep). 6 reasoned: docs say an old ghcr.io/mifunedev/agro pin keeps working and name --image / npm i -g @mifune/agro; literal agro:<old>-msb omitted because criterion 5 forbids -msb references. 7 executed: refusal tests for 0.0.0-dev and v1.2.3 assert exit 1, the --image message, and no msb call. 8 reasoned: Unreleased has Changed (ADR #1635, #1642) and Removed entries; review round fixed punctuation and the stale local-msb.md adapter sentences (2061dc5c). 9 executed: agro run -- pnpm run typecheck exit 0. 10 executed: agro run -- pnpm test exit 0 (128 files, 3492 tests). Precedence test uses an injected version 1.2.3 because AGRO_VERSION is 0.0.0-dev under vitest.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/execution/microvm-target.ts",
@@ -36,7 +36,8 @@
         ".agro/skills/sandbox/references/local-msb.md",
         "CHANGELOG.md",
         ".agro/cli/src/lib/execution/index.ts"
-      ]
+      ],
+      "commit": "64a492d4 2061dc5c"
     },
     {
       "id": "US-002",
@@ -83,8 +84,8 @@
         "`decisions.json` holds 17 fresh decision-only records that the advisor collects against the final instruction files at d7c4d881. Each record matches its oracle. The worker writes the file with provenance from `sourceProvenance()`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Round 1 repair: sandbox-routing replay went stale (instructionSha256) because the story edits hashed instruction files; 17 fresh decision-only agents re-recorded R1-R17 at d7c4d881, all matched their oracles (advisor graded route and required owners); worker wrote decisions.json with sourceProvenance (instructionSha256 a92bc280...). 1 executed: adapters dir has console/exedev/vercel; checks has 7 files. 2-4 executed: remote-sandbox-adapters, remote-sandbox-suite, sandbox-skill pass. 5-7 executed: git grep msb in SKILL.md/providers.md/validation.md shows only local/msb route and agro-run-matrix X08 lines. 8 reasoned: local-msb.md changed only by US-001; agro-run-matrix.sh untouched. 9 executed: agro run -- pnpm test exit 0 incl. sandbox-routing. 10 executed: ste-check on the three docs plus local-msb.md, no findings. 11 executed: typecheck exit 0. 12 executed: see repair note; link-providers --check exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/sandbox/adapters/msb.sh",
@@ -97,7 +98,8 @@
         ".agro/scripts/__tests__/sandbox-skill.test.ts",
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "d7c4d881 eef18398"
     },
     {
       "id": "US-004",
