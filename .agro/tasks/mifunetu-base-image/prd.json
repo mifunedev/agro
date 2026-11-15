@@ -249,8 +249,8 @@
         "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`. `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild."
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "Fourth /code-review: fix 3 (node entrypoint routes flags to node), 4 (pack tarball name from login-shell stdout), 7 (docs hard-code the pnpm version), 8 (install command built twice). No change: 1 and 2 repeat earlier dispositions, and the langfuse skill already allowlists npx; 5 (uid 1000 PATH guard is the security fix); 6 (mifunetu has no home fragment, so the profile.d file is its only login PATH source); 9 (the second build is a cache hit and the smoke needs a loaded image); 10 (TZ and sudoers are operator preferences; the docs explain sudo).",
+      "passes": true,
+      "notes": "Fourth /code-review: fix 3 (node entrypoint routes flags to node), 4 (pack tarball name from login-shell stdout), 7 (docs hard-code the pnpm version), 8 (install command built twice). No change: 1 and 2 repeat earlier dispositions, and the langfuse skill already allowlists npx; 5 (uid 1000 PATH guard is the security fix); 6 (mifunetu has no home fragment, so the profile.d file is its only login PATH source); 9 (the second build is a cache hit and the smoke needs a loaded image); 10 (TZ and sudoers are operator preferences; the docs explain sudo). Accepted: advisor re-ran bash -c echo on mifunetu:dev (prints hi), smoke exits 0, vitest on sandbox-privilege-boundary, mifunetu-image, release-reservation, mifunetu-smoke passes (AC1-AC4). Worker ran pnpm test:scripts: only standard-skills-link timeouts fail (AC5); pack command against ghcr.io/mifunedev/agro:0.37.0 yields mifune-agro-0.37.0.tgz.",
       "dependsOn": [
         "US-008"
       ],
@@ -263,7 +263,8 @@
         "docs/deployment-prebuilt-image.md",
         ".agro/scripts/mifunetu-smoke.sh",
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
-      ]
+      ],
+      "commit": "f121fa44"
     }
   ],
   "pr": 1637
