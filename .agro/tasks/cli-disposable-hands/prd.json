@@ -75,7 +75,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "",
+      "notes": "Local criteria verified at 72c963a9 (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --disposable (body with disposable:true), node create --profile agro --disposable (HTTP 422 line, exit 1), hands pause, resume, fork 7 on a disposable hand (HTTP 409 line, exit 1), against the local stub on 127.0.0.1:3191 (port checked free); throwaway tokens inline; HOME set to a temp dir that was deleted; no env or credentials file; ste-check 0. Evidence force-added. A first resume by alias got 404 from the stub and the transcript keeps it; the rerun by index shows the line. External criterion pending: live run after the agro release, with operator approval.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -83,7 +83,8 @@
       "files": [
         ".agro/tasks/cli-disposable-hands/evidence/"
       ],
-      "external": false
+      "external": true,
+      "commit": "72c963a9"
     }
   ],
   "pr": 1647
