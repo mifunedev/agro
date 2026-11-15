@@ -139,7 +139,7 @@ Status: DRAFT
 
 ### US-010: Close the fifth code review
 
-**Description:** As the operator, I want the smoke script to work from inside a sandbox, and I want a zsh login of user `sandbox` to get the same `PATH` as a bash login.
+**Description:** As the operator, I want the smoke script to work from inside a sandbox. I also want a zsh login of user `sandbox` to get the same `PATH` as a bash login.
 
 **Acceptance Criteria:**
 

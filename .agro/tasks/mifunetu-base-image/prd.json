@@ -269,7 +269,7 @@
     {
       "id": "US-010",
       "title": "Close the fifth code review",
-      "description": "As the operator, I want the smoke script to work from inside a sandbox, and I want a zsh login of user `sandbox` to get the same `PATH` as a bash login.",
+      "description": "As the operator, I want the smoke script to work from inside a sandbox. I also want a zsh login of user `sandbox` to get the same `PATH` as a bash login.",
       "acceptanceCriteria": [
         "`.agro/scripts/mifunetu-smoke.sh` streams a tarball argument into the container on standard input. The script mounts no host path.",
         "A zsh login shell of user `sandbox` in `mifunetu:dev` has `/home/sandbox/.local/bin` on `PATH` and shows no zsh first-run prompt. `docker run --rm mifunetu:dev zsh -lc 'echo $PATH'` holds `/home/sandbox/.local/bin` and exits 0.",
