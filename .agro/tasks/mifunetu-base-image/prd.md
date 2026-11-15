@@ -185,3 +185,11 @@ None.
 - [ ] No image installs bun.
 
 ## Lessons
+
+- Claim: one apt layer makes the cold build slower on the 2-CPU brain. Evidence: `evidence/perf-apt.md`, mean 132.0 s before and 163.4 s after, with layer export 49.7 s to 66.5 s. Outcome: fixed in this PR. US-003 reverted the merge and cut image bytes instead.
+- Claim: bun never reached user `sandbox`, because `BUN_INSTALL` applied to `curl` and not to `bash`. Evidence: `ghcr.io/mifunedev/agro:0.37.0` resolves bun at `/root/.bun/bin/bun`, and no repository code calls bun. Outcome: fixed in this PR. The image no longer installs bun.
+- Claim: the corepack pnpm pin did not hold for user `sandbox` outside a project. Evidence: `pnpm --version` in `/tmp` downloaded pnpm 12.21.0. Outcome: fixed in this PR with a shared `COREPACK_HOME`.
+- Claim: a login shell drops `~/.local/bin` from `PATH`, so `agro` from `npm i -g` does not resolve. Evidence: `bash -lc 'echo $PATH'` before US-005. Outcome: fixed in this PR with `/etc/profile.d/mifunetu-path.sh`.
+- Claim: `/etc/agro/image-environment` in `ghcr.io/mifunedev/agro:0.37.0` holds `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`, `OTEL_TRACES_EXPORTER`, and `TRACEPARENT` from the CI build environment. Evidence: `evidence/manual-review.md` diff; a local build does not hold them. Outcome: proposed issue for the operator, because a traced client in the sandbox can export to a socket that does not exist.
+- Claim: the secret-exposure guard blocked a design that fetched a CA bundle into the image. Evidence: the US-003 round 0 report. Outcome: dropped. The design changed, and no command routed around the guard.
+- Claim: `standard-skills-link.test.ts` times out under `agro run`. Evidence: 5 failures at Close, the same as on `development`. Outcome: dropped, because CI passes the file.

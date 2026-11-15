@@ -43,8 +43,8 @@
         "`docker buildx build --target mifunetu --load -t mifunetu:dev -f .devcontainer/Dockerfile .` exits 0 on the brain."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Advisor re-ran: vitest on the 6 listed files exited 0 (290 tests) (AC1-AC9); agro run hadolint --failure-threshold warning exited 0 after DL3002 was ignored with a reason (AC10); docker buildx build --target mifunetu exited 0 and mifunetu:dev prints sandbox, 1000, /home/sandbox, no agro, v24.22.1 (AC11). Worker executed the --target base build: agro 0.37.0 and /usr/local/bin/cc-safety-net (AC2, AC6). Deviation accepted: base adds WORKDIR / so later stages keep their working directory. Reopened at Close: harness-catalog.test.ts 'sets NPM_CONFIG_PREFIX after the last image-layer global install' fails because the prefix now precedes the cc-safety-net install, which pins --prefix /usr/local.",
+      "passes": true,
+      "notes": "Advisor re-ran: vitest on the 6 listed files exited 0 (290 tests) (AC1-AC9); agro run hadolint --failure-threshold warning exited 0 after DL3002 was ignored with a reason (AC10); docker buildx build --target mifunetu exited 0 and mifunetu:dev prints sandbox, 1000, /home/sandbox, no agro, v24.22.1 (AC11). Worker executed the --target base build: agro 0.37.0 and /usr/local/bin/cc-safety-net (AC2, AC6). Deviation accepted: base adds WORKDIR / so later stages keep their working directory. Reopened at Close: harness-catalog.test.ts 'sets NPM_CONFIG_PREFIX after the last image-layer global install' fails because the prefix now precedes the cc-safety-net install, which pins --prefix /usr/local. Round 1 accepted: a07bcaef renames the test to 'keeps every image-layer global install out of the user prefix'; advisor re-ran pnpm test:scripts in agro run: 3514 pass, 5 fail only in standard-skills-link.test.ts (known timeout flake, baseline-equivalent); worker showed the test fails without --prefix /usr/local.",
       "dependsOn": [
         "US-001"
       ],
@@ -54,7 +54,7 @@
         ".agro/scripts/__tests__/mifunetu-image.test.ts",
         ".agro/cli/src/__tests__/harness-catalog.test.ts"
       ],
-      "commit": "dd2ab0bc",
+      "commit": "dd2ab0bc a07bcaef",
       "rounds": 1
     },
     {
