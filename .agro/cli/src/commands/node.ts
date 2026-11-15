@@ -74,8 +74,13 @@ Usage:
 
 \`create\` waits up to 15 minutes for the node to reach \`running\`, then prints
 its SSH command. The spec defaults to ${FREE_TIER_SPEC}. When the console
-refuses the spec with PAYMENTS_DISABLED, \`create\` prints a notice and
-creates ${FREE_TIER_SPEC} in the free tier. \`--profile\` sets the node profile.
+refuses the spec for credit with HTTP 402 CREDIT_REQUIRED or
+HTTP 403 PAYMENTS_DISABLED, \`create\` reads the free tier eligibility.
+When the account is eligible, or the read fails, \`create\` prints a
+notice and creates ${FREE_TIER_SPEC} in the free tier. When the account is
+not eligible, or the ${FREE_TIER_SPEC} retry fails, \`create\` prints
+"top up credit at <console url>/billing" to stderr and exits 1.
+\`--profile\` sets the node profile.
 The profile defaults to sandbox. A sandbox-profile node from \`create\`
 is not a hand unless a brain manages the node. \`--docker\` turns on
 Docker. \`--t3\` turns on T3. \`--code-server\` turns on code-server. Each

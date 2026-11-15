@@ -6,7 +6,10 @@ export const DEFAULT_CONSOLE_URL = "https://console.mifune.dev";
 export const CONSOLE_CONFIG_MISSING = "not logged in to agro-console: run agro auth login";
 
 export const FREE_TIER_SPEC = "n4";
-export const FREE_TIER_FALLBACK_CODE = "PAYMENTS_DISABLED";
+export const CREDIT_REFUSALS: readonly { status: number; code: string }[] = [
+  { status: 403, code: "PAYMENTS_DISABLED" },
+  { status: 402, code: "CREDIT_REQUIRED" },
+];
 
 export const NODE_READY_TIMEOUT_MS = 15 * 60 * 1000;
 export const NODE_FAST_POLL_INTERVAL_MS = 1000;
@@ -244,7 +247,13 @@ export async function createConsoleNode(
 ): Promise<CreatedNodeResult> {
   const created = await callApi(deps, config, "POST", "/api/nodes", body);
   if (created.ok) return { ...created, spec: body.spec };
-  if (created.status !== 403 || created.code !== FREE_TIER_FALLBACK_CODE) return created;
+  if (!CREDIT_REFUSALS.some(({ status, code }) => created.status === status && created.code === code)) return created;
+  const topUp = () => notice(`top up credit at ${config.url}/billing`);
+  const eligibility = await callApi(deps, config, "GET", "/api/free-tier");
+  if (eligibility.ok && asRecord(eligibility.body)?.eligible === false) {
+    topUp();
+    return created;
+  }
   if (body.spec !== FREE_TIER_SPEC) {
     notice(
       body.spec === undefined
@@ -253,7 +262,9 @@ export async function createConsoleNode(
     );
   }
   const retried = await callApi(deps, config, "POST", "/api/nodes", { ...body, spec: FREE_TIER_SPEC, freeTier: true });
-  return retried.ok ? { ...retried, spec: FREE_TIER_SPEC } : retried;
+  if (retried.ok) return { ...retried, spec: FREE_TIER_SPEC };
+  topUp();
+  return retried;
 }
 
 export function formatTable(header: string[], rows: string[][]): string {
