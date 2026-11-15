@@ -45,8 +45,3 @@ only; it does not configure self-managed GitLab instances.
 | Wrong GitLab account | `glab auth logout --hostname gitlab.com`, then `glab auth login` | Log out first. |
 | `git push` prompts for a password | `glab auth login --hostname gitlab.com --setup-git-credential-helper` | `~/.gitconfig` has no `glab` credential helper for `gitlab.com`. |
 | Login gone after `agro destroy` | `glab auth login` | `agro destroy` deletes the home volume. Use `agro stop` to keep the volume. |
-
-## OpenShell runtime
-
-The canonical OpenShell policy allows `git`, `glab`, and `curl` to reach
-`gitlab.com`.

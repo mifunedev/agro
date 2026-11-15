@@ -42,17 +42,6 @@ network_policies:
       - path: /usr/bin/git
       - path: /usr/bin/gh
       - path: /usr/bin/curl
-  gitlab:
-    endpoints:
-      - host: gitlab.com
-        port: 443
-        protocol: rest
-        enforcement: enforce
-        access: read-write
-    binaries:
-      - path: /usr/bin/git
-      - path: /usr/bin/glab
-      - path: /usr/bin/curl
   npm:
     endpoints:
       - host: registry.npmjs.org

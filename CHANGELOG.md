@@ -10,7 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
-- The sandbox image installs the GitLab CLI (`glab`) 1.126.0. When `GITLAB_TOKEN` is set, the entrypoint runs `glab auth login` for `gitlab.com` and registers `glab` as the Git HTTPS credential helper. `agro secret set GITLAB_TOKEN`, `agro tool list`, the attach banner, and the OpenShell policy know `glab` ([docs](docs/integrations/gitlab.md)).
+- The sandbox image installs the GitLab CLI (`glab`) 1.126.0. When `GITLAB_TOKEN` is set, the entrypoint runs `glab auth login` for `gitlab.com` and registers `glab` as the Git HTTPS credential helper. `agro secret set GITLAB_TOKEN`, `agro tool list`, and the attach banner know `glab`. The git skill's `scripts/forge.sh` selects `gh` or `glab` from the `origin` remote and the authenticated CLI, with `gh` first as the fallback ([docs](docs/integrations/gitlab.md)).
 
 ## [0.39.0] - 2026-11-15
 
