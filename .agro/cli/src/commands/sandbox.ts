@@ -32,7 +32,6 @@ import {
   nextDefaultName,
 } from "../lib/registry.js";
 import { findRuntime, runtimeIds } from "../lib/runtimes/catalog.js";
-import { maybePrintStarPrompt } from "../lib/star-prompt.js";
 import { runSandbox, type LifecycleIO } from "./lifecycle.js";
 
 export interface SandboxIO extends LifecycleIO {
@@ -298,7 +297,6 @@ export async function runSandboxInstall(
   const code = await runSandbox({ ...sandboxOpts, cwd: root }, io);
   if (code === 0) {
     io.stdout(`next: ${opts.bin} shell ${config.name}\n`);
-    maybePrintStarPrompt(io);
   }
   return code;
 }
@@ -369,7 +367,6 @@ async function installOpenShell(
   }
 
   io.stdout(`next: ${opts.bin} shell ${name}\n`);
-  maybePrintStarPrompt(io);
   return 0;
 }
 
