@@ -62,7 +62,7 @@ RUN userdel -r node 2>/dev/null || true \
  && chmod 0440 /etc/sudoers.d/sandbox \
  && groupadd -f docker && usermod -aG docker sandbox \
  && install -d -o sandbox -g sandbox /home/sandbox/.cache /home/sandbox/.cache/node \
- && mv /root/.cache/node/corepack /home/sandbox/.cache/node/corepack \
+ && cp -a /root/.cache/node/corepack /home/sandbox/.cache/node/corepack \
  && chown -R sandbox:sandbox /home/sandbox/.cache/node
 
 ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools

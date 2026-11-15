@@ -43,7 +43,7 @@ describe("mifunetu image stage", () => {
     ["NPM_USER_PREFIX", 'ENV NPM_USER_PREFIX="/home/sandbox/.local"'],
     ["PATH", 'ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"'],
     ["COREPACK_ENABLE_DOWNLOAD_PROMPT", "ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0"],
-    ["the root corepack cache moved to user sandbox", "mv /root/.cache/node/corepack /home/sandbox/.cache/node/corepack"],
+    ["the root corepack cache copied to user sandbox", "cp -a /root/.cache/node/corepack /home/sandbox/.cache/node/corepack"],
     ["sandbox ownership of its corepack cache", "chown -R sandbox:sandbox /home/sandbox/.cache/node"],
     ["the license label", 'LABEL org.opencontainers.image.licenses="Apache-2.0"'],
     ["NPM_CONFIG_PREFIX", 'ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"'],
@@ -112,6 +112,10 @@ describe("mifunetu image stage", () => {
   it("sets no shared COREPACK_HOME and fetches pnpm only once", () => {
     expect(dockerfile).not.toContain("COREPACK_HOME");
     expect(dockerfile.match(/corepack prepare/g)).toEqual(["corepack prepare"]);
+  });
+
+  it("keeps the root corepack cache, so root also resolves the pin without a download", () => {
+    expect(dockerfile).not.toMatch(/\b(mv|rm -rf?)\s+\/root\/\.cache\/node\/corepack\b/);
   });
 
   it("gives uid 1000 no path under /usr/local", () => {
