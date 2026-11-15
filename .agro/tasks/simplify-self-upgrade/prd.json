@@ -117,8 +117,8 @@
         "The story creates no live resource and deletes each temp directory that it creates."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor reviewed 4c507e43 evidence/manual-review.md): (1) built branch CLI (build exit 0, 0.39.0) run on copies in new temp dir /tmp/claude-1000/su-review.R6t6; (2) both standalone runs set AGRO_JS_URL inline to http://127.0.0.1:18765/agro.js (port checked free first); (3) npm-shaped --dry-run prints npm i -g --prefix $TMP/npm @mifune/agro@latest exit 0; standalone upgrade exit 0, pinned fnm node shebang kept, mode 755, no temp file; checkout dist/agro.js refused exit 1; (4) star prompt git grep exit 1, no output; (5) server killed and port free, temp dir removed (ls exit 2), no live resource. File force-added per git/references/manual-review.md.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -126,7 +126,8 @@
       "files": [
         ".agro/tasks/simplify-self-upgrade/evidence/manual-review.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "4c507e43"
     }
   ],
   "pr": 1655
