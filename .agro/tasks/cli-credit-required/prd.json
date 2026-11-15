@@ -76,8 +76,8 @@
         "`AGENTS.md` stays unchanged."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 4b572cd5 (advisor): lifecycle-commands.md agro node section names 402 CREDIT_REQUIRED, 403 PAYMENTS_DISABLED, the free n4 rule, the top-up line, and the node check credit line; agro hands create rule and top-up line; agro hands list shows no credit state (brain token). CHANGELOG Unreleased Changed bullet names CREDIT_REQUIRED and the top-up line. ste-check exit 0 on docs/lifecycle-commands.md (2 pre-existing findings fixed). docs.test.ts + compose-verbs.test.ts: 41 pass. AGENTS.md unchanged.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -86,7 +86,8 @@
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "4b572cd5"
     },
     {
       "id": "US-004",
