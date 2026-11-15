@@ -11,6 +11,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - `agro run --isolation microvm` boots `ghcr.io/mifunedev/mifunetu:<version>` by default, so the guest holds no unused agro control plane and no unused `dockerd` (ADR #1635). The `mifunetu` image has no `latest` tag, so a CLI version without a release tag exits 1 before `msb run` and names `--image` as the remedy. An existing `run.microvm.image` pin to an old `-msb` image keeps working at that version. When a guest command needs `agro`, pass `--image` or install `@mifune/agro` in the guest ([#1642](https://github.com/mifunedev/agro/issues/1642)).
+- `agro node create` and `agro hands create` treat HTTP 402 `CREDIT_REQUIRED` and HTTP 403 `PAYMENTS_DISABLED` as credit refusals. After a credit refusal, the command reads the free tier eligibility and creates `n4` in the free tier when the account is eligible or the read fails. When the account is not eligible, or the `n4` request fails, the command prints `top up credit at <console url>/billing` to stderr and exits 1. `agro node check` adds a credit line from `GET /api/billing/balance` that never changes the exit status ([#1644](https://github.com/mifunedev/agro/issues/1644)).
 
 ### Removed
 

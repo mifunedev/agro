@@ -249,6 +249,39 @@ describe("agro hands create", () => {
     expect(h.all()).not.toContain(TOKEN);
   });
 
+  it("retries n4 in the free tier after HTTP 402 CREDIT_REQUIRED when the brain token cannot read the free tier", async () => {
+    const h = harness([
+      { status: 402, body: { error: "Add credit to create a paid node.", code: "CREDIT_REQUIRED" } },
+      { status: 403, body: { error: "brain tokens may not read this route", code: "BRAIN_TOKEN_ROUTE_FORBIDDEN" } },
+      { status: 202, body: { id: "u9", status: "queued" } },
+      { status: 200, body: { id: "u9", status: "running", orgIndex: 7, slug: "calm-lynx", sshHost: "hand-7.example" } },
+    ]);
+    expect(await runHands(["create", "--name", "worker", "--spec=n8"], h.io, h.deps)).toBe(0);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://brain-console.example/api/nodes",
+      "GET https://brain-console.example/api/free-tier",
+      "POST https://brain-console.example/api/nodes",
+      "GET https://brain-console.example/api/nodes/u9",
+    ]);
+    expect(h.calls[2].body).toEqual({ profile: "sandbox", name: "worker", spec: "n4", freeTier: true });
+    expect(h.stderr()).toContain("agro hands create: spec n8 is not in the free tier; creating n4\n");
+    expect(h.stderr()).not.toContain("top up credit");
+    expect(h.stdout()).toBe("index: 7\nalias: calm-lynx\nssh host: hand-7.example\n");
+  });
+
+  it("prints the top-up link when the free tier retry fails after HTTP 402 CREDIT_REQUIRED", async () => {
+    const h = harness([
+      { status: 402, body: { error: "Add credit to create a paid node.", code: "CREDIT_REQUIRED" } },
+      { status: 403, body: { code: "BRAIN_TOKEN_ROUTE_FORBIDDEN" } },
+      { status: 403, body: { error: "a free node is live", code: "FREE_TIER_INELIGIBLE" } },
+    ]);
+    expect(await runHands(["create", "--spec=n8"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(3);
+    expect(h.stderr()).toContain("agro hands create: top up credit at https://brain-console.example/billing\n");
+    expect(h.stderr()).toContain("HTTP 403 FREE_TIER_INELIGIBLE: a free node is live");
+    expect(h.stdout()).toBe("");
+  });
+
   it("sends only the profile without flags", async () => {
     const h = harness([
       { status: 202, body: { id: "u9", status: "queued" } },
