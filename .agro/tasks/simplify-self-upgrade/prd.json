@@ -94,15 +94,16 @@
         "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, 971650cc): 17 fresh decision-only Explore agents (claude-opus-5-5, handles replay8-R1..R17) read only the 10 instruction files at 46828949; advisor extracted each final JSON from its transcript and checked the case prompt; (1) 17 records, freshContext/decisionOnly true, executed false, unique handles; (2) 17/17 match route and include oracle owners; (3) worker computed provenance with sourceProvenance() (instructionSha256 2f11d15d...); decisions array byte-equal to the advisor scratch record; (4) agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts -> exit 0, 33 passed.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "external": false
+      "external": false,
+      "commit": "971650cc"
     },
     {
       "id": "US-005",
