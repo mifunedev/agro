@@ -63,7 +63,8 @@ RUN userdel -r node 2>/dev/null || true \
  && groupadd -f docker && usermod -aG docker sandbox \
  && install -d -o sandbox -g sandbox /home/sandbox/.cache /home/sandbox/.cache/node \
  && cp -a /root/.cache/node/corepack /home/sandbox/.cache/node/corepack \
- && chown -R sandbox:sandbox /home/sandbox/.cache/node
+ && chown -R sandbox:sandbox /home/sandbox/.cache/node \
+ && install -o sandbox -g sandbox -m 0644 /dev/null /home/sandbox/.zshrc
 
 ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
 ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
@@ -80,7 +81,8 @@ RUN printf '%s\n' \
       '  export PATH' \
       'fi' \
       > /etc/profile.d/mifunetu-path.sh \
- && chmod 0644 /etc/profile.d/mifunetu-path.sh
+ && chmod 0644 /etc/profile.d/mifunetu-path.sh \
+ && printf '%s\n' "emulate sh -c '. /etc/profile.d/mifunetu-path.sh'" >> /etc/zsh/zprofile
 
 LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
 LABEL org.opencontainers.image.title="mifunetu"

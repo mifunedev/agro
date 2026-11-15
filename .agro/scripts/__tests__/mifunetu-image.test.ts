@@ -57,6 +57,8 @@ describe("mifunetu image stage", () => {
     ["user sandbox with uid 1000", "useradd -m -u 1000 -s /bin/zsh sandbox"],
     ["the sandbox sudoers file", "/etc/sudoers.d/sandbox"],
     ["docker group membership", "usermod -aG docker sandbox"],
+    ["an empty sandbox-owned .zshrc", "install -o sandbox -g sandbox -m 0644 /dev/null /home/sandbox/.zshrc"],
+    ["the zsh login PATH fragment", `printf '%s\\n' "emulate sh -c '. /etc/profile.d/mifunetu-path.sh'" >> /etc/zsh/zprofile`],
     ["the source label", 'LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"'],
     ["the title label", 'LABEL org.opencontainers.image.title="mifunetu"'],
   ])("holds %s", (_, text) => {

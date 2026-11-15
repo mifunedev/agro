@@ -65,19 +65,20 @@ expect no-agro '^absent$'
 expect node '^v24\.'
 expect pnpm-pin "^${pnpm_pin//./\\.}$"
 
-mount=()
-install_spec=$agro_package
+run_flags=()
+install_input=/dev/null
+install_command="npm i -g $(printf '%q' "$agro_package") >&2 && agro --version"
 if [[ -f $agro_package ]]; then
-  mount=(-v "$(cd "$(dirname "$agro_package")" && pwd)/$(basename "$agro_package"):/tmp/agro.tgz:ro")
-  install_spec=/tmp/agro.tgz
+  run_flags=(-i)
+  install_input=$agro_package
+  install_command="cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version"
 fi
 
-install_command="npm i -g $(printf '%q' "$install_spec") >&2 && agro --version"
 install_status=0
-agro_version=$(docker run --rm ${mount[@]+"${mount[@]}"} "$image" bash -lc "$install_command") || install_status=$?
+agro_version=$(docker run --rm ${run_flags[@]+"${run_flags[@]}"} "$image" bash -lc "$install_command" <"$install_input") || install_status=$?
 if [[ $install_status -ne 0 ]]; then
-  if [[ $install_spec != "$agro_package" ]]; then
-    fail agro-install "'$install_command' exited $install_status (tarball $agro_package mounted at $install_spec)"
+  if [[ $install_input != /dev/null ]]; then
+    fail agro-install "'$install_command' exited $install_status (tarball $agro_package streamed on standard input)"
   else
     fail agro-install "'$install_command' exited $install_status"
   fi

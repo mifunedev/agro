@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -17,7 +17,8 @@ args="$*"
 printf '%s\\n' "\${args//$'\\n'/ }" >> "$FAKE_DOCKER_LOG"
 fail=\${FAKE_FAIL:-}
 last=\${!#}
-if [[ $last == "npm i -g "* ]]; then
+if [[ $last == "npm i -g "* || $last == "cat > /tmp/agro.tgz && "* ]]; then
+  if [[ " $* " == *" -i "* ]]; then cat > "$FAKE_DOCKER_STDIN"; fi
   [[ $fail == agro-install ]] && { echo EACCES >&2; exit 243; }
   echo 0.38.0
   exit 0
@@ -36,6 +37,7 @@ const CHECKS = ["user", "uid", "workdir", "no-agro", "node", "pnpm-pin", "agro-i
 let fixture = "";
 let bin = "";
 let dockerLog = "";
+let dockerStdin = "";
 
 function run(args: string[], fail = "") {
   return spawnSync("bash", [SCRIPT, ...args], {
@@ -44,6 +46,7 @@ function run(args: string[], fail = "") {
       ...process.env,
       PATH: `${bin}:${process.env.PATH ?? ""}`,
       FAKE_DOCKER_LOG: dockerLog,
+      FAKE_DOCKER_STDIN: dockerStdin,
       FAKE_IMAGE: IMAGE,
       FAKE_FAIL: fail,
       FAKE_PNPM: PNPM_PIN ?? "",
@@ -59,6 +62,7 @@ beforeEach(() => {
   fixture = mkdtempSync(join(tmpdir(), "mifunetu-smoke-"));
   bin = join(fixture, "bin");
   dockerLog = join(fixture, "docker.log");
+  dockerStdin = join(fixture, "docker.stdin");
   mkdirSync(bin);
   writeFileSync(join(bin, "docker"), FAKE_DOCKER, "utf8");
   chmodSync(join(bin, "docker"), 0o755);
@@ -86,6 +90,7 @@ describe("mifunetu-smoke.sh", () => {
     expect(probe).toContain("cd /tmp && pnpm --version");
     expect(install).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
     expect(calls().join("\n")).not.toContain("sudo");
+    expect(existsSync(dockerStdin)).toBe(false);
   });
 
   it.each(CHECKS)("exits 1 and names the failed check %s", (check) => {
@@ -96,15 +101,17 @@ describe("mifunetu-smoke.sh", () => {
     expect(result.stderr).toContain(`1 check(s) failed in ${IMAGE}`);
   });
 
-  it("mounts a tarball read-only and installs it when the second argument is a file", () => {
+  it("streams a tarball on standard input and mounts no host path when the second argument is a file", () => {
     const tarball = join(fixture, "mifune-agro-0.38.0.tgz");
-    writeFileSync(tarball, "", "utf8");
+    writeFileSync(tarball, "tarball-bytes\n", "utf8");
     const result = run([IMAGE, tarball]);
 
     expect(result.status).toBe(0);
     expect(calls()[1]).toBe(
-      `run --rm -v ${tarball}:/tmp/agro.tgz:ro ${IMAGE} bash -lc npm i -g /tmp/agro.tgz >&2 && agro --version`,
+      `run --rm -i ${IMAGE} bash -lc cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version`,
     );
+    expect(calls().join("\n")).not.toMatch(/(^|\s)(-v|--volume|--mount)[\s=]\S*:/);
+    expect(readFileSync(dockerStdin, "utf8")).toBe("tarball-bytes\n");
   });
 
   it("names the in-container install command when the install fails", () => {
@@ -116,28 +123,30 @@ describe("mifunetu-smoke.sh", () => {
     );
   });
 
-  it("names the in-container command and the host tarball when a mounted install fails", () => {
+  it("names the in-container command and the host tarball when a streamed install fails", () => {
     const tarball = join(fixture, "mifune-agro-0.38.0.tgz");
     writeFileSync(tarball, "", "utf8");
     const result = run([IMAGE, tarball], "agro-install");
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      `check 'agro-install' failed: 'npm i -g /tmp/agro.tgz >&2 && agro --version' exited 243 (tarball ${tarball} mounted at /tmp/agro.tgz)`,
+      `check 'agro-install' failed: 'cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version' exited 243 (tarball ${tarball} streamed on standard input)`,
     );
   });
 
-  it("installs a package spec without a mount when the second argument is not a file", () => {
+  it("installs a package spec without standard input when the second argument is not a file", () => {
     const result = run([IMAGE, "@mifune/agro@0.38.0"]);
 
     expect(result.status).toBe(0);
     expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro@0.38.0 >&2 && agro --version`);
+    expect(existsSync(dockerStdin)).toBe(false);
   });
 
   it("uses no associative array, so bash 3.2 runs the script", () => {
     const script = readFileSync(SCRIPT, "utf8");
     expect(script).not.toMatch(/declare -A|local -A/);
-    expect(script).toContain('${mount[@]+"${mount[@]}"}');
+    expect(script).toContain('${run_flags[@]+"${run_flags[@]}"}');
+    expect(script).not.toMatch(/(^|[\s(])(-v|--volume|--mount)[\s=]["$\/]/);
   });
 
   it("exits 2 with a usage line when the image is missing", () => {
