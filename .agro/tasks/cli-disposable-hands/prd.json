@@ -46,8 +46,8 @@
         "`npm run typecheck` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 15df0547 (advisor): HandRequest.disposable; console provider sends disposable:true (kept on the free n4 retry); hands create --disposable; exedev refusal before any call; refusalMessage maps 409 NODE_DISPOSABLE on pause, resume, fork to the delete line, other refusals and destroy unchanged; help text with the console-only rule, refused verbs, destroy command, both deletion triggers; CHANGELOG Unreleased Added bullet. docs/lifecycle-commands.md unchanged. npx vitest run node, hands, hands-exedev, sandbox-routing tests: 280 pass (red first: 10 failed). npm run typecheck: exit 0.",
       "dependsOn": [
         "US-001"
       ],
@@ -59,7 +59,8 @@
         ".agro/cli/src/__tests__/node.test.ts",
         "CHANGELOG.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "15df0547"
     },
     {
       "id": "US-003",
