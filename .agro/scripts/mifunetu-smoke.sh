@@ -72,10 +72,15 @@ if [[ -f $agro_package ]]; then
   install_spec=/tmp/agro.tgz
 fi
 
+install_command="npm i -g $(printf '%q' "$install_spec") && agro --version"
 install_status=0
 agro_version=$(docker run --rm ${mount[@]+"${mount[@]}"} "$image" bash -lc "npm i -g $(printf '%q' "$install_spec") >&2 && agro --version") || install_status=$?
 if [[ $install_status -ne 0 ]]; then
-  fail agro-install "'npm i -g $agro_package && agro --version' exited $install_status"
+  if [[ $install_spec != "$agro_package" ]]; then
+    fail agro-install "'$install_command' exited $install_status (tarball $agro_package mounted at $install_spec)"
+  else
+    fail agro-install "'$install_command' exited $install_status"
+  fi
 else
   pass agro-install
   echo "mifunetu-smoke: agro --version $agro_version"

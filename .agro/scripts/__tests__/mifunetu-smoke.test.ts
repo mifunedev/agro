@@ -107,6 +107,26 @@ describe("mifunetu-smoke.sh", () => {
     );
   });
 
+  it("names the in-container install command when the install fails", () => {
+    const result = run([IMAGE, "@mifune/agro@0.38.0"], "agro-install");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "check 'agro-install' failed: 'npm i -g @mifune/agro@0.38.0 && agro --version' exited 243",
+    );
+  });
+
+  it("names the in-container command and the host tarball when a mounted install fails", () => {
+    const tarball = join(fixture, "mifune-agro-0.38.0.tgz");
+    writeFileSync(tarball, "", "utf8");
+    const result = run([IMAGE, tarball], "agro-install");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `check 'agro-install' failed: 'npm i -g /tmp/agro.tgz && agro --version' exited 243 (tarball ${tarball} mounted at /tmp/agro.tgz)`,
+    );
+  });
+
   it("installs a package spec without a mount when the second argument is not a file", () => {
     const result = run([IMAGE, "@mifune/agro@0.38.0"]);
 

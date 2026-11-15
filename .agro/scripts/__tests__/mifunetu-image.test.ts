@@ -43,7 +43,9 @@ describe("mifunetu image stage", () => {
     ["NPM_USER_PREFIX", 'ENV NPM_USER_PREFIX="/home/sandbox/.local"'],
     ["PATH", 'ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"'],
     ["COREPACK_ENABLE_DOWNLOAD_PROMPT", "ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0"],
-    ["the sandbox corepack cache primed from the root pin", 'gosu sandbox corepack prepare "pnpm@$pnpm_version" --activate'],
+    ["the root corepack cache moved to user sandbox", "mv /root/.cache/node/corepack /home/sandbox/.cache/node/corepack"],
+    ["sandbox ownership of its corepack cache", "chown -R sandbox:sandbox /home/sandbox/.cache/node"],
+    ["the license label", 'LABEL org.opencontainers.image.licenses="Apache-2.0"'],
     ["NPM_CONFIG_PREFIX", 'ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"'],
     ["UV_TOOL_DIR", "ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools"],
     ["UV_TOOL_BIN_DIR", "ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin"],
@@ -107,8 +109,9 @@ describe("mifunetu image stage", () => {
     expect(fragment).not.toContain("/home/sandbox");
   });
 
-  it("sets no shared COREPACK_HOME", () => {
+  it("sets no shared COREPACK_HOME and fetches pnpm only once", () => {
     expect(dockerfile).not.toContain("COREPACK_HOME");
+    expect(dockerfile.match(/corepack prepare/g)).toEqual(["corepack prepare"]);
   });
 
   it("gives uid 1000 no path under /usr/local", () => {

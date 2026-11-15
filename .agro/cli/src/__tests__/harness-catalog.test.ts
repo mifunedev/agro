@@ -231,12 +231,15 @@ describe("harness catalog", () => {
     });
 
     it("keeps every image-layer global install out of the user prefix", () => {
-      const lines = DOCKERFILE.split("\n");
-      const configAt = lines.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
+      const instructions = DOCKERFILE.replace(/\\\n/g, " ").split("\n");
+      const configAt = instructions.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
       expect(configAt).toBeGreaterThanOrEqual(0);
-      const intoUserPrefix = lines.filter(
-        (line, i) => line.includes("npm install -g") && i > configAt && !line.includes("--prefix /usr/local"),
+      const globalInstall = /\bnpm\s+(?:install|i)\b[^\n]*?(?:\s-g\b|\s--global\b)/;
+      const imagePrefix = /\s--prefix[\s=]\/usr\/local(?:\s|$)/;
+      const intoUserPrefix = instructions.filter(
+        (instruction, i) => i > configAt && globalInstall.test(instruction) && !imagePrefix.test(instruction),
       );
+      expect(instructions.some((instruction, i) => i > configAt && globalInstall.test(instruction))).toBe(true);
       expect(intoUserPrefix).toEqual([]);
     });
 

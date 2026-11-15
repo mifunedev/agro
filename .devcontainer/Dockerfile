@@ -61,8 +61,9 @@ RUN userdel -r node 2>/dev/null || true \
  && echo "sandbox ALL=(ALL) ALL" > /etc/sudoers.d/sandbox \
  && chmod 0440 /etc/sudoers.d/sandbox \
  && groupadd -f docker && usermod -aG docker sandbox \
- && pnpm_version=$(cd /tmp && pnpm --version) \
- && gosu sandbox corepack prepare "pnpm@$pnpm_version" --activate
+ && install -d -o sandbox -g sandbox /home/sandbox/.cache /home/sandbox/.cache/node \
+ && mv /root/.cache/node/corepack /home/sandbox/.cache/node/corepack \
+ && chown -R sandbox:sandbox /home/sandbox/.cache/node
 
 ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
 ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
@@ -83,6 +84,7 @@ RUN printf '%s\n' \
 
 LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
 LABEL org.opencontainers.image.title="mifunetu"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 USER sandbox
 WORKDIR /home/sandbox
