@@ -22,6 +22,16 @@ function handPath(ref: string): string {
   return `/api/nodes/${encodeURIComponent(normalizeHandRef(ref))}`;
 }
 
+function refusalMessage(
+  result: { status?: number; code?: string; message: string },
+  ref: string,
+  verb: "pause" | "resume" | "fork",
+): string {
+  return result.status === 409 && result.code === "NODE_DISPOSABLE"
+    ? `hand ${ref} is disposable and cannot ${verb}: delete it with agro hands destroy ${ref}`
+    : result.message;
+}
+
 function toHand(node: ConsoleNode): Hand {
   return {
     id: node.id,
@@ -71,9 +81,9 @@ export function createConsoleProvider(
     return { ok: false, error: `hand ${last.id} failed — last status ${last.status}` };
   }
 
-  async function act(method: string, path: string): Promise<HandOutcome<void>> {
-    const result = await callApi(deps, config, method, path);
-    return result.ok ? { ok: true, value: undefined } : { ok: false, error: result.message };
+  async function act(ref: string, verb: "pause" | "resume"): Promise<HandOutcome<void>> {
+    const result = await callApi(deps, config, "POST", `${handPath(ref)}/${verb}`);
+    return result.ok ? { ok: true, value: undefined } : { ok: false, error: refusalMessage(result, ref, verb) };
   }
 
   return {
@@ -90,7 +100,7 @@ export function createConsoleProvider(
       return read.ok ? { ok: true, value: toHand(read.value) } : read;
     },
 
-    async create({ name, spec }, onStatus) {
+    async create({ name, spec, disposable }, onStatus) {
       const requestedAt = deps.now();
       const created = await createConsoleNode(
         deps,
@@ -99,6 +109,7 @@ export function createConsoleProvider(
           profile: "sandbox",
           ...(name === undefined ? {} : { name }),
           ...(spec === undefined ? {} : { spec }),
+          ...(disposable === true ? { disposable: true } : {}),
         },
         notice,
       );
@@ -121,7 +132,7 @@ export function createConsoleProvider(
         spec,
         ...(name === undefined ? {} : { name }),
       });
-      if (!forked.ok) return { ok: false, error: forked.message };
+      if (!forked.ok) return { ok: false, error: refusalMessage(forked, ref, "fork") };
       const body = asRecord(forked.body);
       const forkId = asText(body?.forkId);
       const job = asText(body?.jobId);
@@ -132,8 +143,11 @@ export function createConsoleProvider(
       return running.ok ? { ok: true, value: { hand: running.value, job } } : running;
     },
 
-    pause: (ref) => act("POST", `${handPath(ref)}/pause`),
-    resume: (ref) => act("POST", `${handPath(ref)}/resume`),
-    destroy: (ref) => act("DELETE", handPath(ref)),
+    pause: (ref) => act(ref, "pause"),
+    resume: (ref) => act(ref, "resume"),
+    async destroy(ref) {
+      const result = await callApi(deps, config, "DELETE", handPath(ref));
+      return result.ok ? { ok: true, value: undefined } : { ok: false, error: result.message };
+    },
   };
 }

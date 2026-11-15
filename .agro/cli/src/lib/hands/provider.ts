@@ -74,6 +74,7 @@ export type HandOutcome<T> = { ok: true; value: T } | { ok: false; error: string
 export interface HandRequest {
   name?: string;
   spec?: string;
+  disposable?: boolean;
 }
 
 export interface ForkOutcome {

@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- `agro node create --disposable` and `agro hands create --disposable` request a disposable sandbox node with no data volume. The console refuses `--profile agro --disposable` with HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED`, and `agro node create` prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox`. `--disposable` applies only to console hands. When the console returns HTTP 409 `NODE_DISPOSABLE` to `agro hands pause`, `resume`, or `fork`, the command prints `hand <ref> is disposable and cannot <verb>: delete it with agro hands destroy <ref>` and exits 1. The platform deletes a running disposable node at the end of the credit grace window after the low-balance email, or at the end of the free-tier allowance ([#1646](https://github.com/mifunedev/agro/issues/1646)).
+
 ### Changed
 
 - `agro run --isolation microvm` boots `ghcr.io/mifunedev/mifunetu:<version>` by default, so the guest holds no unused agro control plane and no unused `dockerd` (ADR #1635). The `mifunetu` image has no `latest` tag, so a CLI version without a release tag exits 1 before `msb run` and names `--image` as the remedy. An existing `run.microvm.image` pin to an old `-msb` image keeps working at that version. When a guest command needs `agro`, pass `--image` or install `@mifune/agro` in the guest ([#1642](https://github.com/mifunedev/agro/issues/1642)).

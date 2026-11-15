@@ -36,6 +36,7 @@ export const BRAIN_HOME = "/home/sandbox";
 export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
 
 export const SPEC_REFUSAL = "--spec applies only to console hands";
+export const DISPOSABLE_REFUSAL = "--disposable applies only to console hands";
 
 export const HAND_MISSING =
   "no <hand> given — an unquoted #<index> starts a shell comment; write the bare index (4) or quote '#4'";
@@ -119,7 +120,7 @@ export function handsHelp(bin: string): string {
 
 Usage:
   ${bin} hands list [--json]
-  ${bin} hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> | --clone <owner>/<repo>]
+  ${bin} hands create [--name <name>] [--spec <spec>] [--disposable] [--project <owner>/<repo> | --clone <owner>/<repo>]
   ${bin} hands fork <hand> [--spec <spec>] [--name <name>]
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
@@ -140,6 +141,14 @@ Quote '#4' if you write the # sign: an unquoted #4 starts a shell comment.
 \`running\`, then prints its index, alias, and SSH host. When the free tier
 does not offer the requested spec, \`create\` creates \`n4\` and says so.
 \`destroy\` asks for confirmation unless --yes is given.
+
+\`create --disposable\` requests a disposable hand with no data volume.
+--disposable applies only to console hands. On a disposable hand, \`pause\`,
+\`resume\`, and \`fork\` exit 1 when the console returns
+HTTP 409 NODE_DISPOSABLE. Delete the hand with \`${bin} hands destroy <hand>\`.
+The platform deletes a running disposable hand at the end of the
+credit grace window after the low-balance email, or at the end of the
+free-tier allowance.
 
 \`fork\` copies a hand with its credentials. The fork takes the spec of the
 source unless --spec is given. When the console names the fork, \`fork\`
@@ -281,12 +290,17 @@ interface CreateArgs {
   spec?: string;
   project?: ProjectSlug;
   clone?: ProjectSlug;
+  disposable?: boolean;
 }
 
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
   const args: CreateArgs = {};
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
+    if (token === "--disposable") {
+      args.disposable = true;
+      continue;
+    }
     const [flag, inline] = token.startsWith("--") && token.includes("=")
       ? [token.slice(0, token.indexOf("=")), token.slice(token.indexOf("=") + 1)]
       : [token, undefined];
@@ -377,7 +391,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { name, spec, project, clone } = parsed.args;
+  const { name, spec, project, clone, disposable } = parsed.args;
   let local: { path: string; branch: string } | undefined;
   if (project !== undefined) {
     const found = brainProject(deps, project);
@@ -392,7 +406,7 @@ async function runCreate(
     }
     local = { path: found.path, branch };
   }
-  const created = await provider.create({ name, spec }, statusReporter(io, prefix));
+  const created = await provider.create({ name, spec, disposable }, statusReporter(io, prefix));
   if (!created.ok) return failed(io, prefix, created.error);
   const running = created.value;
   printRunning(io, running, providerId);
@@ -637,6 +651,10 @@ export async function runHands(
   if (providerId === "exedev") {
     if ((verb === "create" || verb === "fork") && options.some((token) => token === "--spec" || token.startsWith("--spec="))) {
       io.stderr(`${prefix}: ${SPEC_REFUSAL}\n`);
+      return 1;
+    }
+    if (verb === "create" && options.includes("--disposable")) {
+      io.stderr(`${prefix}: ${DISPOSABLE_REFUSAL}\n`);
       return 1;
     }
     const preflight = exedevPreflight(deps.run);

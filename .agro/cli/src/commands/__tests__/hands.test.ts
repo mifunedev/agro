@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HANDS_VERBS } from "../../command-table.js";
@@ -550,6 +550,91 @@ describe("agro hands 403", () => {
       expect(h.all()).not.toContain(TOKEN);
     });
   }
+});
+
+describe("agro hands disposable hands", () => {
+  it("create --disposable posts disposable true to the console", async () => {
+    const h = harness([
+      { status: 202, body: { id: "u9", status: "queued" } },
+      { status: 200, body: { id: "u9", status: "running", orgIndex: 7, slug: "calm-lynx", sshHost: "hand-7.example" } },
+    ]);
+    expect(await runHands(["create", "--name", "worker", "--disposable"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0]).toMatchObject({
+      method: "POST",
+      url: "https://brain-console.example/api/nodes",
+      body: { profile: "sandbox", name: "worker", disposable: true },
+    });
+  });
+
+  it("create without --disposable posts no disposable key", async () => {
+    const h = harness([
+      { status: 202, body: { id: "u9", status: "running", orgIndex: 7, slug: "calm-lynx", sshHost: "hand-7.example" } },
+    ]);
+    expect(await runHands(["create", "--name", "worker"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).not.toHaveProperty("disposable");
+  });
+
+  it("refuses create --disposable on exedev hands before any provider call", async () => {
+    const home = mkdtempSync(join(tmpdir(), "agro-hands-disposable-"));
+    try {
+      mkdirSync(join(home, ".agro"), { recursive: true });
+      writeFileSync(join(home, ".agro", "config.json"), `${JSON.stringify({ version: 1, hands: { provider: "exedev" } })}\n`);
+      const runs: string[][] = [];
+      const h = harness([{ status: 200 }], {
+        userHome: () => home,
+        run: (cmd, args) => {
+          runs.push([cmd, ...args]);
+          return { status: 0, stdout: "{}" };
+        },
+      });
+      expect(await runHands(["create", "--disposable"], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands create: --disposable applies only to console hands\n");
+      expect(runs).toEqual([]);
+      expect(h.calls).toEqual([]);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  const NODE_DISPOSABLE = { status: 409, body: { error: "Node is disposable", code: "NODE_DISPOSABLE" } };
+
+  it.each([
+    [["pause", "4"], "pause", "4"],
+    [["resume", "quiet-otter"], "resume", "quiet-otter"],
+    [["fork", "4", "--spec", "n8"], "fork", "4"],
+  ])("%j prints the disposable line on HTTP 409 NODE_DISPOSABLE", async (args, verb, ref) => {
+    const h = harness([NODE_DISPOSABLE]);
+    expect(await runHands(args, h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.stderr()).toBe(
+      `agro hands ${verb}: hand ${ref} is disposable and cannot ${verb}: delete it with agro hands destroy ${ref}\n`,
+    );
+    expect(h.stdout()).toBe("");
+  });
+
+  it.each([["pause"], ["resume"]])("%s keeps the console message on another HTTP 409 code", async (verb) => {
+    const h = harness([{ status: 409, body: { error: "Node is busy", code: "NODE_BUSY" } }]);
+    expect(await runHands([verb, "4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands ${verb}: HTTP 409 NODE_BUSY: Node is busy\n`);
+  });
+
+  it("fork keeps the console message on another HTTP 409 code", async () => {
+    const h = harness([{ status: 409, body: { error: "Node is busy", code: "NODE_BUSY" } }]);
+    expect(await runHands(["fork", "4", "--spec", "n8"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands fork: HTTP 409 NODE_BUSY: Node is busy\n");
+  });
+
+  it("states the disposable rules in the create help", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain("agro hands create [--name <name>] [--spec <spec>] [--disposable]");
+    expect(help).toContain("--disposable applies only to console hands");
+    expect(help).toContain("HTTP 409 NODE_DISPOSABLE");
+    for (const verb of ["`pause`", "`resume`", "`fork`"]) expect(help).toContain(verb);
+    expect(help).toContain("agro hands destroy <hand>");
+    expect(help).toContain("credit grace window");
+    expect(help).toContain("low-balance email");
+    expect(help).toContain("free-tier allowance");
+  });
 });
 
 describe("agro hands token secrecy", () => {
