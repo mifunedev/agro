@@ -250,7 +250,7 @@ proxy, and the proxy denies every host outside `egress-allow.txt`.
 
 **Default hosts.** `materialize()` builds `egress-allow.txt` from one source:
 the `host` entries under `network_policies` in
-[`openshell-policy.yaml`](../.devcontainer/openshell-policy.yaml), plus
+[`egress-policy.yaml`](../.devcontainer/egress-policy.yaml), plus
 `access.egressAllow`. The built-in hosts are `github.com`, `api.github.com`,
 `release-assets.githubusercontent.com`, `registry.npmjs.org`,
 `api.anthropic.com`, and `platform.claude.com`. `access.egressAllow` is an

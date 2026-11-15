@@ -7,10 +7,9 @@
 3. [Execute](#execute)
    - [Fresh install](#main-scenario-fresh-install)
    - [Hosting matrix](#second-scenario-the-agro-hosting-matrix)
-   - [OpenShell journey](#third-scenario-the-openshell-journey)
-   - [Hermes generated home](#fourth-scenario-the-hermes-generated-home)
-   - [Docker egress](#fifth-scenario-the-docker-egress-allowlist)
-   - [agro run modes](#sixth-scenario-the-agro-run-modes)
+   - [Hermes generated home](#third-scenario-the-hermes-generated-home)
+   - [Docker egress](#fourth-scenario-the-docker-egress-allowlist)
+   - [agro run modes](#fifth-scenario-the-agro-run-modes)
 4. [Verify](#verify)
 5. [Cleanup](#cleanup)
 6. [Failure remedies](#failure-remedies)
@@ -111,20 +110,7 @@ Run these steps in order. A failed probe makes the later steps on that provider 
 
 Runs on different providers are independent. Start one run at a time on each provider, because a provider plan can cap concurrent VMs. The rationale reference linked from SKILL.md states each row's purpose and the historical baseline.
 
-### Third scenario: the OpenShell journey
-
-`checks/openshell-journey.sh` tests the `agro sandbox install openshell` journey on a new VM. The rows `O01` to `O21` check the AGRO install, the OpenShell install, the gateway, `agro sandbox install openshell`, `agro sandbox list`, and `agro shell`. The rows also check the policy allow and deny rules, the verb refusals, `openshell sandbox stop` and `start`, `agro destroy`, and the hint after a failed create.
-
-The VM must have Docker 28 or later and Landlock. exe.dev qualifies: Ubuntu 24.04, kernel 6.12, and Docker 29. When `AGRO_JS_URL` holds `/releases/download/v<version>/`, row `O01` expects `<version>`. Otherwise row `O01` expects a SemVer string.
-
-To test a release candidate, start the run detached on the driver host. Set `<release>` to the release download URL:
-
-```bash
-INSTALL_URL=<release>/install.sh AGRO_JS_URL=<release>/agro.js setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/openshell-journey.sh > run.out 2>&1 < /dev/null &
-cat run.out
-```
-
-### Fourth scenario: the Hermes generated home
+### Third scenario: the Hermes generated home
 
 `checks/hermes-home.sh` tests that `agro harness install hermes --host` generates `.hermes/config.yaml` in a workspace that tracks no `.hermes/` file. The check uses host mode on a plain VM. The rows run in this order:
 
@@ -148,7 +134,7 @@ Set `AGRO_REF` to the branch under test. Start the run detached on the driver ho
 tmux new-session -d -s rs-hermes "AGRO_REF=<branch> bash $SKILL/scripts/run.sh exedev checks/hermes-home.sh"
 ```
 
-### Fifth scenario: the Docker egress allowlist
+### Fourth scenario: the Docker egress allowlist
 
 `checks/docker-egress.sh` tests `access.egress` `allowlist` on a new VM. The check installs AGRO with the curl installer at `INSTALL_URL`. Then the check clones `AGRO_REF` (default `development`), builds the CLI from the clone, and runs `agro config set access.egress allowlist` in the clone. `agro sandbox install docker --checkout <clone> --yes` reads that setting and builds the sandbox image from the clone.
 
@@ -161,7 +147,7 @@ AGRO_REF=<branch> setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/docker
 cat run.out
 ```
 
-### Sixth scenario: the agro run modes
+### Fifth scenario: the agro run modes
 
 `checks/agro-run-matrix.sh` tests the `agro run` modes on a new `console` node. The check uses host mode. The check installs AGRO with the curl installer at `INSTALL_URL`, runs `sudo usermod -aG kvm "$USER"`, and installs msb `0.7.13` with `agro tool install microsandbox`. When the installed AGRO installs a different msb release, the check uses the pinned upstream installer. Then the check creates a scratch git repository under `mktemp`, writes `agro.json` in it for each row, and deletes it at the end. The new `kvm` group applies only to a new login, so each microVM row runs through `sg kvm`.
 
