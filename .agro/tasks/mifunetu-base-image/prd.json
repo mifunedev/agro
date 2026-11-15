@@ -278,8 +278,8 @@
         "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`."
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "Fifth /code-review: fix 3 (tarball bind mount fails when the Docker daemon cannot see the host path) and 4 (zsh login skips /etc/profile.d and shows zsh-newuser-install). No change: 1, 2, 5, 6, 7, 8 repeat earlier dispositions.",
+      "passes": true,
+      "notes": "Fifth /code-review: fix 3 (tarball bind mount fails when the Docker daemon cannot see the host path) and 4 (zsh login skips /etc/profile.d and shows zsh-newuser-install). No change: 1, 2, 5, 6, 7, 8 repeat earlier dispositions. Accepted: advisor re-ran zsh -lc PATH as sandbox (holds /home/sandbox/.local/bin), smoke exits 0, vitest mifunetu-image and mifunetu-smoke pass. Worker ran the tarball smoke over stdin (exit 0), pnpm test:scripts (only standard-skills-link timeouts), hadolint and shellcheck. Root zsh login PATH keeps the image ENV PATH entries, as before this PR; root's login shell is bash.",
       "dependsOn": [
         "US-009"
       ],
@@ -288,7 +288,8 @@
         ".agro/scripts/__tests__/mifunetu-image.test.ts",
         ".agro/scripts/mifunetu-smoke.sh",
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
-      ]
+      ],
+      "commit": "98461138"
     }
   ],
   "pr": 1637
