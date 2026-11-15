@@ -13,7 +13,7 @@ Status: DRAFT
 - [ ] `agro node create --disposable` sends `"disposable": true` in the `POST /api/nodes` body. Without the flag, the body holds no `disposable` key.
 - [ ] After a credit refusal, the free `n4` retry of `createConsoleNode` keeps `"disposable": true`.
 - [ ] When the console answers HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED`, the command prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox` to stderr and exits 1.
-- [ ] The CLI sends the request for `--profile agro --disposable` and lets the console refuse it. The CLI adds no local profile rule.
+- [ ] The CLI sends the request for `--profile agro --disposable`, and the console refuses the request. The CLI adds no local profile rule.
 - [ ] The `create` help text in `.agro/cli/src/commands/node.ts` names `--disposable` and states these rules:
   - A disposable node has no data volume.
   - Pause, resume, fork, snapshot, convert, and disk grow return HTTP 409 `NODE_DISPOSABLE`.
@@ -25,7 +25,7 @@ Status: DRAFT
 
 ### US-002: Create a disposable hand and explain the refused verbs in agro hands
 
-- [ ] The CLI sends the request for `--profile agro --disposable`, and the console refuses the request. The CLI adds no local profile rule.
+**Description:** As a brain, I want `agro hands create --disposable` and a clear line for each verb that a disposable hand refuses. I then create a short-lived hand and know how to delete the hand.
 
 **Acceptance Criteria:**
 
