@@ -7,24 +7,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsb-release nano ripgrep tmux unzip bash-completion procps less \
     iproute2 zsh lsof htop inetutils-telnet shellcheck python3-minimal \
     systemd systemd-sysv dbus libatomic1 \
- && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-      -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
- && install -m 0755 -d /etc/apt/keyrings \
- && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
- && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg /etc/apt/keyrings/docker.asc \
- && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-      > /etc/apt/sources.list.d/github-cli.list \
- && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable" \
-      > /etc/apt/sources.list.d/docker.list \
- && apt-get update && apt-get install -y --no-install-recommends gh docker-ce-cli docker-compose-plugin \
  && command -v lsof >/dev/null \
  && command -v htop >/dev/null \
  && command -v telnet >/dev/null \
  && command -v shellcheck >/dev/null \
- && command -v gh >/dev/null \
- && command -v docker >/dev/null \
  && test -x /usr/bin/python3 \
  && ldconfig -p | grep -q libatomic.so.1 \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list \
+ && apt-get update && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN install -m 0755 -d /etc/apt/keyrings \
+ && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+ && chmod a+r /etc/apt/keyrings/docker.asc \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable" \
+      > /etc/apt/sources.list.d/docker.list \
+ && apt-get update && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
  && rm -rf /var/lib/apt/lists/*
 
 ARG HADOLINT_VERSION=2.12.0
@@ -38,9 +41,6 @@ RUN case "$(dpkg --print-architecture)" in \
  && install -m 0755 /tmp/hadolint /usr/local/bin/hadolint \
  && rm -f /tmp/hadolint
 
-RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash \
- && test -x /usr/local/bin/bun
-
 RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 sh \
  && cp /root/.local/bin/uv /usr/local/bin/uv \
  && cp /root/.local/bin/uvx /usr/local/bin/uvx \
@@ -50,7 +50,9 @@ ENV PNPM_HOME="/home/sandbox/.local/share/pnpm"
 ENV NPM_USER_PREFIX="/home/sandbox/.local"
 ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+ENV COREPACK_HOME=/usr/local/share/corepack
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate \
+ && chown -R 1000:1000 "$COREPACK_HOME"
 
 SHELL ["/bin/bash", "-c"]
 

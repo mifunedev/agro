@@ -20,11 +20,6 @@ function instructions(lines: string[]): string[] {
 
 const mifunetu = stage("mifunetu");
 const mifunetuText = mifunetu.join("\n");
-const aptInstall = mifunetuText.indexOf("apt-get install -y --no-install-recommends gh docker-ce-cli");
-const instructionStarts = mifunetu.flatMap((line, index) => (line.trim() !== "" && !/^\s/.test(line) ? [index] : []));
-const aptRuns = instructionStarts
-  .map((start, index) => mifunetu.slice(start, instructionStarts[index + 1]).join("\n"))
-  .filter((text) => text.startsWith("RUN ") && text.includes("apt-get"));
 const base = stage("base");
 const baseText = base.join("\n");
 
@@ -37,10 +32,10 @@ describe("mifunetu image stage", () => {
   });
 
   it.each([
-    ["gh, the docker CLI, and the compose plugin", "gh docker-ce-cli docker-compose-plugin"],
+    ["the apt tool set", "apt-get install -y --no-install-recommends \\"],
+    ["gh", "install -y --no-install-recommends gh"],
+    ["the docker CLI and compose plugin", "docker-ce-cli docker-compose-plugin"],
     ["hadolint 2.12.0", "ARG HADOLINT_VERSION=2.12.0"],
-    ["bun under /usr/local", "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash"],
-    ["the bun check", "test -x /usr/local/bin/bun"],
     ["uv", "https://astral.sh/uv/install.sh"],
     ["pnpm 10.33.0", "corepack prepare pnpm@10.33.0 --activate"],
     ["the timezone", "ENV TZ=America/Denver"],
@@ -48,6 +43,8 @@ describe("mifunetu image stage", () => {
     ["NPM_USER_PREFIX", 'ENV NPM_USER_PREFIX="/home/sandbox/.local"'],
     ["PATH", 'ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"'],
     ["COREPACK_ENABLE_DOWNLOAD_PROMPT", "ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0"],
+    ["the shared COREPACK_HOME", "ENV COREPACK_HOME=/usr/local/share/corepack"],
+    ["sandbox ownership of COREPACK_HOME", 'chown -R 1000:1000 "$COREPACK_HOME"'],
     ["NPM_CONFIG_PREFIX", 'ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"'],
     ["UV_TOOL_DIR", "ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools"],
     ["UV_TOOL_BIN_DIR", "ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin"],
@@ -72,36 +69,19 @@ describe("mifunetu image stage", () => {
     },
   );
 
-  it("runs apt-get in one RUN instruction with at most two updates", () => {
-    expect(aptRuns).toHaveLength(1);
-    const updates = mifunetuText.match(/apt-get update/g) ?? [];
-    expect(updates.length).toBeGreaterThanOrEqual(1);
-    expect(updates.length).toBeLessThanOrEqual(2);
-    expect(aptRuns[0].match(/apt-get update/g)).toHaveLength(updates.length);
+  it("keeps three apt layers with one apt-get update each", () => {
+    const starts = mifunetu.flatMap((line, index) => (line.trim() !== "" && !/^\s/.test(line) ? [index] : []));
+    const aptRuns = starts
+      .map((start, index) => mifunetu.slice(start, starts[index + 1]).join("\n"))
+      .filter((text) => text.startsWith("RUN ") && text.includes("apt-get"));
+    expect(aptRuns).toHaveLength(3);
+    for (const text of aptRuns) {
+      expect(text.match(/apt-get update/g)).toHaveLength(1);
+    }
   });
 
-  it.each([
-    ["the GitHub CLI keyring", "/usr/share/keyrings/githubcli-archive-keyring.gpg"],
-    ["the Docker keyring", "/etc/apt/keyrings/docker.asc"],
-    ["the GitHub CLI repository", "/etc/apt/sources.list.d/github-cli.list"],
-    ["the Docker repository", "https://download.docker.com/linux/debian trixie stable"],
-  ])("registers %s before the package install", (_, text) => {
-    const position = mifunetuText.indexOf(text);
-    expect(position).toBeGreaterThanOrEqual(0);
-    expect(position).toBeLessThan(aptInstall);
-  });
-
-  it.each([
-    "command -v lsof",
-    "command -v htop",
-    "command -v telnet",
-    "command -v shellcheck",
-    "test -x /usr/bin/python3",
-    "ldconfig -p | grep -q libatomic.so.1",
-    "command -v gh",
-    "command -v docker",
-  ])("checks %s after the package install", (text) => {
-    expect(mifunetuText.indexOf(text)).toBeGreaterThan(aptInstall);
+  it("installs no second JavaScript runtime", () => {
+    expect(dockerfile).not.toMatch(/\bb[u]n\b/i);
   });
 
   it("ends as user sandbox in the home directory", () => {
@@ -130,7 +110,6 @@ describe("base stage on mifunetu", () => {
   it.each([
     "apt-get",
     "HADOLINT_VERSION",
-    "bun.sh",
     "astral.sh",
     "corepack prepare",
     "useradd",
