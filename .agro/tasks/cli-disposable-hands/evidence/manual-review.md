@@ -228,3 +228,84 @@ The run stopped only the stub process that it started. After the stop,
 `/tmp/claude-1000/disposable-review.7e02OZ` with `rm -r` on that exact path.
 The temp directory held no file other than the stub copy, the stub log, and
 the captured output.
+
+## Live run against agro-console (external criterion)
+
+Date: 2026-11-15 (UTC). CLI: `@mifune/agro@0.39.0` from npm, installed with
+`npm install --prefix <throwaway dir>` on `agro-sbx-dev-001`. The harness
+checkout did not change. Console: the operator dev stack of agro-console on
+`http://127.0.0.1:3005`, at `development` `a1f08900`, with `payments: false`.
+The operator approved live spend on 2026-11-15, with at most one live node at
+a time and each node deleted after its proof. This run created one node.
+
+The token is the throwaway API token `proof-p-cli-admin` (`mfc_CvkBz79Y…`).
+It belongs to the dev account in the billing-exempt org `Admin`. The SSH key
+`11a917f4-…` is a throwaway public key registered in that org. Each command
+passes `HOME=<throwaway dir>/home`, `AGRO_CONSOLE_URL=http://127.0.0.1:3005`,
+and `AGRO_CONSOLE_TOKEN=<redacted>` inline. The run wrote no env file and no
+credentials file. The CLI read no brain token file.
+
+Transcript:
+
+```text
+2026-11-15T18:05:06Z
+$ agro node create --profile sandbox --disposable --ssh-key 11a917f4-de23-44dd-9e3f-5b689a980bb2 --name proof-p-cli5-disposable --json
+agro node create: node 04869d43-4e72-475b-94b1-5b05f2e8aa62 queued
+agro node create: node 04869d43-4e72-475b-94b1-5b05f2e8aa62 bootstrapping
+agro node create: node 04869d43-4e72-475b-94b1-5b05f2e8aa62 running
+{"id":"04869d43-4e72-475b-94b1-5b05f2e8aa62","status":"running","spec":"n4","ssh":"ssh sandbox@135.148.235.38"}
+exit: 0
+2026-11-15T18:05:13Z
+
+2026-11-15T18:05:19Z
+$ agro hands pause 04869d43-4e72-475b-94b1-5b05f2e8aa62
+agro hands pause: hand 04869d43-4e72-475b-94b1-5b05f2e8aa62 is disposable and cannot pause: delete it with agro hands destroy 04869d43-4e72-475b-94b1-5b05f2e8aa62
+exit: 1
+
+$ agro hands list
+INDEX  ALIAS                  STATUS     SPEC  SSH HOST
+#2     civil-moss-nma7wz      destroyed  n2    -
+#1     curious-meadow-lnkg90  destroyed  n2    -
+#3     placid-mesa-u22vdm     running    n4    ssh-placid-mesa-u22vdm.mifune.io
+exit: 0
+
+2026-11-15T18:05:38Z
+$ agro node delete 04869d43-4e72-475b-94b1-5b05f2e8aa62 --yes
+deleted 04869d43-4e72-475b-94b1-5b05f2e8aa62
+exit: 0
+```
+
+`GET /api/nodes/04869d43-…` after the create returned `profile: sandbox` and
+`disposable: true`. The create bound the warm `n4` pool VM `04869d43` in 7 s.
+The `#1` and `#2` rows of `hands list` are the destroyed `n2` hands of the
+agro-console US-008 timing run, not of this run.
+
+The pause line comes only from an HTTP 409 `NODE_DISPOSABLE` reply:
+`.agro/cli/src/lib/hands/console-provider.ts` (v0.39.0, line 30) maps
+`result.status === 409 && result.code === "NODE_DISPOSABLE"` to that line.
+
+OVH listing (untracked read-only script, `GET` instance and volume lists only):
+
+| Time (UTC) | Observation |
+|---|---|
+| 18:05:25 | instance `abc66dd2` `ACTIVE`; boot volume `dfd36472` 12 GB `in-use`; the pool data volume `4be2fea4` 50 GB `available`, detached. The provisioner logged `volume 4be2fea4-… delete deferred: disposable node 04869d43-… keeps no data volume of its pool VM`. |
+| 18:05:55 | node `destroyed` |
+| 18:06:02 | instance and boot volume gone; `4be2fea4` still `available` (deferred delete, 5 min retry) |
+| 18:11:30 | no instance and no volume of `04869d43` |
+
+## Live run cleanup
+
+This cleanup also covers the live run of `cli-credit-required`.
+
+1. At 18:11:45Z, `DELETE /api/tokens/<id>` revoked `proof-p-cli-acme-inc`
+   and `proof-p-cli-admin` (HTTP 200 each). The token list shows each with
+   `revokedAt` set.
+2. `DELETE /api/ssh-keys/<id>` removed the throwaway keys from Admin and Acme
+   (HTTP 200 each). Both orgs then listed no SSH key.
+3. `GET /api/admin/nodes` listed no live node outside the pool.
+4. At 18:12:03Z, the full OVH listing held no resource of either run. The
+   listing held two pool VMs, `48e60a4b` (`n4`) and `6970aef3` (`n2`), plus golden volumes
+   and two unattached data volumes that map to no dev node. Dev and production
+   share one OVH project.
+5. The run deleted its throwaway directory: the npm prefix, the temp `HOME`,
+   the token files, and the throwaway key pair.

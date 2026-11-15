@@ -102,8 +102,8 @@
         "`external` With operator approval, the story runs `agro node check` once against a live agro-console with an operator token, and records the credit line. That run creates nothing."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Local criteria verified at ae89bd9d (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --spec n8 against the local stub for 402 eligible (exit 0), 402 not eligible (exit 1, top-up line), 403 PAYMENTS_DISABLED eligible (exit 0), failed retry (exit 1, top-up line), each with the stub request log; node check for the six credit lines (exit 0, GET only). Port 3190 checked free; values inline; throwaway token; HOME set to a temp dir that was deleted; ste-check 0. Evidence force-added per git manual-review reference (.gitignore ignores task evidence). External criterion pending: live agro node check after the agro release, with operator approval (supervisor 2026-11-15).",
+      "passes": true,
+      "notes": "Local criteria verified at ae89bd9d (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --spec n8 against the local stub for 402 eligible (exit 0), 402 not eligible (exit 1, top-up line), 403 PAYMENTS_DISABLED eligible (exit 0), failed retry (exit 1, top-up line), each with the stub request log; node check for the six credit lines (exit 0, GET only). Port 3190 checked free; values inline; throwaway token; HOME set to a temp dir that was deleted; ste-check 0. Evidence force-added per git manual-review reference (.gitignore ignores task evidence). External criterion pending: live agro node check after the agro release, with operator approval (supervisor 2026-11-15). | External criterion verified 2026-11-15 (lane P advisor): agro 0.39.0 from npm against the local dev agro-console (payments false). node check prints 'ok credit: payments are off' in the Acme and Admin orgs; node create --spec n8 in Acme gets 403 PAYMENTS_DISABLED, prints the top-up line, exits 1, and node list shows no node. Throwaway tokens revoked and keys deleted. evidence/manual-review.md, section Live run.",
       "dependsOn": [
         "US-001",
         "US-002",
