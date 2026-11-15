@@ -351,15 +351,16 @@
         "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and hadolint at the CI threshold exits 0."
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "Eighth /code-review: fix 3 (ENV container=docker moved after the systemd and dbus install). No change: 1, 2, 4, 5, 6, 8, 9, 10 repeat earlier dispositions; 7 (a file: spec is outside the release use).",
+      "passes": true,
+      "notes": "Eighth /code-review: fix 3 (ENV container=docker moved after the systemd and dbus install). No change: 1, 2, 4, 5, 6, 8, 9, 10 repeat earlier dispositions; 7 (a file: spec is outside the release use). Accepted: advisor re-ran printenv container (docker), smoke exit 0, vitest mifunetu-image and sandbox-privilege-boundary pass. Worker ran pnpm test:scripts (only standard-skills-link timeouts) and hadolint.",
       "dependsOn": [
         "US-012"
       ],
       "files": [
         ".devcontainer/Dockerfile",
         ".agro/scripts/__tests__/mifunetu-image.test.ts"
-      ]
+      ],
+      "commit": "30f3d646"
     }
   ],
   "pr": 1637
