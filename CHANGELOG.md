@@ -8,9 +8,22 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Publish the base image `ghcr.io/mifunedev/mifunetu` with each release, tagged `<X.Y.Z>` and `sha-<sha>`, with no `latest` tag. The image holds Node 24 on Debian Trixie slim and the general tools, but no agro. It runs as user `sandbox` (uid 1000) in `/home/sandbox`, and `npm i -g @mifune/agro` installs agro without `sudo`. The agro image builds `FROM` the `mifunetu` stage ([#1635](https://github.com/mifunedev/agro/issues/1635)).
+
 ### Changed
 
 - Route application runs of committed work to a running hand that holds the project by default in the `sandbox` skill. Otherwise, and for uncommitted edits, the run uses `local/docker`. Isolation needs still select the runtime, an explicit location in the request wins, the default never resumes or creates a hand, and the raw host never runs application work ([#1633](https://github.com/mifunedev/agro/issues/1633)).
+- An image rebuild after an agro CLI source change reuses the cached dependency layer. A warm rebuild drops from 9.8 s to 4.3 s on a 2-CPU host. The build context excludes nested `node_modules` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+
+### Removed
+
+- Remove bun from the image. No repository code calls bun, and bun installed under `/root/.bun`, out of reach of user `sandbox` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+
+### Fixed
+
+- The pnpm 10.33.0 corepack pin now holds for every image user outside a project, through the shared `COREPACK_HOME=/usr/local/share/corepack` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
 
 ## [0.37.0] - 2026-11-14
 

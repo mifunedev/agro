@@ -29,6 +29,35 @@ image is public, so a pull needs no `docker login`.
 The release publishes the image for one CPU architecture, the architecture of
 the CI runner. On a different architecture, build locally with `--checkout`.
 
+## The mifunetu base image
+
+The release also publishes `mifunetu`, a general base image without agro. The
+job `publish-image` builds the image from the release commit. The script
+`.agro/scripts/mifunetu-smoke.sh` tests the image before any push:
+
+```
+ghcr.io/mifunedev/mifunetu:<X.Y.Z>     # one immutable tag per release
+ghcr.io/mifunedev/mifunetu:sha-<sha>   # the release commit
+```
+
+The image has no `latest` tag. The image holds Node 24 on Debian Trixie slim
+and the general tools: the apt tool set, `gh`, the Docker CLI with the Compose
+plugin, `hadolint`, `uv`, and pnpm 10.33.0. The image holds no agro and no bun.
+
+The image runs as user `sandbox` with uid 1000. The start directory is
+`/home/sandbox`, and the default command is `/bin/bash -l`. To add agro, run
+`npm i -g @mifune/agro` in the container. The command needs no `sudo`. The
+command installs `agro` in `/home/sandbox/.local/bin`, which a login shell has
+on `PATH`:
+
+```bash
+docker run --rm -it ghcr.io/mifunedev/mifunetu:<X.Y.Z>
+npm i -g @mifune/agro   # run inside the container
+```
+
+The agro image `ghcr.io/mifunedev/agro` builds `FROM` the `mifunetu` stage of
+`.devcontainer/Dockerfile`.
+
 ## Image mode: no checkout
 
 Without `--checkout`, the host holds no checkout. The workspace and the `.agro/`
