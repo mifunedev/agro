@@ -230,14 +230,14 @@ describe("harness catalog", () => {
       expect(DOCKERFILE).toContain('ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"');
     });
 
-    it("sets NPM_CONFIG_PREFIX after the last image-layer global install", () => {
+    it("keeps every image-layer global install out of the user prefix", () => {
       const lines = DOCKERFILE.split("\n");
       const configAt = lines.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
-      const lastGlobalInstallAt = lines.reduce(
-        (found, line, i) => (line.includes("npm install -g") ? i : found),
-        -1,
+      expect(configAt).toBeGreaterThanOrEqual(0);
+      const intoUserPrefix = lines.filter(
+        (line, i) => line.includes("npm install -g") && i > configAt && !line.includes("--prefix /usr/local"),
       );
-      expect(configAt).toBeGreaterThan(lastGlobalInstallAt);
+      expect(intoUserPrefix).toEqual([]);
     });
 
     it("exports the same prefix from the shell profile fragment", () => {
