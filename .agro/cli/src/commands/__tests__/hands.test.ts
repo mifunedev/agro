@@ -2,13 +2,14 @@ import { afterAll, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ConsoleCredentials } from "../../lib/console-auth.js";
 import { HANDS_VERBS } from "../../command-table.js";
 import {
-  BRAIN_TOKEN_MISSING,
+  CONSOLE_TOKEN_MISSING,
   HAND_MISSING,
   handsHelp,
   normalizeHandRef,
-  resolveBrainConsoleConfig,
+  resolveHandsConsoleConfig,
   runHands,
   type HandsDeps,
 } from "../hands.js";
@@ -66,6 +67,7 @@ function harness(replies: Reply[], overrides: Partial<HandsDeps> = {}) {
     homeDir: () => "/home/sandbox",
     userHome: () => USER_HOME,
     readFile: files.readFile,
+    readCredentials: () => undefined,
     sleep: async (ms) => {
       sleeps.push(ms);
       clock += ms;
@@ -92,35 +94,53 @@ function harness(replies: Reply[], overrides: Partial<HandsDeps> = {}) {
   };
 }
 
-describe("brain console config", () => {
-  it("reads the token and the URL from the brain files", () => {
-    const files = brainFiles({ [TOKEN_PATH]: ` ${TOKEN}\n`, [URL_PATH]: "https://c.example//\n" });
-    expect(resolveBrainConsoleConfig({}, () => "/home/sandbox", files.readFile)).toEqual({
+const HOME = () => "/home/sandbox";
+const BRAIN = { [TOKEN_PATH]: `${TOKEN}\n`, [URL_PATH]: "https://brain.example/\n" };
+const ENV_TOKEN = { AGRO_CONSOLE_TOKEN: "env_token" };
+const ENV_BOTH = { AGRO_CONSOLE_TOKEN: "env_token", AGRO_CONSOLE_URL: "https://env.example/" };
+
+function credentials(token: string, url = "https://login.example/"): () => ConsoleCredentials {
+  return () => ({ url, token, tokenId: "t1", tokenPrefix: "agro_", login: "octo" });
+}
+
+const noCredentials = () => undefined;
+
+describe("hands console config source order", () => {
+  it.each([
+    ["env token and env URL beat every file", ENV_BOTH, BRAIN, credentials("cred"), "env_token", "https://env.example", "env", "brain"],
+    ["env token skips the brain URL file and takes the credentials URL", ENV_TOKEN, BRAIN, credentials("cred"), "env_token", "https://login.example", "env", "brain"],
+    ["env token without a URL source takes the public console", ENV_TOKEN, {}, noCredentials, "env_token", "https://console.mifune.dev", "env", "operator"],
+    ["brain token takes the brain URL file", {}, BRAIN, credentials("cred"), TOKEN, "https://brain.example", "file", "brain"],
+    ["brain token takes AGRO_CONSOLE_URL over the brain URL file", { AGRO_CONSOLE_URL: "https://env.example" }, BRAIN, noCredentials, TOKEN, "https://env.example", "file", "brain"],
+    ["credentials token takes the credentials URL", {}, {}, credentials("cred"), "cred", "https://login.example", "file", "operator"],
+    ["credentials token takes AGRO_CONSOLE_URL over the credentials URL", { AGRO_CONSOLE_URL: "https://env.example" }, {}, credentials("cred"), "cred", "https://env.example", "file", "operator"],
+    ["credentials token with an empty URL takes the public console", {}, {}, credentials("cred", " "), "cred", "https://console.mifune.dev", "file", "operator"],
+  ] as const)("%s", (_, env, files, readCredentials, token, url, source, authority) => {
+    expect(resolveHandsConsoleConfig(env, HOME, brainFiles(files).readFile, readCredentials)).toEqual({
       ok: true,
-      config: { url: "https://c.example", token: TOKEN, source: "file" },
+      config: { url, token, source },
+      authority,
     });
   });
 
-  it("lets AGRO_CONSOLE_TOKEN and AGRO_CONSOLE_URL override both files", () => {
-    const files = brainFiles({});
-    expect(
-      resolveBrainConsoleConfig(
-        { AGRO_CONSOLE_TOKEN: "env_token", AGRO_CONSOLE_URL: "https://env.example/" },
-        () => "/home/sandbox",
-        files.readFile,
-      ),
-    ).toEqual({ ok: true, config: { url: "https://env.example", token: "env_token", source: "env" } });
-    expect(files.reads).toEqual([]);
+  it("trims the brain token and the brain URL", () => {
+    const files = brainFiles({ [TOKEN_PATH]: ` ${TOKEN}\n`, [URL_PATH]: "https://c.example//\n" });
+    expect(resolveHandsConsoleConfig({}, HOME, files.readFile, noCredentials)).toEqual({
+      ok: true,
+      config: { url: "https://c.example", token: TOKEN, source: "file" },
+      authority: "brain",
+    });
   });
 
-  it("fails when the token file is missing", () => {
-    const result = resolveBrainConsoleConfig({}, () => "/home/sandbox", brainFiles({ [URL_PATH]: "https://c" }).readFile);
-    expect(result).toEqual({ ok: false, error: BRAIN_TOKEN_MISSING });
-    expect(BRAIN_TOKEN_MISSING).toBe("not on a brain: /home/sandbox/.agro/brain-token not found");
+  it("fails without any token and names the brain token path and agro auth login", () => {
+    const result = resolveHandsConsoleConfig({}, HOME, brainFiles({ [URL_PATH]: "https://c" }).readFile, noCredentials);
+    expect(result).toEqual({ ok: false, error: CONSOLE_TOKEN_MISSING });
+    expect(CONSOLE_TOKEN_MISSING).toContain(TOKEN_PATH);
+    expect(CONSOLE_TOKEN_MISSING).toContain("agro auth login");
   });
 
   it("fails without the URL file and AGRO_CONSOLE_URL instead of using the public console", () => {
-    const result = resolveBrainConsoleConfig({}, () => "/home/sandbox", brainFiles({ [TOKEN_PATH]: TOKEN }).readFile);
+    const result = resolveHandsConsoleConfig({}, HOME, brainFiles({ [TOKEN_PATH]: TOKEN }).readFile, credentials("cred"));
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toContain(URL_PATH);
@@ -137,10 +157,10 @@ describe("brain console config", () => {
 });
 
 describe("agro hands config errors", () => {
-  it("exits 2 and sends no request when the token file is missing", async () => {
+  it("exits 2 and sends no request without any token", async () => {
     const h = harness([{ status: 200, body: [] }], { readFile: brainFiles({ [URL_PATH]: "https://c" }).readFile });
     expect(await runHands(["list"], h.io, h.deps)).toBe(2);
-    expect(h.stderr()).toBe(`${BRAIN_TOKEN_MISSING}\n`);
+    expect(h.stderr()).toBe(`${CONSOLE_TOKEN_MISSING}\n`);
     expect(h.calls).toEqual([]);
   });
 
@@ -159,6 +179,98 @@ describe("agro hands config errors", () => {
     expect(await runHands(["list"], h.io, h.deps)).toBe(0);
     expect(h.calls[0].url).toBe("https://env.example/api/nodes");
     expect(h.calls[0].headers.Authorization).toBe("Bearer env_token");
+  });
+
+  it("uses the agro auth login credentials without a brain token", async () => {
+    const h = harness([{ status: 200, body: [] }], {
+      readFile: brainFiles({}).readFile,
+      readCredentials: credentials("agro_operator_secret"),
+    });
+    expect(await runHands(["list"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].url).toBe("https://login.example/api/nodes");
+    expect(h.calls[0].headers.Authorization).toBe("Bearer agro_operator_secret");
+  });
+});
+
+describe("agro hands --provider", () => {
+  function exedevHome(): string {
+    const dir = mkdtempSync(join(tmpdir(), "agro-hands-provider-"));
+    mkdirSync(join(dir, ".agro"), { recursive: true });
+    writeFileSync(join(dir, ".agro", "config.json"), JSON.stringify({ version: 1, hands: { provider: "exedev" } }), "utf8");
+    return dir;
+  }
+
+  it.each([
+    [["--provider", "console", "list"]],
+    [["list", "--provider", "console"]],
+    [["--provider=console", "list"]],
+    [["list", "--provider=console"]],
+  ])("overrides a host config that selects exedev: %j", async (args) => {
+    const home = exedevHome();
+    try {
+      const runs: string[] = [];
+      const h = harness([{ status: 200, body: HANDS }], {
+        userHome: () => home,
+        run: (command) => {
+          runs.push(command);
+          return { status: 255 };
+        },
+      });
+      expect(await runHands(args, h.io, h.deps)).toBe(0);
+      expect(runs).toEqual([]);
+      expect(h.calls).toHaveLength(1);
+      expect(h.calls[0].url).toBe("https://brain-console.example/api/nodes");
+      expect(h.stdout()).toContain("quiet-otter");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it.each([[["--provider", "exedev", "list"]], [["list", "--provider=exedev"]]])(
+    "selects exedev over the default console provider: %j",
+    async (args) => {
+      const runs: string[][] = [];
+      const h = harness([{ status: 200, body: HANDS }], {
+        run: (command, commandArgs) => {
+          runs.push([command, ...commandArgs]);
+          return { status: 255, stderr: "no exe.dev\n" };
+        },
+      });
+      expect(await runHands(args, h.io, h.deps)).toBe(2);
+      expect(runs[0][0]).toBe("ssh");
+      expect(runs[0]).toContain("exe.dev");
+      expect(h.calls).toEqual([]);
+    },
+  );
+
+  it("exits 1 and names both providers for an unknown provider", async () => {
+    const h = harness([{ status: 200, body: HANDS }]);
+    expect(await runHands(["list", "--provider", "desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("console");
+    expect(h.stderr()).toContain("exedev");
+    expect(h.calls).toEqual([]);
+  });
+
+  it("exits 1 when --provider has no value", async () => {
+    const h = harness([{ status: 200, body: HANDS }]);
+    expect(await runHands(["list", "--provider"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands: --provider requires a value\n");
+    expect(h.calls).toEqual([]);
+  });
+
+  it("keeps --provider after -- in the exec command", async () => {
+    const runs: string[][] = [];
+    const h = harness([{ status: 200, body: HANDS[0] }], {
+      run: (command, commandArgs) => {
+        runs.push([command, ...commandArgs]);
+        return { status: 0 };
+      },
+    });
+    const status = await runHands(["exec", "4", "--provider", "console", "--", "echo", "--provider", "x"], h.io, h.deps);
+    expect(h.stderr()).toBe("");
+    expect(status).toBe(0);
+    expect(runs).toHaveLength(1);
+    expect(runs[0].at(-1)).toContain("echo --provider x");
   });
 });
 

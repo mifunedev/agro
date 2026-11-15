@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { agroConfigPath } from "../agro-config.js";
 import {
   defaultHarnessRoot,
+  HAND_PROVIDER_IDS,
   handProviderError,
   HANDS_PROVIDER_FIELD,
   hostConfigPath,
@@ -30,7 +31,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string): HandProviderId {
+export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string, override?: string): HandProviderId {
+  if (override !== undefined) {
+    if (isHandProviderId(override)) return override;
+    throw new Error(`--provider must be one of ${HAND_PROVIDER_IDS.join(", ")}`);
+  }
   const path = hostConfigPath(env, home);
   const config = readJson(path);
   const hands = isRecord(config) ? config.hands : undefined;

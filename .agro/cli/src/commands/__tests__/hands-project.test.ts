@@ -80,6 +80,7 @@ function harness(home: string, replies: Reply[], run: LifecycleRunner, overrides
     homeDir: () => home,
     userHome: () => home,
     readFile: () => undefined,
+    readCredentials: () => undefined,
     sleep: async () => {},
     now: () => 0,
     timeoutMs: 60_000,

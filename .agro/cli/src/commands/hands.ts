@@ -6,13 +6,15 @@ import {
   brainConsoleUrlPath,
   brainTokenPath,
   confirmDestroy,
+  DEFAULT_CONSOLE_URL,
   formatTable,
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
-  resolveBrainConsoleConfig,
+  resolveHandsConsoleConfig,
   type ConsoleIO,
   type ConsolePollDeps,
 } from "../lib/console-api.js";
+import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-auth.js";
 import { createConsoleProvider } from "../lib/hands/console-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
@@ -29,11 +31,11 @@ import * as prompt from "../lib/prompt.js";
 import type { HandProviderId } from "../lib/host-config.js";
 
 export { normalizeHandRef } from "../lib/hands/console-provider.js";
-export { resolveBrainConsoleConfig } from "../lib/console-api.js";
+export { resolveHandsConsoleConfig } from "../lib/console-api.js";
 export { shellQuote } from "../lib/hands/provider.js";
 
 export const BRAIN_HOME = "/home/sandbox";
-export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
+export const CONSOLE_TOKEN_MISSING = `no console token: ${brainTokenPath(BRAIN_HOME)} not found and no agro auth login credentials; run agro auth login`;
 
 export const SPEC_REFUSAL = "--spec applies only to console hands";
 export const DISPOSABLE_REFUSAL = "--disposable applies only to console hands";
@@ -48,6 +50,7 @@ export interface HandsDeps extends ConsolePollDeps {
   homeDir: () => string;
   userHome: () => string;
   readFile: (path: string) => string | undefined;
+  readCredentials: () => ConsoleCredentials | undefined;
   confirm: (question: string) => Promise<boolean>;
   run: LifecycleRunner;
   exists: (path: string) => boolean;
@@ -103,6 +106,7 @@ function defaultDeps(): HandsDeps {
         return undefined;
       }
     },
+    readCredentials: () => readConsoleCredentials(),
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
     now: () => Date.now(),
     pollDelayMs: nodePollDelayMs,
@@ -132,6 +136,8 @@ Providers:
   \`hands.provider\` in the host config \${AGRO_HOME:-~/.agro}/config.json
   selects the provider: \`console\` (the default) or \`exedev\`.
   Run \`${bin} config set hands.provider exedev\` to select exe.dev hands.
+  \`--provider console|exedev\` selects the provider for one call and
+  overrides \`hands.provider\`. Put it before or after the verb.
 
 Console hands:
 <hand> is an index (4), an alias, or a uuid.
@@ -154,9 +160,12 @@ free-tier allowance.
 source unless --spec is given. When the console names the fork, \`fork\`
 waits for it like \`create\`. Otherwise, run \`${bin} hands list\` to find it.
 
-The verbs read the brain token from ${brainTokenPath(BRAIN_HOME)} and the
-console URL from ${brainConsoleUrlPath(BRAIN_HOME)}. AGRO_CONSOLE_TOKEN and
-AGRO_CONSOLE_URL override them. Without a brain token, the verbs exit 2.
+The verbs read the console token from AGRO_CONSOLE_TOKEN, then from the
+brain token ${brainTokenPath(BRAIN_HOME)}, then from the credentials that
+\`${bin} auth login\` writes. The verbs read the console URL from
+AGRO_CONSOLE_URL, then from ${brainConsoleUrlPath(BRAIN_HOME)} when the brain
+token supplies the token, then from the credentials, then use
+${DEFAULT_CONSOLE_URL}. Without a token, the verbs exit 2.
 
 exe.dev hands:
 <hand> is an exe.dev VM name. A hand is a VM with the tag ${HAND_TAG}.
@@ -615,13 +624,38 @@ async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provid
   return 0;
 }
 
+type ProviderFlag = { ok: true; provider: string | undefined; args: string[] } | { ok: false; error: string };
+
+function takeProviderFlag(args: string[]): ProviderFlag {
+  const end = args.includes("--") ? args.indexOf("--") : args.length;
+  const kept: string[] = [];
+  let provider: string | undefined;
+  for (let i = 0; i < end; i++) {
+    const token = args[i];
+    if (token === "--provider") {
+      provider = args[++i];
+      if (provider === undefined || i >= end) return { ok: false, error: "--provider requires a value" };
+    } else if (token.startsWith("--provider=")) {
+      provider = token.slice("--provider=".length);
+    } else {
+      kept.push(token);
+    }
+  }
+  return { ok: true, provider, args: [...kept, ...args.slice(end)] };
+}
+
 export async function runHands(
   args: string[],
   io: HandsIO,
   overrides: Partial<HandsDeps> = {},
   bin = "agro",
 ): Promise<number> {
-  const [verb, ...rest] = args;
+  const flag = takeProviderFlag(args);
+  if (!flag.ok) {
+    io.stderr(`${bin} hands: ${flag.error}\n`);
+    return 1;
+  }
+  const [verb, ...rest] = flag.args;
   if (verb === undefined || verb === "--help" || verb === "-h" || verb === "help") {
     io.stdout(handsHelp(bin));
     return verb === undefined ? 1 : 0;
@@ -640,7 +674,7 @@ export async function runHands(
   if (notice !== undefined) io.stderr(`${bin} hands: ${notice}\n`);
   let providerId: HandProviderId;
   try {
-    providerId = resolveHandProviderId(deps.env, deps.userHome());
+    providerId = resolveHandProviderId(deps.env, deps.userHome(), flag.provider);
   } catch (error) {
     io.stderr(`${bin} hands: ${messageOf(error)}\n`);
     return 1;
@@ -665,7 +699,7 @@ export async function runHands(
     safe = io;
     provider = createExedevProvider(deps);
   } else {
-    const resolved = resolveBrainConsoleConfig(deps.env, deps.homeDir, deps.readFile);
+    const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials);
     if (!resolved.ok) {
       io.stderr(`${resolved.error}\n`);
       return 2;

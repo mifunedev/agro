@@ -95,6 +95,7 @@ function harness(run: LifecycleRunner, overrides: Partial<HandsDeps> = {}) {
     userHome: () => home,
     homeDir: () => "/home/sandbox",
     readFile: () => undefined,
+    readCredentials: () => undefined,
     fetch: (async () => {
       throw new Error("exedev hands never call the console");
     }) as typeof fetch,
@@ -538,7 +539,7 @@ describe("hands provider selection", () => {
     const err: string[] = [];
     const io = { stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) };
     const r = fakeRunner();
-    const deps = { env, userHome: () => dir, readFile: () => undefined, run: r.run };
+    const deps = { env, userHome: () => dir, readFile: () => undefined, readCredentials: () => undefined, run: r.run };
     return { result: runHands(["list"], io, deps), stderr: () => err.join(""), calls: r.calls };
   }
 
@@ -600,7 +601,7 @@ describe("hands provider selection", () => {
   it("keeps console verbs working when agro.json has an unrelated invalid field", async () => {
     const run = runList(home(undefined, { version: 99 }));
     expect(await run.result).toBe(2);
-    expect(run.stderr()).toContain("not on a brain");
+    expect(run.stderr()).toContain("no console token");
     expect(run.calls).toEqual([]);
   });
 });
