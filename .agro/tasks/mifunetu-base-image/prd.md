@@ -111,6 +111,20 @@ Status: DRAFT
 - [ ] The transcript runs `agro run --image <new agro image> -- agro --version` with exit 0.
 - [ ] After the story, `docker images` lists only the images present before the story. The story deletes the build cache that it created.
 
+### US-008: Harden mifunetu after code review
+
+**Description:** As the operator, I want the second code review's security and portability findings fixed. User `sandbox` then cannot change code that root runs, and the smoke script runs on the bash of a macOS host.
+
+**Acceptance Criteria:**
+
+- [ ] The image sets no `COREPACK_HOME`, and no path under `/usr/local` is owned by uid 1000. `docker run --rm mifunetu:dev bash -lc 'cd /tmp && pnpm --version'` prints the pinned pnpm version and downloads nothing. The literal `corepack prepare pnpm@10.33.0 --activate` stays the only pin in the Dockerfile.
+- [ ] `/etc/profile.d/mifunetu-path.sh` changes `PATH` only for uid 1000, and the fragment reads `PNPM_HOME` and `NPM_USER_PREFIX` instead of literal home paths. `docker run --rm --user root mifunetu:dev bash -lc 'echo $PATH'` does not hold `/home/sandbox`.
+- [ ] `.agro/scripts/mifunetu-smoke.sh` uses no associative array and expands an empty array safely under `set -u`, so that bash 3.2 runs the script.
+- [ ] `docs/deployment-prebuilt-image.md` states that `sudo` in the image needs a password that user `sandbox` does not have, and names `docker run --user root` for system packages.
+- [ ] `.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the first two criteria against the Dockerfile.
+- [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild of `mifunetu:dev`.
+- [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and `agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.
