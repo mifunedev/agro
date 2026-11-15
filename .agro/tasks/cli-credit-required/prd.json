@@ -77,7 +77,7 @@
       ],
       "priority": 3,
       "passes": true,
-      "notes": "Accepted at 4b572cd5 (advisor): lifecycle-commands.md agro node section names 402 CREDIT_REQUIRED, 403 PAYMENTS_DISABLED, the free n4 rule, the top-up line, and the node check credit line; agro hands create rule and top-up line; agro hands list shows no credit state (brain token). CHANGELOG Unreleased Changed bullet names CREDIT_REQUIRED and the top-up line. ste-check exit 0 on docs/lifecycle-commands.md (2 pre-existing findings fixed). docs.test.ts + compose-verbs.test.ts: 41 pass. AGENTS.md unchanged.",
+      "notes": "Accepted at 4b572cd5 (advisor): lifecycle-commands.md agro node section names 402 CREDIT_REQUIRED, 403 PAYMENTS_DISABLED, the free n4 rule, the top-up line, and the node check credit line; agro hands create rule and top-up line; agro hands list shows no credit state (brain token). CHANGELOG Unreleased Changed bullet names CREDIT_REQUIRED and the top-up line. ste-check exit 0 on docs/lifecycle-commands.md (2 pre-existing findings fixed). docs.test.ts + compose-verbs.test.ts: 41 pass. AGENTS.md unchanged. Repair round 1 (supervisor decision 2026-11-15, option B): 55b12681 reverts docs/lifecycle-commands.md to origin/development, because the file is a hashed instruction file of the sandbox routing replay and the edit made sandbox-routing.test.ts fail (stale source: instructionSha256); a 17-agent re-record costs more than the doc change. The docs criteria for docs/lifecycle-commands.md are withdrawn by the supervisor; no other docs/ file covers agro node; the CLI help, the error text, and CHANGELOG.md hold CREDIT_REQUIRED and the top-up line. sandbox-routing + docs + compose-verbs tests: 74 pass.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -87,7 +87,8 @@
         "CHANGELOG.md"
       ],
       "external": false,
-      "commit": "4b572cd5"
+      "commit": "55b12681",
+      "rounds": 1
     },
     {
       "id": "US-004",
@@ -115,6 +116,5 @@
       "commit": "ae89bd9d"
     }
   ],
-  "pr": 1645,
-  "blocked": "Close gate: npx vitest run fails .agro/scripts/__tests__/sandbox-routing.test.ts (\"stale source: instructionSha256\"). docs/lifecycle-commands.md is a hashed instruction file of the observed routing replay (.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json); US-003 changed it as directed, so the 17-case replay is stale. Precedent (msb-guest-mifunetu round 1): re-record R1-R17 with 17 fresh decision-only agents. That spend conflicts with the usage guidance (82%, keep workers few). Options: (A) re-record the 17 cases with fresh decision-only agents; (B) move the credit text out of docs/lifecycle-commands.md (conflicts with the supervisor direction); (C) other direction. The 7 herdr-default.test.ts failures also fail on origin/development ef52a983 (baseline, not this task). Everything else passes: typecheck 0; 126 of 128 test files; US-001..US-003 accepted; US-004 local evidence done, live check external."
+  "pr": 1645
 }
