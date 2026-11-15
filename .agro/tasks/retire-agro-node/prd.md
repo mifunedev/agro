@@ -15,7 +15,7 @@ Status: DRAFT
 - [ ] For the console provider, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. The URL order is `AGRO_CONSOLE_URL`, then the brain console URL file when the brain token file supplies the token, then the credentials file URL, then `https://console.mifune.dev`.
 - [ ] With no token from any source, a console verb exits 2. The message names the brain token path and `agro auth login`.
 - [ ] Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each source order row, the missing-token exit 2, and the `--provider` override of a host config that selects `exedev`.
-- [ ] `agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0.
+- [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
 
 ### US-002: Console hands create, list, and destroy cover the node flags
 
@@ -32,7 +32,7 @@ Status: DRAFT
 - [ ] Console `destroy` prints `destroy needs the admin role in agro-console` when the console returns HTTP 403.
 - [ ] With the exedev provider, `--profile`, `--docker`, `--t3`, `--code-server`, and `--ssh-key` exit 1 before any `ssh exe.dev` call. The refusal says that the flag applies only to console hands.
 - [ ] Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each row above. The ported cases from `.agro/cli/src/__tests__/node.test.ts` for profile flags, SSH key resolution, and `--json` pass against `runHands`.
-- [ ] `agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0.
+- [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
 
 ### US-003: Add agro hands check
 
@@ -45,7 +45,7 @@ Status: DRAFT
 - [ ] `agro hands check` exits 0 only when no line starts with `fail `.
 - [ ] With the exedev provider, `agro hands check` exits 1 with `check applies only to console hands`.
 - [ ] Each `agro node check` case of `.agro/cli/src/__tests__/node.test.ts` passes as a `runHands(["check", ...])` case in `.agro/cli/src/commands/__tests__/hands.test.ts`.
-- [ ] `agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0.
+- [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
 
 ### US-004: Remove agro node
 
@@ -57,7 +57,7 @@ Status: DRAFT
 - [ ] `NODE_VERBS` and the `node` entry of `AGRO_COMMANDS` do not exist, and `.agro/cli/src/cli.ts` has no `runNode` import, no `node` dispatch, and no `node` help line.
 - [ ] `agro node list` exits non-zero through the unknown-command path of `.agro/cli/src/cli.ts`.
 - [ ] `.agro/cli/src/lib/console-api.ts` keeps each export that a remaining module imports, and `git grep -n "commands/node" -- .agro/cli` prints nothing.
-- [ ] `agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0.
+- [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
 
 ### US-005: Move the validation console adapter to agro hands
 
@@ -185,7 +185,7 @@ None
 ## Acceptance Criteria
 - [ ] `git grep -n "agro node" -- . ':!CHANGELOG.md' ':!.agro/tasks'` prints nothing.
 - [ ] Each row of the Summary gap list has a passing test in the story that owns the row.
-- [ ] `agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0 on the final branch head.
+- [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0 on the final branch head.
 - [ ] CI is green on the PR.
 
 ## Lessons
