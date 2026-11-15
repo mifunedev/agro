@@ -32,7 +32,7 @@
       "acceptanceCriteria": [
         "The first `FROM` line of `.devcontainer/Dockerfile` is `FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu`.",
         "Stage `base` starts `FROM mifunetu` and holds only the agro additions: `ENV container=docker`, `AGRO_PROJECT_ROOT`, `HERMES_HOME`, `cc-safety-net`, `/opt/agro-assets`, and the agro CLI build.",
-        "Stage `mifunetu` holds the apt tool set, `gh`, `docker-ce-cli`, `docker-compose-plugin`, hadolint 2.12.0, bun, uv, and pnpm 10.33.0. The stage also holds `TZ`, the pnpm, npm, and uv variables, and user `sandbox` with uid 1000.",
+        "Stage `mifunetu` holds the apt tool set, `gh`, `docker-ce-cli`, `docker-compose-plugin`, hadolint 2.12.0, uv, and pnpm 10.33.0. US-003 removed bun from this list. The stage also holds `TZ`, the pnpm, npm, and uv variables, and user `sandbox` with uid 1000.",
         "Stage `mifunetu` contains none of these strings: `/opt/agro`, `agro-assets`, `cc-safety-net`, `AGRO_`, `HERMES_HOME`, `container=docker`.",
         "Stage `mifunetu` ends with `USER sandbox` and `WORKDIR /home/sandbox`. Stage `base` starts with `USER root`.",
         "`cc-safety-net` installs under `/usr/local`, not under `/home/sandbox/.local`.",
@@ -316,6 +316,27 @@
         "CHANGELOG.md"
       ],
       "commit": "97d5354a"
+    },
+    {
+      "id": "US-012",
+      "title": "Close the seventh code review",
+      "description": "As the operator, I want the smoke script to treat only an explicit file path as a tarball. A valid npm spec then installs from the registry.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/mifunetu-smoke.sh` treats the second argument as a tarball only when the argument ends in `.tgz` or `.tar.gz`, or starts with `./`, `../`, or `/`.",
+        "A missing tarball path exits 2. A spec such as `github:mifunedev/agro` or `agro` installs from the registry, even when a local file named `agro` exists.",
+        "`.agro/scripts/__tests__/mifunetu-smoke.test.ts` covers each case above.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Seventh /code-review: fix 4 (tarball heuristic). Advisor fixed 9 in the plan (stale bun in the US-002 criterion). No change: 1, 2, 3, 5, 6, 8, 10 repeat earlier dispositions; 7 (mifunetu and agro come from one Dockerfile and one job with a warm builder; a later release check can compare layers).",
+      "dependsOn": [
+        "US-011"
+      ],
+      "files": [
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
+      ]
     }
   ],
   "pr": 1637

@@ -25,7 +25,7 @@ Status: DRAFT
 
 - [ ] The first `FROM` line of `.devcontainer/Dockerfile` is `FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu`.
 - [ ] Stage `base` starts `FROM mifunetu` and holds only the agro additions: `ENV container=docker`, `AGRO_PROJECT_ROOT`, `HERMES_HOME`, `cc-safety-net`, `/opt/agro-assets`, and the agro CLI build.
-- [ ] Stage `mifunetu` holds the apt tool set, `gh`, `docker-ce-cli`, `docker-compose-plugin`, hadolint 2.12.0, bun, uv, and pnpm 10.33.0. The stage also holds `TZ`, the pnpm, npm, and uv variables, and user `sandbox` with uid 1000.
+- [ ] Stage `mifunetu` holds the apt tool set, `gh`, `docker-ce-cli`, `docker-compose-plugin`, hadolint 2.12.0, uv, and pnpm 10.33.0. US-003 removed bun from this list. The stage also holds `TZ`, the pnpm, npm, and uv variables, and user `sandbox` with uid 1000.
 - [ ] Stage `mifunetu` contains none of these strings: `/opt/agro`, `agro-assets`, `cc-safety-net`, `AGRO_`, `HERMES_HOME`, `container=docker`.
 - [ ] Stage `mifunetu` ends with `USER sandbox` and `WORKDIR /home/sandbox`. Stage `base` starts with `USER root`.
 - [ ] `cc-safety-net` installs under `/usr/local`, not under `/home/sandbox/.local`.
@@ -160,6 +160,17 @@ Status: DRAFT
 - [ ] `/etc/profile.d/mifunetu-path.sh` changes `PATH` only when `id -un` prints `sandbox`. After `usermod -u 501 sandbox` in a container, a bash login of user `sandbox` has `/home/sandbox/.local/bin` on `PATH`, and a root login does not.
 - [ ] The `CHANGELOG.md` `### Added` entry links #1636 and names ADR #1635.
 - [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild, and `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`.
+
+### US-012: Close the seventh code review
+
+**Description:** As the operator, I want the smoke script to treat only an explicit file path as a tarball. A valid npm spec then installs from the registry.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/scripts/mifunetu-smoke.sh` treats the second argument as a tarball only when the argument ends in `.tgz` or `.tar.gz`, or starts with `./`, `../`, or `/`.
+- [ ] A missing tarball path exits 2. A spec such as `github:mifunedev/agro` or `agro` installs from the registry, even when a local file named `agro` exists.
+- [ ] `.agro/scripts/__tests__/mifunetu-smoke.test.ts` covers each case above.
+- [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0.
 
 ## Summary
 
