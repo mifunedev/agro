@@ -41,7 +41,7 @@
         "`agro node check` sends `GET /api/billing/balance` and still sends only `GET` requests.",
         "When `paymentsEnabled` is `false`, the command prints `ok credit: payments are off`.",
         "When `balanceMicros` is above 0, the command prints `ok credit: balance $<amount>`, with the amount in USD to 2 decimals. The line adds `, auto top-up on` when `autoTopup` is not `null`.",
-        "When `balanceMicros` is 0 or less and `autoTopup` is `null`, the command prints `warn credit: no credit (balance $<amount>) \u2014 top up at <console url>/billing`.",
+        "When `balanceMicros` is 0 or less and `autoTopup` is `null`, the command prints `warn credit: no credit (balance $<amount>) — top up at <console url>/billing`.",
         "When `balanceMicros` is 0 or less and `autoTopup` is not `null`, the command prints `ok credit: balance $<amount>, auto top-up on`.",
         "When the read fails, the command prints `warn credit: <message>`. A console without the route answers HTTP 404, and the line names that answer.",
         "No credit line changes the exit status. The command still exits 1 only on a `fail` line.",
@@ -110,5 +110,6 @@
       ],
       "external": false
     }
-  ]
+  ],
+  "pr": 1645
 }
