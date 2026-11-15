@@ -102,7 +102,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "",
+      "notes": "Local criteria verified at ae89bd9d (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --spec n8 against the local stub for 402 eligible (exit 0), 402 not eligible (exit 1, top-up line), 403 PAYMENTS_DISABLED eligible (exit 0), failed retry (exit 1, top-up line), each with the stub request log; node check for the six credit lines (exit 0, GET only). Port 3190 checked free; values inline; throwaway token; HOME set to a temp dir that was deleted; ste-check 0. Evidence force-added per git manual-review reference (.gitignore ignores task evidence). External criterion pending: live agro node check after the agro release, with operator approval (supervisor 2026-11-15).",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -111,7 +111,8 @@
       "files": [
         ".agro/tasks/cli-credit-required/evidence/"
       ],
-      "external": false
+      "external": true,
+      "commit": "ae89bd9d"
     }
   ],
   "pr": 1645
