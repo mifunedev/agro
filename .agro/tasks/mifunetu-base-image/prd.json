@@ -265,6 +265,30 @@
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
       ],
       "commit": "f121fa44"
+    },
+    {
+      "id": "US-010",
+      "title": "Close the fifth code review",
+      "description": "As the operator, I want the smoke script to work from inside a sandbox, and I want a zsh login of user `sandbox` to get the same `PATH` as a bash login.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/mifunetu-smoke.sh` streams a tarball argument into the container on standard input. The script mounts no host path.",
+        "A zsh login shell of user `sandbox` in `mifunetu:dev` has `/home/sandbox/.local/bin` on `PATH` and shows no zsh first-run prompt. `docker run --rm mifunetu:dev zsh -lc 'echo $PATH'` holds `/home/sandbox/.local/bin` and exits 0.",
+        "The agro image keeps its own `.zshrc` and `.zshenv` from the `home` stage.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` and the same command with a tarball argument exit 0 after a rebuild.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`."
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Fifth /code-review: fix 3 (tarball bind mount fails when the Docker daemon cannot see the host path) and 4 (zsh login skips /etc/profile.d and shows zsh-newuser-install). No change: 1, 2, 5, 6, 7, 8 repeat earlier dispositions.",
+      "dependsOn": [
+        "US-009"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
+      ]
     }
   ],
   "pr": 1637

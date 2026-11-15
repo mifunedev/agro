@@ -137,6 +137,18 @@ Status: DRAFT
 - [ ] `.agro/scripts/mifunetu-smoke.sh` builds the install command one time and uses the same text for the run and for the failure message.
 - [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`. `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild.
 
+### US-010: Close the fifth code review
+
+**Description:** As the operator, I want the smoke script to work from inside a sandbox, and I want a zsh login of user `sandbox` to get the same `PATH` as a bash login.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/scripts/mifunetu-smoke.sh` streams a tarball argument into the container on standard input. The script mounts no host path.
+- [ ] A zsh login shell of user `sandbox` in `mifunetu:dev` has `/home/sandbox/.local/bin` on `PATH` and shows no zsh first-run prompt. `docker run --rm mifunetu:dev zsh -lc 'echo $PATH'` holds `/home/sandbox/.local/bin` and exits 0.
+- [ ] The agro image keeps its own `.zshrc` and `.zshenv` from the `home` stage.
+- [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` and the same command with a tarball argument exit 0 after a rebuild.
+- [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.
