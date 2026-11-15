@@ -18,15 +18,16 @@
         "`npm run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 3580b966 (advisor): --disposable sends disposable:true (absent without the flag); the free n4 retry keeps the field (console-api.ts unchanged, the body spreads); HTTP 422 DISPOSABLE_PROFILE_UNSUPPORTED prints the exact line and exits 1; no local profile rule; help names the flag, the 409 operations, agro node delete, and both deletion triggers. npx vitest run node.test.ts hands.test.ts: 158 pass (red first: 5 failed). npm run typecheck: exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/node.ts",
         ".agro/cli/src/lib/console-api.ts",
         ".agro/cli/src/__tests__/node.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "3580b966"
     },
     {
       "id": "US-002",
