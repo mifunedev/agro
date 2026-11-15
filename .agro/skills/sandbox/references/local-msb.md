@@ -3,8 +3,6 @@
 ## Choose when
 
 Use Microsandbox (`msb`) for one command with a separate kernel on the host running `agro`.
-This route is not the remote validation adapter named `msb`.
-That adapter creates a console node and a guest for validation.
 
 ## Prerequisites
 

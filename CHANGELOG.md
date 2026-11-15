@@ -14,7 +14,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
-- Remove the `agro-msb` stage of `.devcontainer/Dockerfile`, the `<version>-msb` and `sha-<sha>-msb` release tags, and the `msb` validation adapter. ([#1642](https://github.com/mifunedev/agro/issues/1642)).
+- Remove the `agro-msb` stage of `.devcontainer/Dockerfile`, the `<version>-msb` and `sha-<sha>-msb` release tags, and the `msb` validation adapter ([#1642](https://github.com/mifunedev/agro/issues/1642)).
 
 ## [0.38.0] - 2026-11-15
 
