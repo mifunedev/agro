@@ -361,6 +361,28 @@
         ".agro/scripts/__tests__/mifunetu-image.test.ts"
       ],
       "commit": "30f3d646"
+    },
+    {
+      "id": "US-014",
+      "title": "Close the ninth code review",
+      "description": "As the operator, I want the smoke to test only the local image, and I want the pnpm changelog entry to state its exact scope.",
+      "acceptanceCriteria": [
+        "Each `docker run` in `.agro/scripts/mifunetu-smoke.sh` passes `--pull=never`. A fake-docker test asserts the flag.",
+        "The `CHANGELOG.md` `### Fixed` pnpm entry states that the pin holds in a new image home. The entry also states that a persisted home with an existing `~/.cache` keeps its current behavior.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:not-built` exits non-zero without a pull.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/mifunetu-smoke.test.ts .agro/scripts/__tests__/release-notes.test.ts` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Ninth /code-review: fix 1 as a changelog scope correction (an upgraded home with an existing ~/.cache keeps the pre-PR behavior; no regression) and 5 (--pull=never). No change: 2, 3, 4, 6, 7, 8, 9 repeat earlier dispositions.",
+      "dependsOn": [
+        "US-013"
+      ],
+      "files": [
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
+        "CHANGELOG.md"
+      ]
     }
   ],
   "pr": 1637

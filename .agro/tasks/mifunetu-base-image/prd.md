@@ -184,6 +184,17 @@ Status: DRAFT
 - [ ] `docker run --rm mifunetu:dev printenv container` prints `docker` after a rebuild, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0.
 - [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and hadolint at the CI threshold exits 0.
 
+### US-014: Close the ninth code review
+
+**Description:** As the operator, I want the smoke to test only the local image, and I want the pnpm changelog entry to state its exact scope.
+
+**Acceptance Criteria:**
+
+- [ ] Each `docker run` in `.agro/scripts/mifunetu-smoke.sh` passes `--pull=never`. A fake-docker test asserts the flag.
+- [ ] The `CHANGELOG.md` `### Fixed` pnpm entry states that the pin holds in a new image home. The entry also states that a persisted home with an existing `~/.cache` keeps its current behavior.
+- [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:not-built` exits non-zero without a pull.
+- [ ] `agro run -- pnpm exec vitest run .agro/scripts/__tests__/mifunetu-smoke.test.ts .agro/scripts/__tests__/release-notes.test.ts` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.
