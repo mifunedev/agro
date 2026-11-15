@@ -50,9 +50,7 @@ ENV PNPM_HOME="/home/sandbox/.local/share/pnpm"
 ENV NPM_USER_PREFIX="/home/sandbox/.local"
 ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-ENV COREPACK_HOME=/usr/local/share/corepack
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate \
- && chown -R 1000:1000 "$COREPACK_HOME"
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 SHELL ["/bin/bash", "-c"]
 
@@ -62,7 +60,9 @@ RUN userdel -r node 2>/dev/null || true \
  && useradd -m -u 1000 -s /bin/zsh sandbox \
  && echo "sandbox ALL=(ALL) ALL" > /etc/sudoers.d/sandbox \
  && chmod 0440 /etc/sudoers.d/sandbox \
- && groupadd -f docker && usermod -aG docker sandbox
+ && groupadd -f docker && usermod -aG docker sandbox \
+ && pnpm_version=$(cd /tmp && pnpm --version) \
+ && gosu sandbox corepack prepare "pnpm@$pnpm_version" --activate
 
 ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
 ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
@@ -71,11 +71,13 @@ ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
 
 RUN printf '%s\n' \
-      'for mifunetu_dir in /home/sandbox/.local/share/pnpm /home/sandbox/.local/bin; do' \
-      '  case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac' \
-      'done' \
-      'unset mifunetu_dir' \
-      'export PATH' \
+      'if [ "$(id -u)" = 1000 ]; then' \
+      "  for mifunetu_dir in $PNPM_HOME $NPM_USER_PREFIX/bin; do" \
+      '    case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac' \
+      '  done' \
+      '  unset mifunetu_dir' \
+      '  export PATH' \
+      'fi' \
       > /etc/profile.d/mifunetu-path.sh \
  && chmod 0644 /etc/profile.d/mifunetu-path.sh
 

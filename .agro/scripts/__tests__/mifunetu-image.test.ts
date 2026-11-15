@@ -43,8 +43,7 @@ describe("mifunetu image stage", () => {
     ["NPM_USER_PREFIX", 'ENV NPM_USER_PREFIX="/home/sandbox/.local"'],
     ["PATH", 'ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"'],
     ["COREPACK_ENABLE_DOWNLOAD_PROMPT", "ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0"],
-    ["the shared COREPACK_HOME", "ENV COREPACK_HOME=/usr/local/share/corepack"],
-    ["sandbox ownership of COREPACK_HOME", 'chown -R 1000:1000 "$COREPACK_HOME"'],
+    ["the sandbox corepack cache primed from the root pin", 'gosu sandbox corepack prepare "pnpm@$pnpm_version" --activate'],
     ["NPM_CONFIG_PREFIX", 'ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"'],
     ["UV_TOOL_DIR", "ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools"],
     ["UV_TOOL_BIN_DIR", "ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin"],
@@ -93,14 +92,33 @@ describe("mifunetu image stage", () => {
     expect(mifunetu.filter((line) => /^(CMD|ENTRYPOINT)\b/.test(line))).toEqual(['CMD ["/bin/bash", "-l"]']);
   });
 
-  it("adds the sandbox user bin directories to PATH for login shells through /etc/profile.d", () => {
+  it("adds the sandbox user bin directories to PATH only for uid 1000 login shells through /etc/profile.d", () => {
     expect(mifunetuText).toContain("> /etc/profile.d/mifunetu-path.sh");
-    expect(mifunetuText).toContain(
-      "'for mifunetu_dir in /home/sandbox/.local/share/pnpm /home/sandbox/.local/bin; do'",
-    );
-    expect(mifunetuText).toContain(`'  case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac'`);
-    expect(mifunetuText).toContain("'export PATH'");
+    expect(mifunetuText).toContain(`'if [ "$(id -u)" = 1000 ]; then'`);
+    expect(mifunetuText).toContain('"  for mifunetu_dir in $PNPM_HOME $NPM_USER_PREFIX/bin; do"');
+    expect(mifunetuText).toContain(`'    case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac'`);
+    expect(mifunetuText).toContain("'  export PATH'");
+    expect(mifunetuText).toContain("'fi'");
     expect(mifunetuText).toContain("chmod 0644 /etc/profile.d/mifunetu-path.sh");
+    const fragment = mifunetuText.slice(
+      mifunetuText.indexOf("RUN printf '%s\\n'"),
+      mifunetuText.indexOf("> /etc/profile.d/mifunetu-path.sh"),
+    );
+    expect(fragment).not.toContain("/home/sandbox");
+  });
+
+  it("sets no shared COREPACK_HOME", () => {
+    expect(dockerfile).not.toContain("COREPACK_HOME");
+  });
+
+  it("gives uid 1000 no path under /usr/local", () => {
+    expect(dockerfile).not.toMatch(/chown\b[^\n]*\b(1000|sandbox)\b[^\n]*\/usr\/local/);
+    expect(dockerfile).not.toMatch(/chown\b[^\n]*\b(1000|sandbox)\b[^\n]*\$COREPACK/);
+  });
+
+  it("keeps the literal corepack pnpm pin as the only pin in the Dockerfile", () => {
+    expect(dockerfile.match(/corepack prepare pnpm@/g)).toEqual(["corepack prepare pnpm@"]);
+    expect(dockerfile.match(/pnpm@\d+\.\d+\.\d+/g)).toEqual(["pnpm@10.33.0"]);
   });
 });
 

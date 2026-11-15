@@ -57,6 +57,13 @@ docker run --rm -it ghcr.io/mifunedev/mifunetu:<X.Y.Z>
 npm i -g @mifune/agro   # run inside the container
 ```
 
+`sudo` in the image asks for a password. User `sandbox` has no password. To
+install system packages, start the container with `docker run --user root`:
+
+```bash
+docker run --rm -it --user root ghcr.io/mifunedev/mifunetu:<X.Y.Z>
+```
+
 The agro image `ghcr.io/mifunedev/agro` builds `FROM` the `mifunetu` stage of
 `.devcontainer/Dockerfile`.
 

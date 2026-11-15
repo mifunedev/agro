@@ -114,6 +114,12 @@ describe("mifunetu-smoke.sh", () => {
     expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro@0.38.0 >&2 && agro --version`);
   });
 
+  it("uses no associative array, so bash 3.2 runs the script", () => {
+    const script = readFileSync(SCRIPT, "utf8");
+    expect(script).not.toMatch(/declare -A|local -A/);
+    expect(script).toContain('${mount[@]+"${mount[@]}"}');
+  });
+
   it("exits 2 with a usage line when the image is missing", () => {
     const result = run([]);
 

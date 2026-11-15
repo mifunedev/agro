@@ -36,17 +36,23 @@ printf "node=%s\n" "$(node --version 2>&1)"
 printf "pnpm-pin=%s\n" "$(cd /tmp && pnpm --version 2>&1)"
 ') || probe_status=$?
 
-declare -A observed=()
-while IFS= read -r line; do
-  [[ $line == *=* ]] && observed[${line%%=*}]=${line#*=}
-done <<<"$probe"
+observed() {
+  local line
+  while IFS= read -r line; do
+    if [[ ${line%%=*} == "$1" && $line == *=* ]]; then
+      printf '%s' "${line#*=}"
+      return 0
+    fi
+  done <<<"$probe"
+  return 1
+}
 
 expect() {
-  local check=$1 regex=$2
-  if [[ -z ${observed[$check]+set} ]]; then
+  local check=$1 regex=$2 value
+  if ! value=$(observed "$check"); then
     fail "$check" "the probe printed no value (docker run exited $probe_status)"
-  elif [[ ! ${observed[$check]} =~ $regex ]]; then
-    fail "$check" "observed '${observed[$check]}'"
+  elif [[ ! $value =~ $regex ]]; then
+    fail "$check" "observed '$value'"
   else
     pass "$check"
   fi
@@ -67,7 +73,7 @@ if [[ -f $agro_package ]]; then
 fi
 
 install_status=0
-agro_version=$(docker run --rm "${mount[@]}" "$image" bash -lc "npm i -g $(printf '%q' "$install_spec") >&2 && agro --version") || install_status=$?
+agro_version=$(docker run --rm ${mount[@]+"${mount[@]}"} "$image" bash -lc "npm i -g $(printf '%q' "$install_spec") >&2 && agro --version") || install_status=$?
 if [[ $install_status -ne 0 ]]; then
   fail agro-install "'npm i -g $agro_package && agro --version' exited $install_status"
 else
