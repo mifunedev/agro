@@ -70,11 +70,21 @@ ENV UV_PYTHON_INSTALL_DIR=/home/sandbox/.local/share/uv/python
 ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
 
+RUN printf '%s\n' \
+      'for mifunetu_dir in /home/sandbox/.local/share/pnpm /home/sandbox/.local/bin; do' \
+      '  case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac' \
+      'done' \
+      'unset mifunetu_dir' \
+      'export PATH' \
+      > /etc/profile.d/mifunetu-path.sh \
+ && chmod 0644 /etc/profile.d/mifunetu-path.sh
+
 LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
 LABEL org.opencontainers.image.title="mifunetu"
 
 USER sandbox
 WORKDIR /home/sandbox
+CMD ["/bin/bash", "-l"]
 
 FROM mifunetu AS base
 USER root

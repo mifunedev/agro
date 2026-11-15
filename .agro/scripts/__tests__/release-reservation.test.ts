@@ -478,7 +478,7 @@ describe("release workflow contract", () => {
     expect(source).toMatch(/-t "\$VERSION_IMAGE" -t "\$SHA_IMAGE" -t "\$SMOKE_IMAGE" \./);
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source.match(/docker push "/g)?.length).toBe(2);
+    expect(source.match(/docker push "ghcr\.io\/mifunedev\/agro:/g)?.length).toBe(2);
     expect(source).not.toContain("Verify the agro and agro version tags share one digest");
     expect(source.match(/-lc 'agro --version'/g)?.length).toBe(1);
     expect(source).not.toContain("oh_version");
@@ -546,6 +546,43 @@ describe("release workflow contract", () => {
     expect(msbSteps).not.toContain("promote-release-latest");
     expect(release.jobs["publish-cli"].needs).toEqual(["reserve", "publish-image"]);
     expect(release.jobs.finalize.needs).toEqual(["reserve", "publish-image", "publish-cli"]);
+  });
+
+  it("builds, smoke-tests, and pushes mifunetu in publish-image without moving latest", () => {
+    const release = parse(source);
+    const steps: { name: string; run?: string }[] = release.jobs["publish-image"].steps;
+    const index = (name: string) => steps.findIndex((step) => step.name === name);
+    const runs = (pattern: RegExp) =>
+      steps.flatMap((step, position) => (pattern.test(step.run ?? "") ? [position] : []));
+    const agroBuild = index("Build immutable Docker image tags");
+    const build = index("Build immutable mifunetu image tags");
+    const smoke = index("Smoke-test mifunetu image before publish");
+    const agroPush = index("Push immutable SemVer and sha-full-SHA tags");
+    const push = index("Push immutable mifunetu SemVer and sha-full-SHA tags");
+    const pushes = runs(/docker push/);
+    const mifunetuSteps = JSON.stringify(steps.filter((step) => (step.run ?? "").includes("mifunetu")));
+
+    expect(steps[build].run).toContain("docker buildx build --target mifunetu --load -f .devcontainer/Dockerfile");
+    expect(steps[build].run).toContain('-t "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"');
+    expect(steps[build].run).toContain('-t "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"');
+    expect(steps[build].run?.match(/-t "/g)).toHaveLength(2);
+    expect(steps[smoke].run).toBe(
+      'bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"',
+    );
+    expect(steps[push].run).toBe(
+      'docker push "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"\n' +
+        'docker push "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"\n',
+    );
+    expect(agroBuild).toBeGreaterThanOrEqual(0);
+    expect(build).toBeGreaterThan(agroBuild);
+    expect(smoke).toBeGreaterThan(build);
+    expect(pushes).toEqual([agroPush, push]);
+    expect(Math.min(...pushes)).toBeGreaterThan(smoke);
+    expect(push).toBeGreaterThan(agroPush);
+    expect(runs(/mifunetu/)).toEqual([build, smoke, push]);
+    expect(mifunetuSteps).not.toContain("latest");
+    expect(mifunetuSteps).not.toContain("imagetools");
+    expect(source).not.toContain("mifunetu:latest");
   });
 
   it("rejects an -msb tag as a release version for latest promotion", () => {

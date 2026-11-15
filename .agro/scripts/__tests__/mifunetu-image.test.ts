@@ -84,8 +84,23 @@ describe("mifunetu image stage", () => {
     expect(dockerfile).not.toMatch(/\bb[u]n\b/i);
   });
 
-  it("ends as user sandbox in the home directory", () => {
-    expect(instructions(mifunetu).slice(-2)).toEqual(["USER sandbox", "WORKDIR /home/sandbox"]);
+  it("ends as user sandbox in the home directory with a login shell as the default command", () => {
+    expect(instructions(mifunetu).slice(-3)).toEqual([
+      "USER sandbox",
+      "WORKDIR /home/sandbox",
+      'CMD ["/bin/bash", "-l"]',
+    ]);
+    expect(mifunetu.filter((line) => /^(CMD|ENTRYPOINT)\b/.test(line))).toEqual(['CMD ["/bin/bash", "-l"]']);
+  });
+
+  it("adds the sandbox user bin directories to PATH for login shells through /etc/profile.d", () => {
+    expect(mifunetuText).toContain("> /etc/profile.d/mifunetu-path.sh");
+    expect(mifunetuText).toContain(
+      "'for mifunetu_dir in /home/sandbox/.local/share/pnpm /home/sandbox/.local/bin; do'",
+    );
+    expect(mifunetuText).toContain(`'  case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac'`);
+    expect(mifunetuText).toContain("'export PATH'");
+    expect(mifunetuText).toContain("chmod 0644 /etc/profile.d/mifunetu-path.sh");
   });
 });
 
@@ -132,6 +147,13 @@ describe("base stage on mifunetu", () => {
     const positions = steps.map((step) => baseText.indexOf(step));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+});
+
+describe("final stage", () => {
+  it("keeps the systemd init command and an empty entrypoint", () => {
+    const final = instructions(stage("final"));
+    expect(final.slice(-2)).toEqual(["ENTRYPOINT []", 'CMD ["/sbin/init"]']);
   });
 });
 

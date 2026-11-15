@@ -105,6 +105,20 @@ jobs:
           docker buildx build --load -f .devcontainer/Dockerfile \
             -t "$VERSION_IMAGE" -t "$SHA_IMAGE" -t "$SMOKE_IMAGE" .
 
+      - name: Build immutable mifunetu image tags
+        env:
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          docker buildx build --target mifunetu --load -f .devcontainer/Dockerfile \
+            -t "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" \
+            -t "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}" .
+
+      - name: Smoke-test mifunetu image before publish
+        env:
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"
+
       # Keep this pre-push smoke gate between build and publication: it boots
       # the exact image object that carries both immutable GHCR tags.
       - name: Smoke-test Docker image before publish
@@ -135,6 +149,14 @@ jobs:
         run: |
           docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
+
+      - name: Push immutable mifunetu SemVer and sha-full-SHA tags
+        env:
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          docker push "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"
+          docker push "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"
 
       - name: Promote latest from the canonical branch by digest
         env:
