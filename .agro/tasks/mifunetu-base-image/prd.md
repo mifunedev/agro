@@ -205,6 +205,19 @@ Status: DRAFT
 - [ ] Three consecutive runs of `agro run -- pnpm exec vitest run .agro/scripts/__tests__/standard-skills-link.test.ts` pass 41 of 41.
 - [ ] `agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit.
 
+### US-016: Close the final code review
+
+**Description:** As the operator, I want the published images to ship no SSH host private keys. I also want the release pack step to fail with a clear cause, and the entrypoint test to pin stage `final`.
+
+**Acceptance Criteria:**
+
+- [ ] Stage `mifunetu` deletes `/etc/ssh/ssh_host_*` in the layer that installs `openssh-server`. `docker run --rm --user root mifunetu:dev sh -c 'ls /etc/ssh/ssh_host_* 2>/dev/null | wc -l'` prints `0`.
+- [ ] The agro image still generates host keys at start through `ssh-keygen -A` in `.devcontainer/entrypoint.sh`. The sandbox boot smoke in CI passes.
+- [ ] The release pack step runs with `set -o pipefail` and stops with a message that names the failed command.
+- [ ] `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` asserts that stage `final` holds `ENTRYPOINT []`.
+- [ ] `docs/deployment-prebuilt-image.md` states that mifunetu ships no SSH host keys and names `ssh-keygen -A` for a user who starts `sshd`.
+- [ ] `agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.

@@ -406,6 +406,33 @@
       ],
       "rounds": 1,
       "commit": "394d46d8 f1bc8cab"
+    },
+    {
+      "id": "US-016",
+      "title": "Close the final code review",
+      "description": "As the operator, I want the published images to ship no SSH host private keys. I also want the release pack step to fail with a clear cause, and the entrypoint test to pin stage `final`.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` deletes `/etc/ssh/ssh_host_*` in the layer that installs `openssh-server`. `docker run --rm --user root mifunetu:dev sh -c 'ls /etc/ssh/ssh_host_* 2>/dev/null | wc -l'` prints `0`.",
+        "The agro image still generates host keys at start through `ssh-keygen -A` in `.devcontainer/entrypoint.sh`. The sandbox boot smoke in CI passes.",
+        "The release pack step runs with `set -o pipefail` and stops with a message that names the failed command.",
+        "`.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` asserts that stage `final` holds `ENTRYPOINT []`.",
+        "`docs/deployment-prebuilt-image.md` states that mifunetu ships no SSH host keys and names `ssh-keygen -A` for a user who starts `sshd`.",
+        "`agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0."
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Final /code-review: fix 1 (SSH host keys baked into the published images; pre-existing in the agro image), 6 (pack step without pipefail), 7 (entrypoint test no longer pins stage final). No change: 2 and 3 and 8 repeat earlier dispositions; 4 (a remote URL or package directory is outside the release use); 5 repeats #1638; 9 (sized timeouts were the operator-approved fix).",
+      "dependsOn": [
+        "US-015"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
+        "docs/deployment-prebuilt-image.md"
+      ]
     }
   ],
   "pr": 1637
