@@ -15,7 +15,7 @@ function stage(name: string): string[] {
 }
 
 function instructions(lines: string[]): string[] {
-  return lines.filter((line) => line.trim() !== "" && !/^\s/.test(line));
+  return lines.filter((line) => line.trim() !== "" && !/^\s/.test(line) && !line.startsWith("#"));
 }
 
 const mifunetu = stage("mifunetu");
@@ -105,8 +105,14 @@ describe("mifunetu image stage", () => {
 });
 
 describe("base stage on mifunetu", () => {
-  it("starts from mifunetu and switches back to root", () => {
+  it("starts from mifunetu and switches back to root under a scoped DL3002 directive", () => {
     expect(instructions(base).slice(0, 2)).toEqual(["FROM mifunetu AS base", "USER root"]);
+    expect(base.slice(0, 3)).toEqual(["FROM mifunetu AS base", "# hadolint ignore=DL3002", "USER root"]);
+    expect(dockerfile.match(/hadolint ignore=DL3002/g)).toHaveLength(1);
+  });
+
+  it("does not ignore DL3002 for the whole Dockerfile", () => {
+    expect(readFileSync(path.join(repoRoot, ".hadolint.yaml"), "utf8")).not.toContain("DL3002");
   });
 
   it.each([

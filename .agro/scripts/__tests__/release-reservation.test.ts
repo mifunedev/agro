@@ -438,7 +438,7 @@ describe("release workflow contract", () => {
   });
 
   it("names the smoke sandbox after agro", () => {
-    expect(source.match(/SANDBOX_NAME: agro-release-smoke-\$\{\{ github\.run_id \}\}/g)?.length).toBe(3);
+    expect(source.match(/SANDBOX_NAME: agro-release-smoke-\$\{\{ github\.run_id \}\}/g)?.length).toBe(4);
     expect(source).not.toContain("oh-release-smoke");
   });
 
@@ -548,7 +548,7 @@ describe("release workflow contract", () => {
     expect(release.jobs.finalize.needs).toEqual(["reserve", "publish-image", "publish-cli"]);
   });
 
-  it("builds, smoke-tests, and pushes mifunetu in publish-image without moving latest", () => {
+  it("builds, smoke-tests the release CLI in, and pushes mifunetu before any agro push without moving latest", () => {
     const release = parse(source);
     const steps: { name: string; run?: string }[] = release.jobs["publish-image"].steps;
     const index = (name: string) => steps.findIndex((step) => step.name === name);
@@ -556,9 +556,11 @@ describe("release workflow contract", () => {
       steps.flatMap((step, position) => (pattern.test(step.run ?? "") ? [position] : []));
     const agroBuild = index("Build immutable Docker image tags");
     const build = index("Build immutable mifunetu image tags");
+    const pack = index("Pack the release agro CLI from the agro image");
     const smoke = index("Smoke-test mifunetu image before publish");
-    const agroPush = index("Push immutable SemVer and sha-full-SHA tags");
     const push = index("Push immutable mifunetu SemVer and sha-full-SHA tags");
+    const agroPush = index("Push immutable SemVer and sha-full-SHA tags");
+    const smokes = steps.flatMap((step, position) => (step.name.startsWith("Smoke-test") ? [position] : []));
     const pushes = runs(/docker push/);
     const mifunetuSteps = JSON.stringify(steps.filter((step) => (step.run ?? "").includes("mifunetu")));
 
@@ -566,19 +568,25 @@ describe("release workflow contract", () => {
     expect(steps[build].run).toContain('-t "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"');
     expect(steps[build].run).toContain('-t "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"');
     expect(steps[build].run?.match(/-t "/g)).toHaveLength(2);
-    expect(steps[smoke].run).toBe(
-      'bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"',
+    expect(steps[pack].run).toContain('"$SMOKE_IMAGE"');
+    expect(steps[pack].run).toContain("cd /opt/agro && npm pack --ignore-scripts --pack-destination /out");
+    expect(steps[pack].run).toContain('echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"');
+    expect(steps[smoke].run).toContain(
+      'bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" "$MIFUNETU_AGRO_TARBALL"',
     );
+    expect(steps[smoke].run).toContain('if [ "$agro_version" != "$RELEASE_VERSION" ]; then');
     expect(steps[push].run).toBe(
       'docker push "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"\n' +
         'docker push "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"\n',
     );
     expect(agroBuild).toBeGreaterThanOrEqual(0);
     expect(build).toBeGreaterThan(agroBuild);
-    expect(smoke).toBeGreaterThan(build);
-    expect(pushes).toEqual([agroPush, push]);
-    expect(Math.min(...pushes)).toBeGreaterThan(smoke);
-    expect(push).toBeGreaterThan(agroPush);
+    expect(pack).toBeGreaterThan(agroBuild);
+    expect(smoke).toBeGreaterThan(Math.max(build, pack));
+    expect(smokes).toHaveLength(3);
+    expect(smokes).toContain(smoke);
+    expect(pushes).toEqual([push, agroPush]);
+    expect(Math.min(...pushes)).toBeGreaterThan(Math.max(...smokes));
     expect(runs(/mifunetu/)).toEqual([build, smoke, push]);
     expect(mifunetuSteps).not.toContain("latest");
     expect(mifunetuSteps).not.toContain("imagetools");

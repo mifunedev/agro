@@ -87,6 +87,7 @@ WORKDIR /home/sandbox
 CMD ["/bin/bash", "-l"]
 
 FROM mifunetu AS base
+# hadolint ignore=DL3002
 USER root
 WORKDIR /
 

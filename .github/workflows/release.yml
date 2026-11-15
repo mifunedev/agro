@@ -114,10 +114,30 @@ jobs:
             -t "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" \
             -t "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}" .
 
+      - name: Pack the release agro CLI from the agro image
+        env:
+          SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
+        run: |
+          SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
+          tarball=$(docker run --rm --user root --entrypoint /bin/bash -v "$RUNNER_TEMP:/out" "$SMOKE_IMAGE" \
+            -lc 'cd /opt/agro && npm pack --ignore-scripts --pack-destination /out' | tail -n 1)
+          test -f "$RUNNER_TEMP/$tarball"
+          echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"
+
       - name: Smoke-test mifunetu image before publish
         env:
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-        run: bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"
+        run: |
+          smoke_output=$(bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" "$MIFUNETU_AGRO_TARBALL") || {
+            echo "$smoke_output"
+            exit 1
+          }
+          echo "$smoke_output"
+          agro_version=$(sed -n 's/^mifunetu-smoke: agro --version //p' <<<"$smoke_output")
+          if [ "$agro_version" != "$RELEASE_VERSION" ]; then
+            echo "agro --version in mifunetu ('$agro_version') does not match the release version $RELEASE_VERSION" >&2
+            exit 1
+          fi
 
       # Keep this pre-push smoke gate between build and publication: it boots
       # the exact image object that carries both immutable GHCR tags.
@@ -142,14 +162,6 @@ jobs:
             exit 1
           fi
 
-      - name: Push immutable SemVer and sha-full-SHA tags
-        env:
-          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
-          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-        run: |
-          docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
-          docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-
       - name: Push immutable mifunetu SemVer and sha-full-SHA tags
         env:
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
@@ -157,6 +169,14 @@ jobs:
         run: |
           docker push "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"
           docker push "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"
+
+      - name: Push immutable SemVer and sha-full-SHA tags
+        env:
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
+          docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
 
       - name: Promote latest from the canonical branch by digest
         env:

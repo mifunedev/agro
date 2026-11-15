@@ -14,4 +14,3 @@ ignored:
   - DL3008  # apt packages intentionally unpinned — a dev sandbox tracks latest security patches, not reproducible version pins.
   - DL3016  # npm packages intentionally unpinned, same rationale as DL3008.
   - DL3003  # `cd` inside a one-off RUN instead of WORKDIR — deliberate, keeps the directory change layer-local.
-  - DL3002  # stage base returns to root after the mifunetu stage ends as sandbox — final runs as root and the entrypoint drops to sandbox.

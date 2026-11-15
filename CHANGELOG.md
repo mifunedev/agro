@@ -19,7 +19,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
-- Remove bun from the image. No repository code calls bun, and bun installed under `/root/.bun`, out of reach of user `sandbox` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+- Remove bun from the image. No repository script or skill calls bun. Released images installed bun under `/root/.bun`, out of reach of user `sandbox` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
 
 ### Fixed
 
