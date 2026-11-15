@@ -161,8 +161,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/deployment-prebuilt-image.md` reports no finding on the new section."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor inspected diff: docs section after The published image names both tags, no latest, user sandbox uid 1000, /home/sandbox, no agro, npm i -g @mifune/agro, with a code block (AC1); release SKILL artifact set and GHCR public prerequisite (AC2); CHANGELOG Added links #1635 (AC3); Changed, Removed, Fixed entries link #1636 (AC4); ste-check docs/deployment-prebuilt-image.md exits 0 (AC5). Worker executed: herdr-default, prompt-miner-retirement, release-notes, version-parity-contract tests exit 0, 32 tests.",
       "dependsOn": [
         "US-005"
       ],
@@ -170,7 +170,8 @@
         "docs/deployment-prebuilt-image.md",
         ".agro/skills/release/SKILL.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "8bc2f83d"
     },
     {
       "id": "US-007",
