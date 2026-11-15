@@ -373,8 +373,8 @@
         "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/mifunetu-smoke.test.ts .agro/scripts/__tests__/release-notes.test.ts` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "Ninth /code-review: fix 1 as a changelog scope correction (an upgraded home with an existing ~/.cache keeps the pre-PR behavior; no regression) and 5 (--pull=never). No change: 2, 3, 4, 6, 7, 8, 9 repeat earlier dispositions.",
+      "passes": true,
+      "notes": "Ninth /code-review: fix 1 as a changelog scope correction (an upgraded home with an existing ~/.cache keeps the pre-PR behavior; no regression) and 5 (--pull=never). No change: 2, 3, 4, 6, 7, 8, 9 repeat earlier dispositions. Accepted: advisor re-ran smoke on mifunetu:dev (exit 0), mifunetu:not-built (exit 1, no pull, image list unchanged), vitest mifunetu-smoke and release-notes (31 pass), shellcheck 0; changelog entry scoped to a new image home.",
       "dependsOn": [
         "US-013"
       ],
@@ -382,7 +382,8 @@
         ".agro/scripts/mifunetu-smoke.sh",
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "996dcb69"
     }
   ],
   "pr": 1637
