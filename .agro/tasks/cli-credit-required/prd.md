@@ -146,3 +146,9 @@ None.
 - [ ] `agro node check` stays GET-only.
 
 ## Lessons
+
+1. A brain token cannot read the credit state of its org. Evidence: the agro-console allowlist `BRAIN_TOKEN_ROUTES` holds only node routes, so `GET /api/billing/balance` and `GET /api/free-tier` refuse a brain token. `agro hands list` therefore shows no credit, and `agro hands create` always sends the free `n4` retry. Outcome: proposed issue for mifunedev/agro-console: allow a brain token to read `GET /api/billing/balance` and `GET /api/free-tier` for its own org. No agent creates the issue.
+2. `agro node check` warns when a console reply holds no numeric `balanceMicros`. Evidence: `checkCredit` in `.agro/cli/src/commands/node.ts`. Outcome: dropped; the console schema `creditAccountResponseSchema` requires `balanceMicros`, so the branch guards only a malformed reply.
+3. A worker command stopped at a permission prompt, because a long heredoc edit hid the scope of an `rm`. Evidence: the supervisor cancelled the command during US-002. Outcome: dropped; tooling friction, and the worker repeated the edit with the Edit tool.
+4. An edit to a hashed routing instruction file forces a re-record of the sandbox routing replay. Evidence: `.agro/scripts/__tests__/helpers/sandbox-routing.ts` hashes `docs/lifecycle-commands.md` into `instructionSha256`, and the US-003 edit made `sandbox-routing.test.ts` fail with `stale source: instructionSha256`. Outcome: dropped; the supervisor chose a revert of the doc edit over a 17-agent re-record. The CLI help, the error text, and `CHANGELOG.md` hold the credit detail.
+5. `herdr-default.test.ts` fails 7 tests on this host. Evidence: the same 7 tests fail on `origin/development` `ef52a983`. Outcome: dropped; baseline failure outside this change.
