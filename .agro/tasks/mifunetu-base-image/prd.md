@@ -117,7 +117,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] The image sets no `COREPACK_HOME`, and no path under `/usr/local` is owned by uid 1000. `docker run --rm mifunetu:dev bash -lc 'cd /tmp && pnpm --version'` prints the pinned pnpm version and downloads nothing. The literal `corepack prepare pnpm@10.33.0 --activate` stays the only pin in the Dockerfile.
+- [ ] The image sets no `COREPACK_HOME`, and uid 1000 owns no path under `/usr/local`. `docker run --rm mifunetu:dev bash -lc 'cd /tmp && pnpm --version'` prints the pinned pnpm version and downloads nothing. The literal `corepack prepare pnpm@10.33.0 --activate` stays the only pin in the Dockerfile.
 - [ ] `/etc/profile.d/mifunetu-path.sh` changes `PATH` only for uid 1000, and the fragment reads `PNPM_HOME` and `NPM_USER_PREFIX` instead of literal home paths. `docker run --rm --user root mifunetu:dev bash -lc 'echo $PATH'` does not hold `/home/sandbox`.
 - [ ] `.agro/scripts/mifunetu-smoke.sh` uses no associative array and expands an empty array safely under `set -u`, so that bash 3.2 runs the script.
 - [ ] `docs/deployment-prebuilt-image.md` states that `sudo` in the image needs a password that user `sandbox` does not have, and names `docker run --user root` for system packages.
