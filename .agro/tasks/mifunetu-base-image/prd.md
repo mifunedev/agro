@@ -277,3 +277,13 @@ None.
 - Claim: `/etc/agro/image-environment` in `ghcr.io/mifunedev/agro:0.37.0` holds `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`, `OTEL_TRACES_EXPORTER`, and `TRACEPARENT` from the CI build environment. Evidence: the `evidence/manual-review.md` diff. The four keys are absent from a local build. Outcome: proposed issue for the operator, because a traced client in the sandbox can export to a missing socket.
 - Claim: the secret-exposure guard blocked a design that fetched a CA bundle into the image. Evidence: the US-003 round 0 report. Outcome: dropped. The design changed, and no command routed around the guard.
 - Claim: `standard-skills-link.test.ts` times out under `agro run`. Evidence: 5 failures at Close, the same as on `development`. Outcome: dropped, because CI passes the file.
+
+### Retro after code review
+
+- Claim: the stage split moved `ENV container=docker` after the systemd and dbus install, which changed the package scripts' view of the build. Evidence: the eighth `/code-review`; no test caught the order. Outcome: fixed in this PR (US-013), and `mifunetu-image.test.ts` now asserts the order.
+- Claim: an advisor repair instruction moved root's corepack cache, and CI then found pnpm 12.21.0 for root. Evidence: the `verify-sandbox-image.sh` failure on `d4a0bae0`. Outcome: fixed in this PR (`412a79bf` copies the cache).
+- Claim: an edit of the vendored langfuse skill broke its `skills.lock` hash. Evidence: the `behavioral-training-docs.test.ts` failure. Outcome: fixed in this PR by a revert. The vendored skill stays byte-identical.
+- Claim: a shared `COREPACK_HOME` owned by uid 1000 let user `sandbox` change code that root runs. Evidence: the second `/code-review`. Outcome: fixed in this PR (US-008).
+- Claim: ten `/code-review` rounds ran. From round 4, most findings repeated an earlier disposition. Evidence: rounds 4 to 10 each held at most two new findings. Outcome: dropped, because the PR records each disposition.
+- Claim: a release rerun after a partial failure pushes the `<version>` and `sha-<sha>` tags again with no existence check. The gap applies to the agro tags and the mifunetu tags. Evidence: review rounds 1 to 10. Outcome: proposed issue for the operator, because the gap is in the release design outside this PR.
+- Claim: the image installs the CLI dependencies with `npm install` and not `npm ci`. Evidence: the tenth `/code-review`. Outcome: dropped, because the Dockerfile used `npm install` before this PR.
