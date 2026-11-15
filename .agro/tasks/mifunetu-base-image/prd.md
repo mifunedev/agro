@@ -292,6 +292,6 @@ None.
 
 - The operator accepted the US-003 byte cut in place of the apt merge.
 - The operator accepted the US-007 transcript and the US-013 test as the evidence for `/etc/agro/image-environment`, because the container-inspect guard blocked a re-run.
-- The `standard-skills-link.test.ts` timeouts occur only in the long-lived task worktree. A fresh worktree at `aeed7e67` passes `pnpm test:scripts` with 3544 of 3544 tests, so the PR head has no failing test.
+- `standard-skills-link.test.ts` is a timing flake under `agro run` on the 2-CPU brain. A fresh worktree at `aeed7e67` passed 3544 of 3544 tests. A fresh worktree at `9b7cf1fb`, which changes only `prd.md`, timed out in 2 tests of that file. The operator accepted the file as an environment effect, and CI passes the file.
 - The operator approved issues #1638 and #1639.
 - A local build of the `v0.37.0` source holds the same `/etc/agro/image-environment` keys as the build at `aeed7e67`. The published `0.37.0` image holds four more keys (`OTEL_*`, `TRACEPARENT`) from the release CI environment (#1639).
