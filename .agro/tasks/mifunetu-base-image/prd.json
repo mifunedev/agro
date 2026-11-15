@@ -102,8 +102,8 @@
         "After the story, `docker images` lists no `mifunetu-perf` image."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-ran: vitest mifunetu-image, sandbox-base-image, hooks exits 0, 259 tests (AC7); agro run hadolint exits 0; inspected Dockerfile order: manifest COPY, npm install --ignore-scripts, source COPY, npm run build (AC1). Worker executed: .dockerignore **/node_modules/ (AC2); agro resolves to /opt/agro/dist/agro.js, version 0.37.0 (AC3); warm rebuild after cli.ts change 9.81 s -> 4.29 s mean, npm install CACHED (AC4, AC6); worktree context 39.95 MB -> 460.05 kB (AC5); no mifunetu-perf image left (AC8). esbuild postinstall was already skipped by npm allowScripts; --ignore-scripts changes no installed file.",
       "dependsOn": [
         "US-003"
       ],
@@ -112,7 +112,8 @@
         ".dockerignore",
         ".agro/scripts/__tests__/mifunetu-image.test.ts",
         ".agro/tasks/mifunetu-base-image/evidence/perf-cli-layer.md"
-      ]
+      ],
+      "commit": "1d7353f8"
     },
     {
       "id": "US-005",
@@ -121,6 +122,8 @@
       "acceptanceCriteria": [
         "A new script `.agro/scripts/mifunetu-smoke.sh <image>` exits 0 only when each check passes in `<image>`. The checks: `id -un` prints `sandbox`; `id -u` prints `1000`; `pwd` prints `/home/sandbox`; `command -v agro` fails; `node --version` starts with `v24.`. The last check: `npm i -g @mifune/agro && agro --version` exits 0 as user `sandbox` without `sudo`.",
         "The script exits 2 and prints a usage line when `<image>` is missing.",
+        "Stage `mifunetu` adds `/home/sandbox/.local/bin` and `/home/sandbox/.local/share/pnpm` to `PATH` for login shells through a file in `/etc/profile.d/`. A login shell then finds `agro` after `npm i -g @mifune/agro`.",
+        "Stage `mifunetu` sets `CMD [\"/bin/bash\", \"-l\"]`. `docker run --rm mifunetu:dev` then starts a login shell in `/home/sandbox`, not a Node prompt. Stage `final` keeps `CMD [\"/sbin/init\"]`.",
         "Job `publish-image` in `.github/workflows/release.yml` builds `--target mifunetu --load` after the agro image build in the same job. The build reuses the warm builder cache. The tags are `ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}` and `ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}`.",
         "Job `publish-image` runs `.agro/scripts/mifunetu-smoke.sh` on that image before any `docker push` step of the job.",
         "Job `publish-image` pushes the two mifunetu tags after the agro tags. No step moves a `latest` tag for mifunetu.",
@@ -140,7 +143,9 @@
         ".agro/scripts/mifunetu-smoke.sh",
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
         ".github/workflows/release.yml",
-        ".agro/scripts/__tests__/release-reservation.test.ts"
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts"
       ]
     },
     {

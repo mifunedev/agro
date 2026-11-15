@@ -74,6 +74,8 @@ Status: DRAFT
 
 - [ ] A new script `.agro/scripts/mifunetu-smoke.sh <image>` exits 0 only when each check passes in `<image>`. The checks: `id -un` prints `sandbox`; `id -u` prints `1000`; `pwd` prints `/home/sandbox`; `command -v agro` fails; `node --version` starts with `v24.`. The last check: `npm i -g @mifune/agro && agro --version` exits 0 as user `sandbox` without `sudo`.
 - [ ] The script exits 2 and prints a usage line when `<image>` is missing.
+- [ ] Stage `mifunetu` adds `/home/sandbox/.local/bin` and `/home/sandbox/.local/share/pnpm` to `PATH` for login shells through a file in `/etc/profile.d/`. A login shell then finds `agro` after `npm i -g @mifune/agro`.
+- [ ] Stage `mifunetu` sets `CMD ["/bin/bash", "-l"]`. `docker run --rm mifunetu:dev` then starts a login shell in `/home/sandbox`, not a Node prompt. Stage `final` keeps `CMD ["/sbin/init"]`.
 - [ ] Job `publish-image` in `.github/workflows/release.yml` builds `--target mifunetu --load` after the agro image build in the same job. The build reuses the warm builder cache. The tags are `ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}` and `ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}`.
 - [ ] Job `publish-image` runs `.agro/scripts/mifunetu-smoke.sh` on that image before any `docker push` step of the job.
 - [ ] Job `publish-image` pushes the two mifunetu tags after the agro tags. No step moves a `latest` tag for mifunetu.
