@@ -40,7 +40,6 @@ import { EGRESS_LOG_LINES, EGRESS_LOG_PATH, runEgress } from "./commands/egress.
 import { runAuth } from "./commands/auth.js";
 import { runNode } from "./commands/node.js";
 import { runHands } from "./commands/hands.js";
-import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
 import { PromptInterruptedError } from "./lib/prompt.js";
 export { isHelpFlag, parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
 export type { ParseResult, SandboxArgs } from "./controllers/sandbox.js";
@@ -1556,10 +1555,6 @@ export async function runCli(argv: string[]): Promise<number> {
   try {
     return await main(argv);
   } catch (err) {
-    if (err instanceof RuntimeUnsupportedError) {
-      process.stderr.write(`${err.message}\n`);
-      return 1;
-    }
     if (err instanceof PromptInterruptedError) return 130;
     throw err;
   }

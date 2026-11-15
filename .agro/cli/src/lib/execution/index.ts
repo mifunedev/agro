@@ -1,5 +1,4 @@
-import { basename, resolve } from "node:path";
-import { agroConfigPath, entryRuntime, readAgroConfig, type AgroConfig } from "../agro-config.js";
+import type { AgroConfig } from "../agro-config.js";
 import { AGRO_VERSION, officialImageRef } from "../version.js";
 import { runningInsideSandbox } from "./detect.js";
 import {
@@ -7,7 +6,6 @@ import {
   type DockerComposeTargetOptions,
 } from "./docker-compose-target.js";
 import { LocalExecutionTarget } from "./local-target.js";
-import { OpenShellExecutionTarget } from "./openshell-target.js";
 import type { ExecutionTarget } from "./target.js";
 
 
@@ -26,20 +24,10 @@ export function resolveExecutionTarget(
       ...(opts.env ? { env: opts.env } : {}),
     });
   }
-  if (entryRuntime(opts.projectRoot) === "openshell") {
-    const config = readAgroConfig(agroConfigPath(opts.projectRoot));
-    return new OpenShellExecutionTarget({
-      name: opts.container ?? nonEmpty(config.name) ?? basename(resolve(opts.projectRoot)),
-      entryRoot: opts.projectRoot,
-      image: openshellImage(config),
-      ...(opts.run ? { run: opts.run } : {}),
-      ...(opts.env ? { env: opts.env } : {}),
-    });
-  }
   return new DockerComposeExecutionTarget(opts);
 }
 
-export function openshellImage(config: AgroConfig): string {
+export function defaultImage(config: AgroConfig): string {
   return nonEmpty(config.image?.ref) ?? officialImageRef(AGRO_VERSION);
 }
 
@@ -76,12 +64,6 @@ export {
   type MicrovmTargetOptions,
   type MsbVmTargetOptions,
 } from "./microvm-target.js";
-export {
-  OpenShellExecutionTarget,
-  openshellPreflight,
-  type OpenShellPreflight,
-  type OpenShellTargetOptions,
-} from "./openshell-target.js";
 export {
   ExecutionExitError,
   ExecutionSpawnError,

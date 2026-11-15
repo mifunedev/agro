@@ -6,13 +6,13 @@ import { setTimeout as delay } from "node:timers/promises";
 import { agroConfigPath, readAgroConfig, type AgroConfig, type RunSettings } from "../lib/agro-config.js";
 import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF, egressAllowHosts } from "../lib/egress-policy.js";
 import {
+  defaultImage,
   EphemeralExecutionTarget,
   HostOnlyError,
   MicrovmExecutionTarget,
   MsbVmExecutionTarget,
   microvmImageRef,
   nonEmpty,
-  openshellImage,
   resolveExecutionTarget,
   runningInsideSandbox,
   type LifecycleRunner,
@@ -325,7 +325,7 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
     const root = runRoot(cwd, run);
     const config = readAgroConfig(agroConfigPath(root));
     if (opts.isolation === "microvm") return await runMicrovm(opts, io, run, root, cwd, config);
-    const image = opts.image ?? openshellImage(config);
+    const image = opts.image ?? defaultImage(config);
     const settings = config.run ?? {};
     const allowlist = config.access?.egress === "allowlist";
     if (Object.keys(settings.services ?? {}).length === 0 && !allowlist) {

@@ -9,7 +9,6 @@ import {
   runComposeVerb,
   type ComposeVerb,
 } from "../commands/lifecycle.js";
-import { RuntimeUnsupportedError } from "../lib/runtimes/verbs.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { withInvokedBin } from "./invoked-bin.js";
 
@@ -170,23 +169,6 @@ describe("runtime routing of the compose verbs", () => {
     const { calls, run } = makeRunner();
     expect(runComposeConfig({ bin: "agro", ...entry, run }, ["--services"])).toBe(0);
     expect(calls[0].args.slice(3)).toEqual(["config", "--services"]);
-  });
-
-  it.each(["stop", "restart", "logs", "ps"] as ComposeVerb[])(
-    "refuses %s for an openshell entry and spawns nothing",
-    (verb) => {
-      entryWithRuntime("openshell");
-      const { calls, run } = makeRunner();
-      expect(() => runComposeVerb(verb, { bin: "agro", ...entry, run })).toThrow(RuntimeUnsupportedError);
-      expect(calls).toHaveLength(0);
-    },
-  );
-
-  it("refuses compose config for an openshell entry and spawns nothing", () => {
-    entryWithRuntime("openshell");
-    const { calls, run } = makeRunner();
-    expect(() => runComposeConfig({ bin: "agro", ...entry, run })).toThrow(RuntimeUnsupportedError);
-    expect(calls).toHaveLength(0);
   });
 });
 

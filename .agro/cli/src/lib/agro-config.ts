@@ -143,14 +143,6 @@ export function defaultAgroConfig(name: string): AgroConfig {
   };
 }
 
-export function entryRuntime(root: string): SandboxRuntime {
-  try {
-    return readAgroConfig(agroConfigPath(root)).runtime ?? "docker";
-  } catch {
-    return "docker";
-  }
-}
-
 export function readAgroConfig(path: string): AgroConfig {
   if (!existsSync(path)) return defaultAgroConfig(basename(dirname(resolve(path))));
 

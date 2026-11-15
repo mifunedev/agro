@@ -31,14 +31,6 @@ const CATALOG = [
       `microsandbox is not a provisionable runtime yet; see https://github.com/mifunedev/agro/issues/592. Inside a sandbox run \`${bin} tool install microsandbox\`.`,
     docsPath: "docs/runtimes/microsandbox.md",
   },
-  {
-    id: "openshell",
-    title: "NVIDIA OpenShell",
-    tier: "container",
-    state: "active",
-    provisionable: true,
-    docsPath: "docs/runtimes/openshell.md",
-  },
 ] as const satisfies readonly RuntimeEntry[];
 
 type ProvisionableEntry = Extract<(typeof CATALOG)[number], { provisionable: true }>;

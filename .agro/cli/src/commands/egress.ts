@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { agroConfigPath, entryRuntime, readAgroConfig, type SandboxRuntime } from "../lib/agro-config.js";
+import { agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
 import { assertSpawned, requireLifecycleScript, spawnRunner, type RunResult } from "../lib/execution/runner.js";
 import { materialize, resolveSandboxRoot } from "../lib/registry.js";
 import type { EgressVerb } from "../command-table.js";
@@ -15,12 +15,6 @@ const EGRESS_COMMANDS = Object.freeze({
   reload: Object.freeze([...PROXY_EXEC, "squid", "-k", "reconfigure"]),
 } satisfies Record<EgressVerb, readonly string[]>);
 
-const RUNTIME_REFUSAL = Object.freeze({
-  docker: undefined,
-  openshell: (name: string) =>
-    `the sandbox ${name} uses runtime openshell; access.egress allowlist applies to the docker runtime`,
-} satisfies Record<SandboxRuntime, ((name: string) => string) | undefined>);
-
 export function markDenied(text: string): string {
   return text
     .split("\n")
@@ -29,8 +23,6 @@ export function markDenied(text: string): string {
 }
 
 function refusal(root: string, name: string): string | undefined {
-  const runtimeRefusal = RUNTIME_REFUSAL[entryRuntime(root)];
-  if (runtimeRefusal !== undefined) return runtimeRefusal(name);
   const egress = readAgroConfig(agroConfigPath(root)).access?.egress ?? "open";
   if (egress !== "allowlist") return `the sandbox ${name} uses access.egress ${egress}; set access.egress allowlist`;
   return undefined;
