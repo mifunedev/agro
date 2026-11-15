@@ -3,6 +3,7 @@ import {
   asText,
   callApi,
   createConsoleNode,
+  findOrRegisterSshKey,
   toNode,
   toNodeList,
   waitForRunning,
@@ -13,6 +14,15 @@ import {
 import type { Hand, HandOutcome, HandProvider, HandStatusReport } from "./provider.js";
 
 const NO_NODE_ID = "the console response has no node id";
+const DISPOSABLE_PROFILE_UNSUPPORTED_LINE =
+  "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox";
+const DESTROY_ADMIN_LINE = "destroy needs the admin role in agro-console";
+
+export interface LocalSshKey {
+  path: string;
+  read: () => string | undefined;
+  name: string;
+}
 
 export function normalizeHandRef(ref: string): string {
   return ref.startsWith("#") ? ref.slice(1) : ref;
@@ -38,6 +48,8 @@ function toHand(node: ConsoleNode): Hand {
     label: `#${node.orgIndex}`,
     index: node.orgIndex,
     alias: node.alias,
+    name: node.name,
+    profile: node.profile,
     status: node.status,
     spec: node.spec,
     sshHost: node.sshHost,
@@ -51,7 +63,19 @@ export function createConsoleProvider(
   deps: ConsolePollDeps,
   config: ConsoleConfig,
   notice: (message: string) => void,
+  localKey?: LocalSshKey,
 ): HandProvider {
+  async function defaultSshKeyIds(): Promise<HandOutcome<string[]>> {
+    if (localKey === undefined) return { ok: true, value: [] };
+    const publicKey = localKey.read()?.trim();
+    if (publicKey === undefined || publicKey === "") {
+      notice(`${localKey.path} not found; the hand gets no SSH key`);
+      return { ok: true, value: [] };
+    }
+    const found = await findOrRegisterSshKey(deps, config, publicKey, localKey.name);
+    return found.ok ? { ok: true, value: [found.id] } : found;
+  }
+
   async function readNode(ref: string): Promise<HandOutcome<ConsoleNode>> {
     const read = await callApi(deps, config, "GET", handPath(ref));
     if (!read.ok) return { ok: false, error: read.message };
@@ -100,20 +124,32 @@ export function createConsoleProvider(
       return read.ok ? { ok: true, value: toHand(read.value) } : read;
     },
 
-    async create({ name, spec, disposable }, onStatus) {
+    async create(request, onStatus) {
+      const { name, spec, disposable, profile, docker, t3, codeServer } = request;
+      const keys = request.sshKeyIds ?? [];
+      const resolvedKeys = keys.length > 0 ? { ok: true as const, value: keys } : await defaultSshKeyIds();
+      if (!resolvedKeys.ok) return resolvedKeys;
+      const sshKeyIds = resolvedKeys.value;
       const requestedAt = deps.now();
       const created = await createConsoleNode(
         deps,
         config,
         {
-          profile: "sandbox",
+          profile: profile ?? "sandbox",
           ...(name === undefined ? {} : { name }),
           ...(spec === undefined ? {} : { spec }),
+          ...(sshKeyIds.length === 0 ? {} : { sshKeyIds }),
+          ...(docker === true ? { docker: true } : {}),
+          ...(t3 === true ? { t3: true } : {}),
+          ...(codeServer === true ? { runtimeSettings: { codeServerEnabled: true } } : {}),
           ...(disposable === true ? { disposable: true } : {}),
         },
         notice,
       );
-      if (!created.ok) return { ok: false, error: created.message };
+      if (!created.ok) {
+        const disposableRefused = created.status === 422 && created.code === "DISPOSABLE_PROFILE_UNSUPPORTED";
+        return { ok: false, error: disposableRefused ? DISPOSABLE_PROFILE_UNSUPPORTED_LINE : created.message };
+      }
       const node = toNode(created.body);
       if (node === undefined) return { ok: false, error: NO_NODE_ID };
       return awaitRunning(node, requestedAt, onStatus);
@@ -147,7 +183,9 @@ export function createConsoleProvider(
     resume: (ref) => act(ref, "resume"),
     async destroy(ref) {
       const result = await callApi(deps, config, "DELETE", handPath(ref));
-      return result.ok ? { ok: true, value: undefined } : { ok: false, error: result.message };
+      if (result.ok) return { ok: true, value: undefined };
+      const adminRefused = result.status === 403 && !result.code?.startsWith("BRAIN_TOKEN_");
+      return { ok: false, error: adminRefused ? DESTROY_ADMIN_LINE : result.message };
     },
   };
 }

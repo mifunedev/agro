@@ -294,7 +294,7 @@ describe("agro hands help", () => {
 });
 
 const HANDS = [
-  { id: "u1", orgIndex: 4, alias: "quiet-otter", status: "running", spec: "n4", sshHost: "hand-4.example" },
+  { id: "u1", orgIndex: 4, alias: "quiet-otter", name: "otter-box", profile: "sandbox", status: "running", spec: "n4", sshHost: "hand-4.example" },
   { id: "u2", orgIndex: 12, alias: "bold-heron", status: "paused", spec: "n8", sshHost: null },
 ];
 
@@ -320,8 +320,8 @@ describe("agro hands list", () => {
     const h = harness([{ status: 200, body: { nodes: HANDS } }]);
     expect(await runHands(["list", "--json"], h.io, h.deps)).toBe(0);
     expect(JSON.parse(h.stdout())).toEqual([
-      { id: "u1", index: 4, alias: "quiet-otter", status: "running", spec: "n4", sshHost: "hand-4.example" },
-      { id: "u2", index: 12, alias: "bold-heron", status: "paused", spec: "n8", sshHost: null },
+      { id: "u1", index: 4, alias: "quiet-otter", name: "otter-box", profile: "sandbox", status: "running", spec: "n4", sshHost: "hand-4.example" },
+      { id: "u2", index: 12, alias: "bold-heron", name: null, profile: null, status: "paused", spec: "n8", sshHost: null },
     ]);
   });
 
@@ -426,7 +426,7 @@ describe("agro hands create", () => {
 
   it("rejects an unknown flag before any request", async () => {
     const h = harness([{ status: 202 }]);
-    expect(await runHands(["create", "--profile", "agro"], h.io, h.deps)).toBe(1);
+    expect(await runHands(["create", "--bogus"], h.io, h.deps)).toBe(1);
     expect(await runHands(["create", "--spec"], h.io, h.deps)).toBe(1);
     expect(h.calls).toEqual([]);
   });
@@ -738,7 +738,8 @@ describe("agro hands disposable hands", () => {
 
   it("states the disposable rules in the create help", () => {
     const help = handsHelp("agro");
-    expect(help).toContain("agro hands create [--name <name>] [--spec <spec>] [--disposable]");
+    expect(help).toContain("[--code-server] [--disposable]");
+    expect(help).toContain("HTTP 422 DISPOSABLE_PROFILE_UNSUPPORTED");
     expect(help).toContain("--disposable applies only to console hands");
     expect(help).toContain("HTTP 409 NODE_DISPOSABLE");
     for (const verb of ["`pause`", "`resume`", "`fork`"]) expect(help).toContain(verb);
@@ -758,5 +759,311 @@ describe("agro hands token secrecy", () => {
     expect(await runHands(["list"], h.io, h.deps)).toBe(1);
     expect(h.stderr()).toContain("request failed");
     expect(h.all()).not.toContain(TOKEN);
+  });
+});
+
+const LOCAL_KEY_PATH = join(USER_HOME, ".ssh", "id_ed25519.pub");
+const LOCAL_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal op@laptop\n";
+const OPERATOR_ENV = { AGRO_CONSOLE_TOKEN: TOKEN, AGRO_CONSOLE_URL: "https://console.example/" };
+const QUEUED: Reply = { status: 202, body: { id: "u9", status: "queued" } };
+const RUNNING_HAND = {
+  id: "u9",
+  status: "running",
+  orgIndex: 7,
+  alias: "calm-lynx",
+  name: "worker",
+  profile: "agro",
+  spec: "n4",
+  sshHost: "hand-7.example",
+};
+const RUNNING: Reply = { status: 200, body: RUNNING_HAND };
+const BASE_CREATE = ["create", "--ssh-key", "key-1"];
+const APP_FLAGS = [
+  ["--docker", { docker: true }],
+  ["--t3", { t3: true }],
+  ["--code-server", { runtimeSettings: { codeServerEnabled: true } }],
+] as const;
+const APP_FLAG_NAMES = APP_FLAGS.map(([flag]) => flag);
+
+function operator(replies: Reply[], files: Record<string, string> = { [LOCAL_KEY_PATH]: LOCAL_KEY }) {
+  const read = brainFiles(files);
+  return { ...harness(replies, { env: OPERATOR_ENV, readFile: read.readFile, hostname: () => "laptop" }), reads: read.reads };
+}
+
+describe("agro hands create profile and app flags", () => {
+  it("posts the sandbox profile and the keys without a new flag", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(BASE_CREATE, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"] });
+  });
+
+  it.each([[["--profile", "agro"]], [["--profile=agro"]]])("posts the agro profile with %j and no app field", async (flag) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, ...flag], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts the sandbox profile with --profile sandbox", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "sandbox"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts docker, t3, and codeServerEnabled with all app flags", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    const args = [...BASE_CREATE, "--profile", "agro", "--docker", "--t3", "--code-server"];
+    expect(await runHands(args, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({
+      profile: "agro",
+      sshKeyIds: ["key-1"],
+      docker: true,
+      t3: true,
+      runtimeSettings: { codeServerEnabled: true },
+    });
+  });
+
+  it.each(APP_FLAGS)("posts only the field of %s with --profile agro", async (flag, field) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", flag], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], ...field });
+  });
+
+  it("rejects a profile other than agro or sandbox before any request", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --profile must be agro or sandbox\n");
+    expect(h.calls).toEqual([]);
+  });
+
+  it("rejects --profile without a value before any request", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --profile requires a value\n");
+    expect(h.calls).toEqual([]);
+  });
+
+  it.each(APP_FLAG_NAMES)("rejects %s with the default profile before key resolution", async (flag) => {
+    const h = operator([QUEUED, RUNNING]);
+    expect(await runHands(["create", flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands create: ${flag} requires --profile agro\n`);
+    expect(h.reads).not.toContain(LOCAL_KEY_PATH);
+    expect(h.calls).toEqual([]);
+  });
+
+  it.each(APP_FLAG_NAMES)("rejects %s with --profile sandbox before any request", async (flag) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "sandbox", flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands create: ${flag} requires --profile agro\n`);
+    expect(h.calls).toEqual([]);
+  });
+
+  it("prints the HTTP status and code when runtime settings are disabled", async () => {
+    const h = harness([{ status: 422, body: { error: "Runtime settings are disabled", code: "RUNTIME_SETTINGS_DISABLED" } }]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--code-server"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("posts --profile agro --disposable and prints the sandbox-only line on HTTP 422", async () => {
+    const h = harness([{ status: 422, body: { error: "Only sandbox nodes can be disposable", code: "DISPOSABLE_PROFILE_UNSUPPORTED" } }]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--disposable"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], disposable: true });
+    expect(h.stderr()).toBe(
+      "agro hands create: only a sandbox node can be disposable: drop --disposable, or use --profile sandbox\n",
+    );
+    expect(h.stdout()).toBe("");
+  });
+
+  it("shows the new flags in the help", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain(
+      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
+    );
+    for (const flag of ["--profile", "--json", "--ssh-key", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+  });
+});
+
+describe("agro hands create ssh key resolution", () => {
+  it("reuses a console key whose type and body match the local key", async () => {
+    const h = operator([
+      {
+        status: 200,
+        body: {
+          sshKeys: [
+            { id: "other", name: "x", publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIother op@laptop" },
+            { id: "match", name: "y", publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal a-different-comment" },
+          ],
+        },
+      },
+      QUEUED,
+      RUNNING,
+    ]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.reads).toContain(LOCAL_KEY_PATH);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "POST https://console.example/api/nodes",
+      "GET https://console.example/api/nodes/u9",
+    ]);
+    expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(h.calls[1].body).toEqual({ profile: "sandbox", sshKeyIds: ["match"] });
+  });
+
+  it("registers the local key when no console key matches", async () => {
+    const h = operator([
+      { status: 200, body: { sshKeys: [{ id: "other", publicKey: "ssh-rsa AAAAC3NzaC1lZDI1NTE5AAAAIlocal" }] } },
+      { status: 201, body: { sshKey: { id: "new-key", name: "agro-cli@laptop" } } },
+      QUEUED,
+      RUNNING,
+    ]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(0, 3).map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "POST https://console.example/api/ssh-keys",
+      "POST https://console.example/api/nodes",
+    ]);
+    expect(h.calls[1].body).toEqual({ name: "agro-cli@laptop", publicKey: LOCAL_KEY.trim() });
+    expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["new-key"] });
+  });
+
+  it("accepts a top-level id in the register response", async () => {
+    const h = operator([{ status: 200, body: { sshKeys: [] } }, { status: 201, body: { id: "top-key" } }, QUEUED, RUNNING]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["top-key"] });
+  });
+
+  it("sends no key and says so when the local key file does not exist", async () => {
+    const h = operator([QUEUED, RUNNING], {});
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://console.example/api/nodes",
+      "GET https://console.example/api/nodes/u9",
+    ]);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox" });
+    expect(h.stderr()).toContain(`agro hands create: ${LOCAL_KEY_PATH} not found; the hand gets no SSH key\n`);
+  });
+
+  it("uses only the given --ssh-key flags and makes no ssh-keys call", async () => {
+    const h = operator([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--ssh-key", "a", "--ssh-key=b"], h.io, h.deps)).toBe(0);
+    expect(h.reads).not.toContain(LOCAL_KEY_PATH);
+    expect(h.calls[0]).toMatchObject({ method: "POST", url: "https://console.example/api/nodes" });
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["a", "b"] });
+  });
+
+  it("exits 1 with the API error when the key list fails", async () => {
+    const h = operator([{ status: 403, body: { error: "forbidden", code: "FORBIDDEN" } }]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("HTTP 403 FORBIDDEN");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("exits 1 when the register response has no key id", async () => {
+    const h = operator([{ status: 200, body: { sshKeys: [] } }, { status: 201, body: {} }]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("the console response has no SSH key id");
+    expect(h.calls).toHaveLength(2);
+  });
+
+  it("sends no key from the local file on a brain", async () => {
+    const files = brainFiles({
+      [TOKEN_PATH]: TOKEN,
+      [URL_PATH]: "https://brain-console.example",
+      [LOCAL_KEY_PATH]: LOCAL_KEY,
+    });
+    const h = harness([QUEUED, RUNNING], { readFile: files.readFile });
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(files.reads).not.toContain(LOCAL_KEY_PATH);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://brain-console.example/api/nodes",
+      "GET https://brain-console.example/api/nodes/u9",
+    ]);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox" });
+  });
+
+  it("sends --ssh-key ids on a brain", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--ssh-key", "k1"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["k1"] });
+  });
+
+  it("rejects --ssh-key without a value before any request", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--ssh-key"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --ssh-key requires a value\n");
+    expect(h.calls).toEqual([]);
+  });
+});
+
+const CREATED_JSON = {
+  id: "u9",
+  index: 7,
+  alias: "calm-lynx",
+  name: "worker",
+  status: "running",
+  spec: "n4",
+  sshHost: "hand-7.example",
+  ssh: "ssh sandbox@hand-7.example",
+};
+
+describe("agro hands create --json", () => {
+  it("prints one JSON line and keeps the status lines on stderr", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(0);
+    expect(h.stdout().split("\n")).toEqual([JSON.stringify(CREATED_JSON), ""]);
+    expect(h.stderr()).toContain("agro hands create: hand u9 running\n");
+  });
+
+  it("prints ssh null without an SSH host", async () => {
+    const h = harness([QUEUED, { status: 200, body: { ...RUNNING_HAND, sshHost: null } }]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toEqual({ ...CREATED_JSON, sshHost: null, ssh: null });
+  });
+
+  it("prints the JSON line with the last status before it exits 1 on a timeout", async () => {
+    const h = harness([QUEUED, { status: 200, body: { ...RUNNING_HAND, status: "provisioning", sshHost: null } }], {
+      timeoutMs: 3000,
+    });
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(JSON.parse(h.stdout())).toEqual({ ...CREATED_JSON, status: "provisioning", sshHost: null, ssh: null });
+    expect(h.stderr()).toContain("not running after 15 minutes");
+  });
+
+  it("prints the JSON line before it exits 1 when the hand fails", async () => {
+    const h = harness([QUEUED, { status: 200, body: { id: "u9", status: "failed" } }]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(JSON.parse(h.stdout())).toEqual({
+      id: "u9",
+      index: null,
+      alias: null,
+      name: null,
+      status: "failed",
+      spec: null,
+      sshHost: null,
+      ssh: null,
+    });
+    expect(h.stderr()).toContain("hand u9 failed");
+  });
+
+  it("prints nothing on stdout when the console returns no node", async () => {
+    const h = harness([{ status: 500, body: { code: "INTERNAL" } }]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toBe("");
+  });
+
+  it.each([[["--project", "acme/widget"]], [["--clone", "acme/widget"]]])("refuses --json with %j", async (flag) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--json", ...flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --json excludes --project and --clone\n");
+    expect(h.calls).toEqual([]);
+  });
+});
+
+describe("agro hands destroy admin role", () => {
+  it("prints the admin role line on HTTP 403", async () => {
+    const h = operator([{ status: 403, body: { error: "forbidden", code: "FORBIDDEN" } }]);
+    expect(await runHands(["destroy", "4", "--yes"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands destroy: destroy needs the admin role in agro-console\n");
   });
 });

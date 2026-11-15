@@ -233,6 +233,43 @@ export async function callApi(
   return { ok: true, status: response.status, body };
 }
 
+export function keyIdentity(publicKey: string): string {
+  return publicKey.trim().split(/\s+/).slice(0, 2).join(" ");
+}
+
+export function toKeyList(body: unknown): Record<string, unknown>[] {
+  const record = asRecord(body);
+  const items = Array.isArray(body) ? body : record?.sshKeys;
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item: unknown): Record<string, unknown>[] => {
+    const key = asRecord(item);
+    return key === undefined ? [] : [key];
+  });
+}
+
+export function findKeyIdByIdentity(keys: Record<string, unknown>[], publicKey: string): string | null {
+  const identity = keyIdentity(publicKey);
+  const match = keys.find((key) => typeof key.publicKey === "string" && keyIdentity(key.publicKey) === identity);
+  return asText(match?.id);
+}
+
+export async function findOrRegisterSshKey(
+  deps: ConsoleFetchDeps,
+  config: ConsoleConfig,
+  publicKey: string,
+  name: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const listed = await callApi(deps, config, "GET", "/api/ssh-keys");
+  if (!listed.ok) return { ok: false, error: listed.message };
+  const matchId = findKeyIdByIdentity(toKeyList(listed.body), publicKey);
+  if (matchId !== null) return { ok: true, id: matchId };
+  const registered = await callApi(deps, config, "POST", "/api/ssh-keys", { name, publicKey });
+  if (!registered.ok) return { ok: false, error: registered.message };
+  const outer = asRecord(registered.body);
+  const id = asText((asRecord(outer?.sshKey) ?? outer)?.id);
+  return id === null ? { ok: false, error: "the console response has no SSH key id" } : { ok: true, id };
+}
+
 export async function waitForRunning(
   deps: ConsolePollDeps,
   config: ConsoleConfig,

@@ -66,6 +66,8 @@ export interface Hand {
   label: string;
   index: string | null;
   alias: string | null;
+  name: string | null;
+  profile: string | null;
   status: string;
   spec: string | null;
   sshHost: string | null;
@@ -76,10 +78,19 @@ export interface Hand {
 
 export type HandOutcome<T> = { ok: true; value: T } | { ok: false; error: string };
 
+export const HAND_PROFILES = ["agro", "sandbox"] as const;
+
+export type HandProfile = (typeof HAND_PROFILES)[number];
+
 export interface HandRequest {
   name?: string;
   spec?: string;
   disposable?: boolean;
+  profile?: HandProfile;
+  docker?: boolean;
+  t3?: boolean;
+  codeServer?: boolean;
+  sshKeyIds?: string[];
 }
 
 export interface ForkOutcome {

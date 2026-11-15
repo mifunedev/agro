@@ -15,10 +15,12 @@ import {
   type ConsolePollDeps,
 } from "../lib/console-api.js";
 import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-auth.js";
-import { createConsoleProvider } from "../lib/hands/console-provider.js";
+import { createConsoleProvider, type LocalSshKey } from "../lib/hands/console-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
+  HAND_PROFILES,
+  type HandProfile,
   resolveHandProviderId,
   retiredHandsNotice,
   shellQuote,
@@ -37,8 +39,17 @@ export { shellQuote } from "../lib/hands/provider.js";
 export const BRAIN_HOME = "/home/sandbox";
 export const CONSOLE_TOKEN_MISSING = `no console token: ${brainTokenPath(BRAIN_HOME)} not found and no agro auth login credentials; run agro auth login`;
 
-export const SPEC_REFUSAL = "--spec applies only to console hands";
-export const DISPOSABLE_REFUSAL = "--disposable applies only to console hands";
+const CONSOLE_ONLY_CREATE_FLAGS = [
+  "--spec",
+  "--disposable",
+  "--profile",
+  "--docker",
+  "--t3",
+  "--code-server",
+  "--ssh-key",
+  "--json",
+] as const;
+const APP_FLAGS = ["--docker", "--t3", "--code-server"] as const;
 
 export const HAND_MISSING =
   "no <hand> given — an unquoted #<index> starts a shell comment; write the bare index (4) or quote '#4'";
@@ -124,7 +135,7 @@ export function handsHelp(bin: string): string {
 
 Usage:
   ${bin} hands list [--json]
-  ${bin} hands create [--name <name>] [--spec <spec>] [--disposable] [--project <owner>/<repo> | --clone <owner>/<repo>]
+  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
   ${bin} hands fork <hand> [--spec <spec>] [--name <name>]
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
@@ -146,10 +157,27 @@ Quote '#4' if you write the # sign: an unquoted #4 starts a shell comment.
 \`create\` requests a sandbox hand, waits up to 15 minutes for it to reach
 \`running\`, then prints its index, alias, and SSH host. When the free tier
 does not offer the requested spec, \`create\` creates \`n4\` and says so.
-\`destroy\` asks for confirmation unless --yes is given.
+\`destroy\` asks for confirmation unless --yes is given. \`destroy\` needs the
+admin role in agro-console.
+
+\`--profile\` sets the hand profile. The profile defaults to sandbox.
+\`--docker\` turns on Docker. \`--t3\` turns on T3. \`--code-server\` turns on
+code-server. Each app flag requires \`--profile agro\`. \`--ssh-key <uuid>\`
+adds a console SSH key to the hand. Repeat it for more keys. Without
+\`--ssh-key\` and without a brain token, \`create\` finds ~/.ssh/id_ed25519.pub
+in the console SSH keys, or registers it as agro-cli@<host name>, and sends
+its id. When the file does not exist, \`create\` says so and sends no key.
+On a brain, \`create\` sends only the \`--ssh-key\` ids.
+
+\`--json\` prints one JSON line with id, index, alias, name, status, spec,
+sshHost, and ssh. When the console returns a hand id and the wait then
+fails, \`create --json\` prints the line with the last status and exits 1.
+\`--json\` excludes --project and --clone.
 
 \`create --disposable\` requests a disposable hand with no data volume.
---disposable applies only to console hands. On a disposable hand, \`pause\`,
+--disposable applies only to console hands. Only a sandbox-profile hand can
+be disposable: the console refuses \`--profile agro --disposable\` with
+HTTP 422 DISPOSABLE_PROFILE_UNSUPPORTED. On a disposable hand, \`pause\`,
 \`resume\`, and \`fork\` exit 1 when the console returns
 HTTP 409 NODE_DISPOSABLE. Delete the hand with \`${bin} hands destroy <hand>\`.
 The platform deletes a running disposable hand at the end of the
@@ -178,7 +206,8 @@ waits up to 15 minutes for the VM to reach \`running\`, then prints its name
 and SSH host. \`fork\` runs \`ssh exe.dev cp <hand> [<name>] --copy-tags\`.
 \`pause\`, \`resume\`, and \`destroy\` run \`ssh exe.dev pause\`, \`resume\`,
 and \`rm\`. \`destroy\` asks for confirmation unless --yes is given.
---spec applies only to console hands.
+--spec, --disposable, --profile, --docker, --t3, --code-server, --ssh-key,
+and --json apply only to console hands.
 
 Guards: \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 without a
 change when the VM lacks the ${HAND_TAG} tag. Each write verb exits 1 without a
@@ -251,10 +280,12 @@ async function runList(
   const hands = listed.value;
   if (providerId === "exedev") return printExedevList(io, hands, tokens.includes("--json"));
   if (tokens.includes("--json")) {
-    const rows = hands.map(({ id, index, alias, status, spec, sshHost }) => ({
+    const rows = hands.map(({ id, index, alias, name, profile, status, spec, sshHost }) => ({
       id,
       index: index === null ? null : Number(index),
       alias,
+      name,
+      profile,
       status,
       spec,
       sshHost,
@@ -300,27 +331,45 @@ interface CreateArgs {
   project?: ProjectSlug;
   clone?: ProjectSlug;
   disposable?: boolean;
+  profile?: HandProfile;
+  apps: Set<(typeof APP_FLAGS)[number]>;
+  sshKeyIds: string[];
+  json: boolean;
 }
 
+const VALUE_FLAGS = ["--name", "--spec", "--project", "--clone", "--profile", "--ssh-key"] as const;
+
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
-  const args: CreateArgs = {};
+  const args: CreateArgs = { apps: new Set(), sshKeyIds: [], json: false };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     if (token === "--disposable") {
       args.disposable = true;
       continue;
     }
+    if (token === "--json") {
+      args.json = true;
+      continue;
+    }
+    if (isOneOf(APP_FLAGS, token)) {
+      args.apps.add(token);
+      continue;
+    }
     const [flag, inline] = token.startsWith("--") && token.includes("=")
       ? [token.slice(0, token.indexOf("=")), token.slice(token.indexOf("=") + 1)]
       : [token, undefined];
-    if (flag !== "--name" && flag !== "--spec" && flag !== "--project" && flag !== "--clone") {
+    if (!isOneOf(VALUE_FLAGS, flag)) {
       return { ok: false, error: token.startsWith("-") ? `unknown flag "${token}"` : `unexpected argument "${token}"` };
     }
     const value = inline ?? tokens[++i];
     if (value === undefined || value === "") return { ok: false, error: `${flag} requires a value` };
     if (flag === "--name") args.name = value;
     else if (flag === "--spec") args.spec = value;
-    else {
+    else if (flag === "--ssh-key") args.sshKeyIds.push(value);
+    else if (flag === "--profile") {
+      if (!isOneOf(HAND_PROFILES, value)) return { ok: false, error: "--profile must be agro or sandbox" };
+      args.profile = value;
+    } else {
       const slug = parseProjectSlug(value);
       if (slug === undefined) return { ok: false, error: `${flag} must be <owner>/<repo>` };
       args[flag === "--project" ? "project" : "clone"] = slug;
@@ -329,7 +378,25 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
   if (args.project !== undefined && args.clone !== undefined) {
     return { ok: false, error: "--project and --clone exclude each other" };
   }
+  if (args.json && (args.project !== undefined || args.clone !== undefined)) {
+    return { ok: false, error: "--json excludes --project and --clone" };
+  }
+  const sandboxApp = APP_FLAGS.find((flag) => args.profile !== "agro" && args.apps.has(flag));
+  if (sandboxApp !== undefined) return { ok: false, error: `${sandboxApp} requires --profile agro` };
   return { ok: true, args };
+}
+
+function createdLine(hand: Hand): string {
+  return `${JSON.stringify({
+    id: hand.id,
+    index: hand.index === null ? null : Number(hand.index),
+    alias: hand.alias,
+    name: hand.name,
+    status: hand.status,
+    spec: hand.spec,
+    sshHost: hand.sshHost,
+    ssh: hand.sshHost === null ? null : `ssh sandbox@${hand.sshHost}`,
+  })}\n`;
 }
 
 function brainProject(deps: HandsDeps, slug: ProjectSlug): { ok: true; path: string } | { ok: false; error: string } {
@@ -400,7 +467,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { name, spec, project, clone, disposable } = parsed.args;
+  const { name, spec, project, clone, disposable, profile, apps, sshKeyIds, json } = parsed.args;
   let local: { path: string; branch: string } | undefined;
   if (project !== undefined) {
     const found = brainProject(deps, project);
@@ -415,9 +482,31 @@ async function runCreate(
     }
     local = { path: found.path, branch };
   }
-  const created = await provider.create({ name, spec, disposable }, statusReporter(io, prefix));
-  if (!created.ok) return failed(io, prefix, created.error);
+  const report = statusReporter(io, prefix);
+  let last: Hand | undefined;
+  const request = {
+    name,
+    spec,
+    disposable,
+    profile,
+    docker: apps.has("--docker"),
+    t3: apps.has("--t3"),
+    codeServer: apps.has("--code-server"),
+    sshKeyIds,
+  };
+  const created = await provider.create(request, (hand) => {
+    last = hand;
+    report(hand);
+  });
+  if (!created.ok) {
+    if (json && last !== undefined) io.stdout(createdLine(last));
+    return failed(io, prefix, created.error);
+  }
   const running = created.value;
+  if (json) {
+    io.stdout(createdLine(running));
+    return 0;
+  }
   printRunning(io, running, providerId);
   const { sshDest, remoteName } = running;
   const slug = project ?? clone;
@@ -683,12 +772,12 @@ export async function runHands(
   let safe: HandsIO;
   let provider: HandProvider;
   if (providerId === "exedev") {
-    if ((verb === "create" || verb === "fork") && options.some((token) => token === "--spec" || token.startsWith("--spec="))) {
-      io.stderr(`${prefix}: ${SPEC_REFUSAL}\n`);
-      return 1;
-    }
-    if (verb === "create" && options.includes("--disposable")) {
-      io.stderr(`${prefix}: ${DISPOSABLE_REFUSAL}\n`);
+    const consoleOnly: readonly string[] = verb === "create" ? CONSOLE_ONLY_CREATE_FLAGS : verb === "fork" ? ["--spec"] : [];
+    const refused = options
+      .map((token) => (token.includes("=") ? token.slice(0, token.indexOf("=")) : token))
+      .find((flag) => consoleOnly.includes(flag));
+    if (refused !== undefined) {
+      io.stderr(`${prefix}: ${refused} applies only to console hands\n`);
       return 1;
     }
     const preflight = exedevPreflight(deps.run);
@@ -704,10 +793,15 @@ export async function runHands(
       io.stderr(`${resolved.error}\n`);
       return 2;
     }
-    const { config } = resolved;
+    const { config, authority } = resolved;
     const hidden = hiding(io, config.token);
     safe = hidden;
-    provider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`));
+    const keyPath = join(deps.userHome(), ".ssh", "id_ed25519.pub");
+    const localKey: LocalSshKey | undefined =
+      authority === "operator"
+        ? { path: keyPath, read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
+        : undefined;
+    provider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
   }
   if (verb === "list") return runList(rest, safe, providerId, provider, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, providerId, provider, prefix);
