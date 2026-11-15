@@ -91,9 +91,12 @@ the verbs use the token and the URL from the credentials file that
 
 \`check\` sends only GET requests and creates nothing. It finds each
 \`--ssh-key\` id in the console SSH keys. Without \`--ssh-key\`, it finds
-~/.ssh/id_ed25519.pub there. It also reads the free tier eligibility.
+~/.ssh/id_ed25519.pub there. It also reads the free tier eligibility, and
+the org credit from /api/billing/balance for the credit line.
 \`check\` prints one line for each check and exits 0 only when no check fails.
-An account outside the free tier gets a warn line, not a failure.
+An account outside the free tier gets a warn line, not a failure. The credit
+line is ok or warn and never changes the exit status. It warns with the
+top-up link when the org has no credit and no auto top-up.
 `;
 }
 
@@ -403,6 +406,24 @@ async function checkFreeTier(deps: NodeDeps, config: ConsoleConfig): Promise<str
   return `warn free-tier: not eligible${detail === "" ? "" : ` (${detail})`} — the ${FREE_TIER_SPEC} fallback needs free tier eligibility; run agro auth login in the personal context`;
 }
 
+function formatUsd(micros: number): string {
+  return `${micros < 0 ? "-" : ""}$${(Math.abs(micros) / 1_000_000).toFixed(2)}`;
+}
+
+async function checkCredit(deps: NodeDeps, config: ConsoleConfig): Promise<string> {
+  const read = await callApi(deps, config, "GET", "/api/billing/balance");
+  if (!read.ok) return `warn credit: ${read.message}`;
+  const body = asRecord(read.body);
+  if (body?.paymentsEnabled === false) return "ok credit: payments are off";
+  const micros = body?.balanceMicros;
+  if (typeof micros !== "number") return "warn credit: the console reply holds no balance";
+  const autoTopup = body?.autoTopup !== null && body?.autoTopup !== undefined;
+  if (micros <= 0 && !autoTopup) {
+    return `warn credit: no credit (balance ${formatUsd(micros)}) — top up at ${config.url}/billing`;
+  }
+  return `ok credit: balance ${formatUsd(micros)}${autoTopup ? ", auto top-up on" : ""}`;
+}
+
 async function runCheck(
   tokens: string[],
   io: NodeIO,
@@ -417,6 +438,7 @@ async function runCheck(
   }
   const lines = await checkSshKeys(deps, config, parsed.args.sshKeyIds);
   lines.push(await checkFreeTier(deps, config));
+  lines.push(await checkCredit(deps, config));
   for (const line of lines) io.stdout(`${line}\n`);
   return lines.some((line) => line.startsWith("fail ")) ? 1 : 0;
 }
