@@ -166,3 +166,8 @@ None.
 - [ ] CI for the PR is green.
 
 ## Lessons
+
+- The plan cited `agro run --isolation microvm --json`, but `agro run` has no `--json` flag. The run exited 1 with `unknown flag "--json"`. The run record in `~/.agro/runs/microvm.jsonl` gave the image reference instead. Outcome: dropped. `/prd` § 3 already requires that each cited command resolves.
+- The plan did not list `.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json`. The fixture pins a hash of the sandbox instruction files, so each edit to those files makes the replay stale. Seventeen fresh decision-only agents recorded new decisions, and each decision matches its oracle. Outcome: fixed in this PR (US-003, round 1).
+- A CLI version without a release tag resolved the microVM default to a tag that does not exist: first `agro:latest-msb`, then `mifunetu:latest`. Outcome: fixed in this PR. `microvmImageRef` refuses that case and names `--image`.
+- The deleted release test was the only check on the order of the `publish-msb-image` job. Outcome: dropped. The job no longer exists, and the regex test still checks the `needs` of `finalize`.
