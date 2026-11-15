@@ -71,8 +71,8 @@
         "`agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Round 0 rejected: ad2cf369 merged the apt layers; mean cold time rose from 132.0 s to 163.4 s (evidence/perf-apt.md). Operator directive: remove bun. Fold-in: corepack pin does not hold for user sandbox (pnpm 12.21.0 downloaded).",
+      "passes": true,
+      "notes": "Round 1. Advisor re-ran: git grep -i -w bun on .devcontainer .agro/scripts docs exits 1 (AC2); vitest on the 5 listed files exits 0, 111 tests (AC8); agro run hadolint exits 0 (AC9); mifunetu:dev 'cd /tmp && pnpm --version' prints 10.33.0 (AC4). Worker executed: apt region identical to dd2ab0bc (AC1); verify-sandbox-image.sh, its test, and docs/installation.md drop bun (AC3); tool check exits 0 (AC5); evidence/perf-bytes.md alternating cold runs: 158.3 s -> 147.5 s mean, 380557586 -> 327591125 bytes (AC6, AC7). New ENV COREPACK_HOME=/usr/local/share/corepack owned by uid 1000. Round 0 (ad2cf369 apt merge) was rejected: 132.0 s -> 163.4 s.",
       "dependsOn": [
         "US-002"
       ],
@@ -84,7 +84,8 @@
         "docs/installation.md",
         ".agro/tasks/mifunetu-base-image/evidence/perf-bytes.md"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "b4770cbb"
     },
     {
       "id": "US-004",
