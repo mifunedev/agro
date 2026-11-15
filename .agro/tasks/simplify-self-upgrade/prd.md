@@ -12,7 +12,7 @@ Status: DRAFT
 
 - [ ] `.agro/cli/src/lib/star-prompt.ts` and `.agro/cli/src/lib/__tests__/star-prompt.test.ts` do not exist.
 - [ ] `git grep -n -i "star-prompt\|StarPrompt\|STAR_PROMPT" -- .agro/cli/src docs` prints no line.
-- [ ] `agro run -- pnpm --dir .agro/cli exec vitest run src/__tests__/sandbox.test.ts` exits 0.
+- [ ] `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/sandbox.test.ts` exits 0.
 - [ ] Typecheck passes.
 
 ### US-002: Shrink the self-upgrade command
@@ -30,7 +30,7 @@ Status: DRAFT
 - [ ] `agro update` stays an alias of `agro self-upgrade`, and the vendor-flag refusals in `.agro/cli/src/__tests__/cli-first-help.test.ts` and `.agro/cli/src/__tests__/bundle-identity.test.ts` still pass.
 - [ ] `wc -l .agro/cli/src/commands/self-upgrade.ts` prints a number less than or equal to 120.
 - [ ] `printSelfUpgradeHelp` in `.agro/cli/src/cli.ts` describes only the behavior in this story.
-- [ ] `agro run -- pnpm --dir .agro/cli exec vitest run src/__tests__/self-upgrade.test.ts src/__tests__/cli-first-help.test.ts src/__tests__/bundle-identity.test.ts` exits 0.
+- [ ] `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/self-upgrade.test.ts .agro/cli/src/__tests__/cli-first-help.test.ts .agro/cli/src/__tests__/bundle-identity.test.ts` exits 0.
 - [ ] Typecheck passes.
 
 ### US-003: Update documentation and changelog
