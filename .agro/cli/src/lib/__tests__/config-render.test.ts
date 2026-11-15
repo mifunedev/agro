@@ -39,6 +39,7 @@ const HOST_SIDE_KEYS = [
   "AGRO_REPO_DIR",
   "GIT_USER_NAME",
   "GIT_USER_EMAIL",
+  "GITLAB_HOST",
   "DOCKER_SOCKET",
   "SANDBOX_SSH",
   "SANDBOX_SSH_PORT",
@@ -60,7 +61,7 @@ function fullConfig(): AgroConfig {
   const config = defaultAgroConfig("demo");
   config.runtime = "docker";
   config.repo = "/srv/checkout";
-  config.git = { userName: "Ada", userEmail: "ada@example.com" };
+  config.git = { userName: "Ada", userEmail: "ada@example.com", gitlabHost: "gitlab.example.com" };
   config.storage = { homePath: "/srv/oh-home" };
   config.access = {
     ssh: true,

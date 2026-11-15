@@ -256,6 +256,19 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
+    id: "glab",
+    title: "GitLab CLI",
+    kind: "baked-in",
+    binary: "glab",
+    verifyArgv: commandCheck("glab"),
+    versionArgv: Object.freeze(["glab", "--version"]),
+    notInstallableReason: (): string =>
+      "The GitLab CLI is installed in the base image. Run `glab auth login` inside the sandbox to authenticate it.",
+    hostCapable: false,
+    uninstallArgv: null,
+    docsPath: "docs/integrations/gitlab.md",
+  }),
+  Object.freeze({
     id: "tailscale",
     title: "Tailscale",
     kind: "installable",

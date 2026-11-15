@@ -127,6 +127,7 @@ describe("validateAgroConfig", () => {
     ["git", { git: "me" }, /^agro\.json: git must be an object$/],
     ["git.userName", { git: { userName: 7 } }, /^agro\.json: git\.userName must be a string$/],
     ["git.userEmail", { git: { userEmail: 7 } }, /^agro\.json: git\.userEmail must be a string$/],
+    ["git.gitlabHost", { git: { gitlabHost: 7 } }, /^agro\.json: git\.gitlabHost must be a string$/],
     ["access.ssh", { access: { ssh: "yes" } }, /^agro\.json: access\.ssh must be a boolean$/],
     ["access.sshPort", { access: { sshPort: "2222" } }, /^agro\.json: access\.sshPort must be a number$/],
     [

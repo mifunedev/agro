@@ -24,6 +24,18 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
  && apt-get update && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
+ARG GLAB_VERSION=1.126.0
+RUN case "$(dpkg --print-architecture)" in \
+      amd64) arch=amd64; sha=41583b9801086dd347fc6480b6c4597178c2e39e99e491e961a7179cd87f0407 ;; \
+      arm64) arch=arm64; sha=2b9989364afacf34a9a75328a241b596df4318cfc8c11f437b8d65ca24d3fe7e ;; \
+      *) echo "no pinned glab build for $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac \
+ && curl -fsSL "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/packages/generic/glab/${GLAB_VERSION}/glab_${GLAB_VERSION}_linux_${arch}.deb" -o /tmp/glab.deb \
+ && echo "${sha}  /tmp/glab.deb" | sha256sum -c - \
+ && dpkg -i /tmp/glab.deb \
+ && rm -f /tmp/glab.deb \
+ && command -v glab >/dev/null
+
 RUN install -m 0755 -d /etc/apt/keyrings \
  && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
  && chmod a+r /etc/apt/keyrings/docker.asc \

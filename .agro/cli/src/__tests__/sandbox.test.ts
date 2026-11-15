@@ -1000,8 +1000,8 @@ describe("the canonical OpenShell policy", () => {
     expect(policy.process).toEqual({ run_as_user: "sandbox", run_as_group: "sandbox" });
   });
 
-  it("holds exactly the github, npm and anthropic rules, each with hosts and binaries", () => {
-    expect(Object.keys(rules).sort()).toEqual(["anthropic", "github", "npm"]);
+  it("holds exactly the github, gitlab, npm and anthropic rules, each with hosts and binaries", () => {
+    expect(Object.keys(rules).sort()).toEqual(["anthropic", "github", "gitlab", "npm"]);
     for (const name of Object.keys(rules)) {
       expect(hosts(name).length).toBeGreaterThan(0);
       expect(binaries(name).length).toBeGreaterThan(0);
@@ -1012,6 +1012,13 @@ describe("the canonical OpenShell policy", () => {
     expect(binaries("github")).toEqual(["/usr/bin/git", "/usr/bin/gh", "/usr/bin/curl"]);
     expect(hosts("github")).toEqual(["github.com", "api.github.com", "release-assets.githubusercontent.com"]);
     const gitHost = rules.github.endpoints.find((endpoint) => endpoint.host === "github.com");
+    expect(gitHost?.access).toBe("read-write");
+  });
+
+  it("lets git, glab and curl push to gitlab.com over HTTPS", () => {
+    expect(binaries("gitlab")).toEqual(["/usr/bin/git", "/usr/bin/glab", "/usr/bin/curl"]);
+    expect(hosts("gitlab")).toEqual(["gitlab.com"]);
+    const gitHost = rules.gitlab.endpoints.find((endpoint) => endpoint.host === "gitlab.com");
     expect(gitHost?.access).toBe("read-write");
   });
 

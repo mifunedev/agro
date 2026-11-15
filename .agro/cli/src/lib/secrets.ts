@@ -9,6 +9,7 @@ const SECRETS_FILE = ".env";
 
 export const SECRET_KEYS = [
   "GH_TOKEN",
+  "GITLAB_TOKEN",
   "XAI_API_KEY",
   "META_API_KEY",
   "SANDBOX_PASSWORD",
@@ -23,6 +24,7 @@ export type SecretKey = (typeof SECRET_KEYS)[number];
 
 export const COMPOSE_SECRET_KEYS = [
   "GH_TOKEN",
+  "GITLAB_TOKEN",
   "SANDBOX_PASSWORD",
   "TYPESAFE_API_KEY",
   "XAI_API_KEY",

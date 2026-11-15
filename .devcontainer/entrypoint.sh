@@ -454,6 +454,24 @@ if [ -n "${GH_TOKEN:-}" ]; then
   fi
 fi
 
+if [ -n "${GITLAB_TOKEN:-}" ]; then
+  GITLAB_LOGIN_HOST="${GITLAB_HOST:-gitlab.com}"
+  GITLAB_LOGIN_HOST="${GITLAB_LOGIN_HOST#*://}"
+  GITLAB_LOGIN_HOST="${GITLAB_LOGIN_HOST%%/*}"
+  if ! gosu sandbox env -u GITLAB_TOKEN glab auth status --hostname "$GITLAB_LOGIN_HOST" &>/dev/null; then
+    if printf '%s' "$GITLAB_TOKEN" | gosu sandbox env -u GITLAB_TOKEN \
+         glab auth login --hostname "$GITLAB_LOGIN_HOST" --stdin --git-protocol https \
+         --setup-git-credential-helper &>/dev/null \
+       && gosu sandbox env -u GITLAB_TOKEN glab auth status --hostname "$GITLAB_LOGIN_HOST" &>/dev/null; then
+      echo "[entrypoint] GitLab CLI authenticated to ${GITLAB_LOGIN_HOST} via GITLAB_TOKEN (persisted to ~/.config/glab-cli)"
+    else
+      echo "[entrypoint] GITLAB_TOKEN provided but glab auth login to ${GITLAB_LOGIN_HOST} failed"
+    fi
+  else
+    echo "[entrypoint] GitLab CLI already authenticated to ${GITLAB_LOGIN_HOST} on disk — skipping glab auth login"
+  fi
+fi
+
 configure_git_identity gosu sandbox
 if gosu sandbox env -u GH_TOKEN -u GITHUB_TOKEN gh auth status &>/dev/null; then
   if gosu sandbox env -u GH_TOKEN -u GITHUB_TOKEN gh auth setup-git 2>/dev/null; then
