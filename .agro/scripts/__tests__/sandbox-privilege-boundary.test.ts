@@ -106,6 +106,12 @@ describe("VM image mode contract", () => {
     const entrypoints = dockerfile.match(/^ENTRYPOINT\b.*$/gm) ?? [];
     expect(entrypoints.length).toBeGreaterThan(0);
     for (const entrypoint of entrypoints) expect(entrypoint).toBe("ENTRYPOINT []");
+    const lines = dockerfile.split("\n");
+    const finalStart = lines.indexOf("FROM base AS final");
+    expect(finalStart).toBeGreaterThanOrEqual(0);
+    const finalEnd = lines.findIndex((line, index) => index > finalStart && /^FROM\s/.test(line));
+    const finalStage = lines.slice(finalStart, finalEnd === -1 ? lines.length : finalEnd);
+    expect(finalStage).toContain("ENTRYPOINT []");
   });
 });
 

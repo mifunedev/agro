@@ -80,6 +80,15 @@ describe("mifunetu image stage", () => {
     },
   );
 
+  it("removes the build-time SSH host keys in the layer that installs openssh-server", () => {
+    const starts = mifunetu.flatMap((line, index) => (line.trim() !== "" && !/^\s/.test(line) ? [index] : []));
+    const layers = starts.map((start, index) => mifunetu.slice(start, starts[index + 1]).join("\n"));
+    const sshLayer = layers.filter((text) => text.includes("openssh-server"));
+    expect(sshLayer).toHaveLength(1);
+    expect(sshLayer[0]).toContain(" && rm -f /etc/ssh/ssh_host_* \\");
+    expect(sshLayer[0].indexOf("rm -f /etc/ssh/ssh_host_*")).toBeGreaterThan(sshLayer[0].indexOf("apt-get install"));
+  });
+
   it("keeps three apt layers with one apt-get update each", () => {
     const starts = mifunetu.flatMap((line, index) => (line.trim() !== "" && !/^\s/.test(line) ? [index] : []));
     const aptRuns = starts

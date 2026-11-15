@@ -118,10 +118,21 @@ jobs:
         env:
           SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
         run: |
+          set -o pipefail
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
-          tarball=$(docker run --rm --user root --entrypoint /bin/bash -v "$RUNNER_TEMP:/out" "$SMOKE_IMAGE" \
-            -c 'cd /opt/agro && npm pack --json --ignore-scripts --pack-destination /out' | jq -r '.[0].filename')
-          test -f "$RUNNER_TEMP/$tarball"
+          if ! pack_json=$(docker run --rm --user root --entrypoint /bin/bash -v "$RUNNER_TEMP:/out" "$SMOKE_IMAGE" \
+            -c 'cd /opt/agro && npm pack --json --ignore-scripts --pack-destination /out'); then
+            echo "::error::docker run of 'npm pack --json' in $SMOKE_IMAGE failed" >&2
+            exit 1
+          fi
+          if ! tarball=$(jq -r '.[0].filename // empty' <<<"$pack_json") || [ -z "$tarball" ]; then
+            echo "::error::jq found no '.[0].filename' in the 'npm pack --json' output" >&2
+            exit 1
+          fi
+          if ! test -f "$RUNNER_TEMP/$tarball"; then
+            echo "::error::'npm pack' wrote no $RUNNER_TEMP/$tarball" >&2
+            exit 1
+          fi
           echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"
 
       - name: Smoke-test mifunetu image before publish

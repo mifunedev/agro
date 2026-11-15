@@ -65,6 +65,9 @@ install system packages, start the container with `docker run --user root`:
 docker run --rm -it --user root ghcr.io/mifunedev/mifunetu:<X.Y.Z>
 ```
 
+The image ships no SSH host keys. Before you start `sshd`, run `ssh-keygen -A`
+as root to make the host keys.
+
 The agro image `ghcr.io/mifunedev/agro` builds `FROM` the `mifunetu` stage of
 `.devcontainer/Dockerfile`.
 

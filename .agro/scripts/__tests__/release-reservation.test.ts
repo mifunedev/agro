@@ -570,9 +570,15 @@ describe("release workflow contract", () => {
     expect(steps[build].run?.match(/-t "/g)).toHaveLength(2);
     expect(steps[pack].run).toContain('"$SMOKE_IMAGE"');
     expect(steps[pack].run).toContain("-c 'cd /opt/agro && npm pack --json --ignore-scripts --pack-destination /out'");
-    expect(steps[pack].run).toContain("| jq -r '.[0].filename')");
+    expect(steps[pack].run?.split("\n")[0]).toBe("set -o pipefail");
+    expect(steps[pack].run).toContain("if ! pack_json=$(docker run ");
+    expect(steps[pack].run).toContain(`echo "::error::docker run of 'npm pack --json' in $SMOKE_IMAGE failed" >&2`);
+    expect(steps[pack].run).toContain(`if ! tarball=$(jq -r '.[0].filename // empty' <<<"$pack_json") || [ -z "$tarball" ]; then`);
+    expect(steps[pack].run).toContain(`echo "::error::jq found no '.[0].filename' in the 'npm pack --json' output" >&2`);
+    expect(steps[pack].run).toContain('if ! test -f "$RUNNER_TEMP/$tarball"; then');
+    expect(steps[pack].run).toContain(`echo "::error::'npm pack' wrote no $RUNNER_TEMP/$tarball" >&2`);
+    expect(steps[pack].run?.match(/^ *exit 1$/gm)).toHaveLength(3);
     expect(steps[pack].run).not.toMatch(/-lc|tail/);
-    expect(steps[pack].run).toContain('test -f "$RUNNER_TEMP/$tarball"');
     expect(steps[pack].run).toContain('echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"');
     expect(steps[smoke].run).toContain(
       'bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" "$MIFUNETU_AGRO_TARBALL"',
