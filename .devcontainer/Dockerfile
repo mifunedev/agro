@@ -1,11 +1,6 @@
-FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS base
-
-ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
-ENV HERMES_HOME=/home/sandbox/harness/.hermes
+FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu
 
 ENV TZ=America/Denver
-
-ENV container=docker
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg \
@@ -61,19 +56,6 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 SHELL ["/bin/bash", "-c"]
 
-RUN npm install -g cc-safety-net@2.6.8 \
- && npm cache clean --force \
- && rm -rf /tmp/*
-
-COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/openshell-policy.yaml /opt/agro-assets/.devcontainer/
-COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
-COPY .agro/cli/ /opt/agro/
-RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
- && chmod +x /opt/agro/dist/agro.js \
- && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
- && npm cache clean --force \
- && rm -rf /tmp/*
-
 ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"
 
 RUN userdel -r node 2>/dev/null || true \
@@ -87,6 +69,34 @@ ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_PYTHON_INSTALL_DIR=/home/sandbox/.local/share/uv/python
 ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
+
+LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
+LABEL org.opencontainers.image.title="mifunetu"
+
+USER sandbox
+WORKDIR /home/sandbox
+
+FROM mifunetu AS base
+USER root
+WORKDIR /
+
+ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
+ENV HERMES_HOME=/home/sandbox/harness/.hermes
+
+ENV container=docker
+
+RUN npm install -g cc-safety-net@2.6.8 --prefix /usr/local \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
+
+COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/openshell-policy.yaml /opt/agro-assets/.devcontainer/
+COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/cli/ /opt/agro/
+RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
+ && chmod +x /opt/agro/dist/agro.js \
+ && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
 
 FROM base AS home
 RUN install -d -o sandbox -g sandbox -m 0700 /home/sandbox/.ssh \
