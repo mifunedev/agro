@@ -236,6 +236,34 @@
       ],
       "commit": "0f02172c d4a0bae0 412a79bf",
       "rounds": 2
+    },
+    {
+      "id": "US-009",
+      "title": "Close the fourth code review",
+      "description": "As the operator, I want the last four review findings fixed. A flag argument to `docker run` then reaches a shell, and the release reads the CLI tarball name from structured output.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` sets `ENTRYPOINT []`. `docker run --rm mifunetu:dev -c 'echo hi'` fails to start or runs no `node`, and `docker run --rm mifunetu:dev bash -c 'echo hi'` prints `hi`. `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` accepts each `ENTRYPOINT []` line and rejects any other `ENTRYPOINT`.",
+        "The release pack step reads the tarball name from `npm pack --json` in a shell without a login profile.",
+        "`docs/deployment-prebuilt-image.md` names pnpm without a version number and points at the Dockerfile pin.",
+        "`.agro/scripts/mifunetu-smoke.sh` builds the install command one time and uses the same text for the run and for the failure message.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`. `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild."
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Fourth /code-review: fix 3 (node entrypoint routes flags to node), 4 (pack tarball name from login-shell stdout), 7 (docs hard-code the pnpm version), 8 (install command built twice). No change: 1 and 2 repeat earlier dispositions, and the langfuse skill already allowlists npx; 5 (uid 1000 PATH guard is the security fix); 6 (mifunetu has no home fragment, so the profile.d file is its only login PATH source); 9 (the second build is a cache hit and the smoke needs a loaded image); 10 (TZ and sudoers are operator preferences; the docs explain sudo).",
+      "dependsOn": [
+        "US-008"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        "docs/deployment-prebuilt-image.md",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
+      ]
     }
   ],
   "pr": 1637

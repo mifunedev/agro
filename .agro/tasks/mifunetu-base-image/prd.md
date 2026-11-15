@@ -125,6 +125,18 @@ Status: DRAFT
 - [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild of `mifunetu:dev`.
 - [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and `agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0.
 
+### US-009: Close the fourth code review
+
+**Description:** As the operator, I want the last four review findings fixed. A flag argument to `docker run` then reaches a shell, and the release reads the CLI tarball name from structured output.
+
+**Acceptance Criteria:**
+
+- [ ] Stage `mifunetu` sets `ENTRYPOINT []`. `docker run --rm mifunetu:dev -c 'echo hi'` fails to start or runs no `node`, and `docker run --rm mifunetu:dev bash -c 'echo hi'` prints `hi`. `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` accepts each `ENTRYPOINT []` line and rejects any other `ENTRYPOINT`.
+- [ ] The release pack step reads the tarball name from `npm pack --json` in a shell without a login profile.
+- [ ] `docs/deployment-prebuilt-image.md` names pnpm without a version number and points at the Dockerfile pin.
+- [ ] `.agro/scripts/mifunetu-smoke.sh` builds the install command one time and uses the same text for the run and for the failure message.
+- [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`. `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.
