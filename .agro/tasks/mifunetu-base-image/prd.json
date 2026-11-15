@@ -303,8 +303,8 @@
         "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild, and `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`."
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "Sixth /code-review: fix 2 (pin probe with network), 3 (uid 1000 gate breaks after the entrypoint uid remap), 7 (missing tarball path falls back to a registry install), 8 (Added entry links the ADR, not the task issue). No change: 1, 4, 5, 6 repeat earlier dispositions; 9 (one version comparison in the workflow is acceptable).",
+      "passes": true,
+      "notes": "Sixth /code-review: fix 2 (pin probe with network), 3 (uid 1000 gate breaks after the entrypoint uid remap), 7 (missing tarball path falls back to a registry install), 8 (Added entry links the ADR, not the task issue). No change: 1, 4, 5, 6 repeat earlier dispositions; 9 (one version comparison in the workflow is acceptable). Accepted: advisor re-ran smoke (exit 0), missing ./nope.tgz (exit 2), root login PATH without /home/sandbox. Worker ran the uid 501 remap login check, vitest, pnpm test:scripts (only standard-skills-link timeouts), hadolint, shellcheck.",
       "dependsOn": [
         "US-010"
       ],
@@ -314,7 +314,8 @@
         ".agro/scripts/mifunetu-smoke.sh",
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "97d5354a"
     }
   ],
   "pr": 1637
