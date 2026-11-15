@@ -67,7 +67,7 @@ export function nodeHelp(bin: string): string {
   return `${bin} node — Create, list, delete, and check agro-console sandbox nodes (remote VMs)
 
 Usage:
-  ${bin} node create [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--json]
+  ${bin} node create [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--name <name>] [--json]
   ${bin} node list [--json]
   ${bin} node delete <id> [--yes]
   ${bin} node check [--ssh-key <uuid>]...
@@ -84,7 +84,16 @@ not eligible, or the ${FREE_TIER_SPEC} retry fails, \`create\` prints
 The profile defaults to sandbox. A sandbox-profile node from \`create\`
 is not a hand unless a brain manages the node. \`--docker\` turns on
 Docker. \`--t3\` turns on T3. \`--code-server\` turns on code-server. Each
-app flag requires \`--profile agro\`. When
+app flag requires \`--profile agro\`.
+\`--disposable\` creates a disposable node. Only a sandbox-profile node can
+be disposable: the console refuses \`--profile agro --disposable\` with
+HTTP 422 DISPOSABLE_PROFILE_UNSUPPORTED. A disposable node has
+no data volume. On a disposable node, pause, resume, fork, snapshot,
+convert, and disk grow return HTTP 409 NODE_DISPOSABLE. \`${bin} node delete <id>\`
+deletes the node. The platform deletes a running disposable node at the
+end of the credit grace window after the low-balance email. The platform
+also deletes a running disposable node at the end of the
+free-tier allowance. When
 AGRO_CONSOLE_TOKEN is set, the verbs use it with AGRO_CONSOLE_URL. Otherwise
 the verbs use the token and the URL from the credentials file that
 \`${bin} auth login\` writes. The URL defaults to ${DEFAULT_CONSOLE_URL}.
@@ -118,14 +127,29 @@ interface CreateArgs {
   sshKeyIds: string[];
   name?: string;
   json: boolean;
+  disposable: boolean;
 }
 
+const DISPOSABLE_PROFILE_UNSUPPORTED_LINE =
+  "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox";
+
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
-  const args: CreateArgs = { spec: FREE_TIER_SPEC, profile: "sandbox", apps: new Set(), sshKeyIds: [], json: false };
+  const args: CreateArgs = {
+    spec: FREE_TIER_SPEC,
+    profile: "sandbox",
+    apps: new Set(),
+    sshKeyIds: [],
+    json: false,
+    disposable: false,
+  };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     if (token === "--json") {
       args.json = true;
+      continue;
+    }
+    if (token === "--disposable") {
+      args.disposable = true;
       continue;
     }
     if (isOneOf(APP_FLAGS, token)) {
@@ -219,7 +243,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { spec, profile, apps, name, json } = parsed.args;
+  const { spec, profile, apps, name, json, disposable } = parsed.args;
   let sshKeyIds = parsed.args.sshKeyIds;
   if (sshKeyIds.length === 0) {
     const resolved = await resolveSshKeyId(deps, config);
@@ -241,11 +265,13 @@ async function runCreate(
       ...(apps.has("--docker") ? { docker: true } : {}),
       ...(apps.has("--t3") ? { t3: true } : {}),
       ...(apps.has("--code-server") ? { runtimeSettings: { codeServerEnabled: true } } : {}),
+      ...(disposable ? { disposable: true } : {}),
     },
     (notice) => io.stderr(`${prefix}: ${notice}\n`),
   );
   if (!created.ok) {
-    io.stderr(`${prefix}: ${created.message}\n`);
+    const disposableRefused = created.status === 422 && created.code === "DISPOSABLE_PROFILE_UNSUPPORTED";
+    io.stderr(`${prefix}: ${disposableRefused ? DISPOSABLE_PROFILE_UNSUPPORTED_LINE : created.message}\n`);
     return 1;
   }
   const createdSpec = created.spec ?? spec;

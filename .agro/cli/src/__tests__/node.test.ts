@@ -677,9 +677,68 @@ describe("agro node create profile and app flags", () => {
   it("shows the new flags in the help", () => {
     const help = nodeHelp("agro");
     expect(help).toContain(
-      "agro node create [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--json]",
+      "agro node create [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--name <name>] [--json]",
     );
     for (const flag of ["--profile", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+  });
+});
+
+const DISPOSABLE_PROFILE_UNSUPPORTED: Reply = {
+  status: 422,
+  body: { error: "Only sandbox nodes can be disposable", code: "DISPOSABLE_PROFILE_UNSUPPORTED" },
+};
+
+describe("agro node create --disposable", () => {
+  it("posts disposable true with --disposable", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--disposable"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], disposable: true });
+  });
+
+  it("posts no disposable key without --disposable", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode(BASE_CREATE, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).not.toHaveProperty("disposable");
+  });
+
+  it("keeps disposable true in the free n4 retry after a credit refusal", async () => {
+    const h = harness([CREDIT_REQUIRED, FREE_TIER_ELIGIBLE, RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--spec", "n8", "--disposable"], h.io, h.deps)).toBe(0);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://console.example/api/nodes",
+      "GET https://console.example/api/free-tier",
+      "POST https://console.example/api/nodes",
+    ]);
+    expect(h.calls[2].body).toEqual({
+      profile: "sandbox",
+      spec: "n4",
+      sshKeyIds: ["key-1"],
+      disposable: true,
+      freeTier: true,
+    });
+  });
+
+  it("sends --profile agro --disposable and prints the sandbox-only line on HTTP 422", async () => {
+    const h = harness([DISPOSABLE_PROFILE_UNSUPPORTED]);
+    expect(await runNode([...BASE_CREATE, "--profile", "agro", "--disposable"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.calls[0].body).toEqual({ profile: "agro", spec: "n4", sshKeyIds: ["key-1"], disposable: true });
+    expect(h.stderr()).toBe(
+      "agro node create: only a sandbox node can be disposable: drop --disposable, or use --profile sandbox\n",
+    );
+    expect(h.stdout()).toBe("");
+  });
+
+  it("states the disposable rules in the help", () => {
+    const help = nodeHelp("agro");
+    expect(help).toContain("`--disposable`");
+    expect(help).toContain("no data volume");
+    expect(help).toContain("HTTP 409 NODE_DISPOSABLE");
+    for (const verb of ["pause", "resume", "fork", "snapshot", "convert", "disk grow"]) expect(help).toContain(verb);
+    expect(help).toContain("agro node delete <id>");
+    expect(help).toContain("credit grace window");
+    expect(help).toContain("low-balance email");
+    expect(help).toContain("free-tier allowance");
   });
 });
 
