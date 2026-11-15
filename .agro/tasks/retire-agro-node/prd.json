@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1654-retire-agro-node",
+  "description": "Retire agro node into agro hands. `agro node` (`.agro/cli/src/commands/node.ts`) and the console provider of `agro hands` (`.agro/cli/src/lib/hands/console-provider.ts`) both call `POST /api/nodes`, `GET /api/nodes`, and `DELETE /api/nodes/<id>` through `.agro/cli/src/lib/console-api.ts`. This task removes `agro node` and moves each capability that only `agro node` has into `agro hands`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Console hands accept operator authority and a per-call provider",
+      "description": "As an operator on a host without a brain token, I want `agro hands` to use my `agro auth login` credentials and to accept `--provider console|exedev`. Then I can manage console VMs on any host without `agro node`.",
+      "acceptanceCriteria": [
+        "`agro hands` accepts `--provider console` and `--provider exedev` (also `--provider=<id>`) before or after the verb, and the flag overrides `hands.provider` in the host config.",
+        "`agro hands list --provider desktop` exits 1 with an error that names `console` and `exedev`.",
+        "For the console provider, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. The URL order is `AGRO_CONSOLE_URL`, then the brain console URL file when the brain token file supplies the token, then the credentials file URL, then `https://console.mifune.dev`.",
+        "With no token from any source, a console verb exits 2. The message names the brain token path and `agro auth login`.",
+        "Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each source order row, the missing-token exit 2, and the `--provider` override of a host config that selects `exedev`.",
+        "`agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-project.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Console hands create, list, and destroy cover the node flags",
+      "description": "As an operator, I want `agro hands create` to take `--profile`, `--docker`, `--t3`, `--code-server`, `--ssh-key`, and `--json` for console hands so that every `agro node create` request has a hands form.",
+      "acceptanceCriteria": [
+        "`agro hands create` accepts `--profile agro|sandbox` (default `sandbox`), `--docker`, `--t3`, `--code-server`, repeatable `--ssh-key <uuid>`, and `--json`. Each app flag without `--profile agro` exits 1 with `<flag> requires --profile agro`.",
+        "The create request body sends `profile`, `docker: true`, `t3: true`, `runtimeSettings: { codeServerEnabled: true }`, and `sshKeyIds` exactly as `agro node create` sent them on `ef52a983`.",
+        "Without `--ssh-key` and without a brain token file, `create` finds `~/.ssh/id_ed25519.pub` in `GET /api/ssh-keys` or registers it with `POST /api/ssh-keys`. Then `create` sends the key id. On a brain, `create` sends `sshKeyIds` only for `--ssh-key`.",
+        "HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED` prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox`.",
+        "`create --json` prints one JSON line with `id`, `index`, `alias`, `name`, `status`, `spec`, `sshHost`, and `ssh`. The `ssh` field holds `ssh sandbox@<sshHost>` or `null`. When the console returns a node id and the wait then fails or times out, `create --json` prints that line before it exits 1.",
+        "Console `list --json` rows add `name` and `profile`.",
+        "Console `destroy` prints `destroy needs the admin role in agro-console` when the console returns HTTP 403.",
+        "With the exedev provider, `--profile`, `--docker`, `--t3`, `--code-server`, and `--ssh-key` exit 1 before any `ssh exe.dev` call. The refusal says that the flag applies only to console hands.",
+        "Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each row above. The ported cases from `.agro/cli/src/__tests__/node.test.ts` for profile flags, SSH key resolution, and `--json` pass against `runHands`.",
+        "`agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/lib/hands/exedev-provider.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add agro hands check",
+      "description": "As an operator, I want `agro hands check [--ssh-key <uuid>]...` so that the validation preflight keeps a GET-only check of the SSH key, the free tier, and the credit.",
+      "acceptanceCriteria": [
+        "`HANDS_VERBS` in `.agro/cli/src/command-table.ts` includes `check`.",
+        "For the console provider, `agro hands check` sends only `GET` requests. It prints the same `ok`, `warn`, and `fail` lines as `agro node check` on `ef52a983`, with `agro hands check` in place of `agro node check`.",
+        "`agro hands check` exits 0 only when no line starts with `fail `.",
+        "With the exedev provider, `agro hands check` exits 1 with `check applies only to console hands`.",
+        "Each `agro node check` case of `.agro/cli/src/__tests__/node.test.ts` passes as a `runHands([\"check\", ...])` case in `.agro/cli/src/commands/__tests__/hands.test.ts`.",
+        "`agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/hands/console-check.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Remove agro node",
+      "description": "As a maintainer, I want `agro node` gone from the CLI so that one command creates, lists, and deletes console VMs.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/commands/node.ts` and `.agro/cli/src/__tests__/node.test.ts` do not exist.",
+        "`NODE_VERBS` and the `node` entry of `AGRO_COMMANDS` do not exist, and `.agro/cli/src/cli.ts` has no `runNode` import, no `node` dispatch, and no `node` help line.",
+        "`agro node list` exits non-zero through the unknown-command path of `.agro/cli/src/cli.ts`.",
+        "`.agro/cli/src/lib/console-api.ts` keeps each export that a remaining module imports, and `git grep -n \"commands/node\" -- .agro/cli` prints nothing.",
+        "`agro run -- pnpm -C .agro/cli typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/__tests__/"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Move the validation console adapter to agro hands",
+      "description": "As a validation operator, I want `.agro/skills/sandbox/adapters/console.sh` to call `agro hands --provider console` so that the console matrix runs after `agro node` is gone, on a host whose config selects exedev.",
+      "acceptanceCriteria": [
+        "`.agro/skills/sandbox/adapters/console.sh` calls `agro hands check --provider console`, `agro hands create --provider console --spec ... --name ... --json`, `agro hands list --provider console --json`, and `agro hands destroy --provider console <id> --yes`, and contains no `agro node`.",
+        "`.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` stubs the `hands` verbs and asserts the new call lines. Each existing console case keeps its intent: preflight key flag, stop before create on a failed check, the HTTP 409 destroy retry, and the `agro-mx-` count.",
+        "`agro run -- pnpm test` exits 0."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/skills/sandbox/adapters/console.sh",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Update docs, skills, glossary, and changelog",
+      "description": "As a reader, I want the docs, the sandbox skill references, and the `AGENTS.md` glossary to name `agro hands` for console VMs. Then no instruction points at a removed command.",
+      "acceptanceCriteria": [
+        "`git grep -n \"agro node\" -- . ':!CHANGELOG.md' ':!.agro/tasks'` prints nothing.",
+        "The hands section of `docs/lifecycle-commands.md` documents `--provider`, the operator token fallback, the new create flags, `create --json`, and `check`. The file has no `agro node` section or table row.",
+        "The `AGENTS.md` glossary entry **console node** names `agro hands` with the console provider and operator authority.",
+        "`.agro/skills/sandbox/references/hands.md`, `providers.md`, and `validation.md` name the hands equivalents of each removed `agro node` call.",
+        "`CHANGELOG.md` `## [Unreleased]` records the removal of `agro node`. It also records the new `agro hands` flags and the `check` verb.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file, except for findings that exist on `origin/development` in unchanged lines.",
+        "`agro run -- pnpm test` exits 0, except the sandbox routing replay that US-007 records again."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "AGENTS.md",
+        ".agro/skills/sandbox/references/hands.md",
+        ".agro/skills/sandbox/references/providers.md",
+        ".agro/skills/sandbox/references/validation.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Record the sandbox routing replay again",
+      "description": "As a maintainer, I want `decisions.json` recorded against the final instruction files so that the routing replay test proves the edited references route each case.",
+      "acceptanceCriteria": [
+        "The advisor runs one fresh decision-only agent for each case R1 to R17 against the final instruction files. Each decision matches its oracle in `cases.json`.",
+        "The provenance in `decisions.json` equals `sourceProvenance()` on the final branch head. `.agro/scripts/__tests__/helpers/sandbox-routing.ts` defines `sourceProvenance()`.",
+        "`agro run -- pnpm test` exits 0."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Capture manual review evidence",
+      "description": "As a reviewer, I want a command transcript of the hands console flow and the removed node command. Then I can accept the change without a live console spend.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/retire-agro-node/evidence/manual-review.md` holds a transcript of the built CLI entry point. The transcript runs `agro node list` and `agro hands --help`. With `--provider console`, it runs `agro hands check`, `create --profile agro --t3 --json`, `list --json`, and `destroy --yes`.",
+        "The console calls go to a local stub HTTP server on a free port. The transcript sets `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` inline, under a new temp `HOME` with no credentials file. The transcript creates no live console resource.",
+        "The story stops the stub server. The story then deletes the temp `HOME` and reports."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-007"
+      ],
+      "files": [
+        ".agro/tasks/retire-agro-node/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
