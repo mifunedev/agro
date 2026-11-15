@@ -8,6 +8,10 @@ fi
 
 image=$1
 agro_package=${2:-@mifune/agro}
+if [[ ($agro_package == */* && $agro_package != @* || $agro_package == *.tgz) && ! -f $agro_package ]]; then
+  echo "mifunetu-smoke: tarball $agro_package does not exist" >&2
+  exit 2
+fi
 dockerfile="$(cd "$(dirname "$0")/../.." && pwd)/.devcontainer/Dockerfile"
 pnpm_pin=$(grep -oE 'corepack prepare pnpm@[0-9]+\.[0-9]+\.[0-9]+' "$dockerfile" | head -1 | cut -d@ -f2 || true)
 if [[ -z $pnpm_pin ]]; then
@@ -33,7 +37,7 @@ printf "uid=%s\n" "$(id -u)"
 printf "workdir=%s\n" "$(pwd)"
 printf "no-agro=%s\n" "$(command -v agro || echo absent)"
 printf "node=%s\n" "$(node --version 2>&1)"
-printf "pnpm-pin=%s\n" "$(cd /tmp && pnpm --version 2>&1)"
+printf "pnpm-pin=%s\n" "$(cd /tmp && COREPACK_ENABLE_NETWORK=0 pnpm --version 2>&1)"
 ') || probe_status=$?
 
 observed() {

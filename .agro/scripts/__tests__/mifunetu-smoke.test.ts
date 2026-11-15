@@ -87,7 +87,7 @@ describe("mifunetu-smoke.sh", () => {
     const [probe, install] = calls();
     expect(calls()).toHaveLength(2);
     expect(probe.startsWith(`run --rm ${IMAGE} bash -lc `)).toBe(true);
-    expect(probe).toContain("cd /tmp && pnpm --version");
+    expect(probe).toContain("cd /tmp && COREPACK_ENABLE_NETWORK=0 pnpm --version");
     expect(install).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
     expect(calls().join("\n")).not.toContain("sudo");
     expect(existsSync(dockerStdin)).toBe(false);
@@ -147,6 +147,25 @@ describe("mifunetu-smoke.sh", () => {
     expect(script).not.toMatch(/declare -A|local -A/);
     expect(script).toContain('${run_flags[@]+"${run_flags[@]}"}');
     expect(script).not.toMatch(/(^|[\s(])(-v|--volume|--mount)[\s=]["$\/]/);
+  });
+
+  it.each(["./nope.tgz", "dist/agro", "agro-0.38.0.tgz"])(
+    "exits 2 and names the path when the tarball argument %s does not exist",
+    (missing) => {
+      const result = run([IMAGE, join(fixture, "..", "absent-dir", missing)]);
+      const relative = run([IMAGE, missing]);
+
+      for (const outcome of [result, relative]) expect(outcome.status).toBe(2);
+      expect(relative.stderr).toContain(`mifunetu-smoke: tarball ${missing} does not exist`);
+      expect(readFileSync(dockerLog, "utf8")).toBe("");
+    },
+  );
+
+  it("treats a scoped package name as a package spec, not a tarball path", () => {
+    const result = run([IMAGE, "@mifune/agro"]);
+
+    expect(result.status).toBe(0);
+    expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g @mifune/agro >&2 && agro --version`);
   });
 
   it("exits 2 with a usage line when the image is missing", () => {

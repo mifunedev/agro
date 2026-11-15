@@ -73,7 +73,7 @@ ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
 
 RUN printf '%s\n' \
-      'if [ "$(id -u)" = 1000 ]; then' \
+      'if [ "$(id -un)" = sandbox ]; then' \
       "  for mifunetu_dir in $PNPM_HOME $NPM_USER_PREFIX/bin; do" \
       '    case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac' \
       '  done' \

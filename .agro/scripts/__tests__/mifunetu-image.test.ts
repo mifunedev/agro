@@ -100,9 +100,10 @@ describe("mifunetu image stage", () => {
     ]);
   });
 
-  it("adds the sandbox user bin directories to PATH only for uid 1000 login shells through /etc/profile.d", () => {
+  it("adds the sandbox user bin directories to PATH only for login shells of user sandbox through /etc/profile.d", () => {
     expect(mifunetuText).toContain("> /etc/profile.d/mifunetu-path.sh");
-    expect(mifunetuText).toContain(`'if [ "$(id -u)" = 1000 ]; then'`);
+    expect(mifunetuText).toContain(`'if [ "$(id -un)" = sandbox ]; then'`);
+    expect(mifunetuText).not.toContain(`'if [ "$(id -u)" = 1000 ]; then'`);
     expect(mifunetuText).toContain('"  for mifunetu_dir in $PNPM_HOME $NPM_USER_PREFIX/bin; do"');
     expect(mifunetuText).toContain(`'    case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac'`);
     expect(mifunetuText).toContain("'  export PATH'");
