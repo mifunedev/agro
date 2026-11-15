@@ -10,8 +10,7 @@
    - [OpenShell journey](#third-scenario-the-openshell-journey)
    - [Hermes generated home](#fourth-scenario-the-hermes-generated-home)
    - [Docker egress](#fifth-scenario-the-docker-egress-allowlist)
-   - [msb guest](#sixth-scenario-the-msb-microvm-guest)
-   - [agro run modes](#seventh-scenario-the-agro-run-modes)
+   - [agro run modes](#sixth-scenario-the-agro-run-modes)
 4. [Verify](#verify)
 5. [Cleanup](#cleanup)
 6. [Failure remedies](#failure-remedies)
@@ -48,7 +47,7 @@ The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destro
    bash "$SKILL/scripts/run.sh" exedev --preflight
    ```
 
-4. For the `console` and `msb` providers, the preflight runs `agro node check`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
+4. For the `console` provider, the preflight runs `agro node check`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
 
 ### Main scenario: fresh install
 
@@ -162,42 +161,7 @@ AGRO_REF=<branch> setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/docker
 cat run.out
 ```
 
-### Sixth scenario: the msb microVM guest
-
-The validation adapter `msb` creates an agro-console node and installs `msb` on that node.
-It boots `IMAGE` as a microVM with `--init auto`.
-This adapter is not the `local/msb` execution route.
-The validation provider reference holds setup and known limits. `IMAGE` must be an `agro-msb` image. Build the image on a host with Docker:
-
-```bash
-docker build --target agro-msb -f .devcontainer/Dockerfile -t ghcr.io/mifunedev/agro:spike-msb-<sha> .
-```
-
-`checks/msb-guest.sh` runs in the guest. `msb_exec` sets `MSB_GUEST=1`, so the check uses microVM mode. Without `MSB_GUEST=1`, the check uses host mode and skips `M03` and `M05`. `MSB_GUEST_PHASE` selects the phase: `pre`, `restart`, or `restore`.
-
-| Row | PASS when |
-|---|---|
-| `M01-dockerd` | `systemctl is-active docker` exits 0 and `docker run --rm hello-world` exits 0. |
-| `M02-pid1` | PID 1 is `systemd`. |
-| `M03-restart-persist` | In phase `restart`, `docker` is active and the tmux session `agro-mx-probe` exists. Phase `pre` creates the session and prints `SKIPPED`. |
-| `M04-idle-memory` | After `MSB_IDLE_WAIT` seconds, `/proc/meminfo` gives the used memory in MiB. |
-| `M05-snapshot-restore` | In phase `restore`, PID 1 is `systemd`. |
-| `M06-image-size` | `IMAGE_SIZE_BYTES` is a byte count. Without `IMAGE_SIZE_BYTES`, the row prints `SKIPPED`. |
-
-`run.sh` runs one phase on one new guest. Start the `pre` phase detached on the driver host:
-
-```bash
-tmux new-session -d -s rs-msb "IMAGE=ghcr.io/mifunedev/agro:spike-msb-<sha> bash $SKILL/scripts/run.sh msb checks/msb-guest.sh"
-```
-
-The phases must use the same guest: `pre`, then `msb_restart`, then `restart`, then `msb_snapshot_restore`, then `restore`.
-`run.sh` creates a new guest for each invocation; separate runs cannot prove this phase chain.
-No bundled driver orchestrates the full chain.
-A separately approved orchestration must retain the guest and call these adapter hooks in order.
-Record the guest identity and cleanup ownership before that orchestration.
-Do not depend on an archived task script.
-
-### Seventh scenario: the agro run modes
+### Sixth scenario: the agro run modes
 
 `checks/agro-run-matrix.sh` tests the `agro run` modes on a new `console` node. The check uses host mode. The check installs AGRO with the curl installer at `INSTALL_URL`, runs `sudo usermod -aG kvm "$USER"`, and installs msb `0.7.13` with `agro tool install microsandbox`. When the installed AGRO installs a different msb release, the check uses the pinned upstream installer. Then the check creates a scratch git repository under `mktemp`, writes `agro.json` in it for each row, and deletes it at the end. The new `kvm` group applies only to a new login, so each microVM row runs through `sg kvm`.
 
@@ -256,7 +220,7 @@ Do not claim a pass from incomplete output.
 | `AGRO_JS_URL` | release | The `agro.js` bundle that the installer installs. |
 | `SANDBOX_IMAGE` | CLI default | The image for `agro sandbox install docker --image=<ref>`. |
 | `AGRO_REF` | default branch | The ref that row `R02` clones into the host workspace. `checks/hermes-home.sh` needs `AGRO_REF` and builds the CLI from that ref. |
-| `IMAGE` | provider default | The OCI image that the VM boots. The `exedev` adapter reads `IMAGE`. The `msb` adapter needs `IMAGE` and exits 2 without it. |
+| `IMAGE` | provider default | The OCI image that the VM boots. The `exedev` adapter reads `IMAGE`. |
 | `KEEP` | `0` | `1` keeps the VM after the run. The log then ends with `== keep <name>`. |
 | `MATRIX_OUT` | `$PWD/matrix-evidence` | The log directory. Per-run state goes to `$MATRIX_OUT/.state`. |
 | `MATRIX_TAG` | `agro-matrix` | The tag on each VM. `<p>_list` counts the VMs with this tag. |
@@ -269,14 +233,6 @@ Do not claim a pass from incomplete output.
 | `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of the console SSH key. Without this variable, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
 | `CONSOLE_SSH_IDENTITY` | none | The private key file for `ssh -i`. The `console` adapter needs this variable. |
 | `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. When the console refuses the spec with `PAYMENTS_DISABLED`, `agro node create` creates `n4` in the free tier. |
-| `MSB_VERSION` | `v0.7.13` | The `msb` release that the `msb` adapter installs on the node. `msb_create` fails when `msb --version` shows a different release. |
-| `MSB_GUEST_MEMORY` | `2G` | The `--memory` value of each msb guest. |
-| `MSB_GUEST_CPUS` | `2` | The `--cpus` value of each msb guest. |
-| `MSB_SSH_WAIT_TRIES` | `240` | The number of SSH attempts, 5 seconds apart, that `msb_create` makes before the node setup. |
-| `MSB_SYSTEMD_WAIT_TRIES` | `120` | The number of attempts, 5 seconds apart, that the `msb` adapter makes until guest PID 1 is `systemd` and `systemctl is-system-running` prints `running` or `degraded`. |
-| `MSB_GUEST_PHASE` | `pre` | The phase of `checks/msb-guest.sh`: `pre`, `restart`, or `restore`. `msb_exec` forwards the value into the guest. |
-| `MSB_IDLE_WAIT` | `60` | Seconds that `checks/msb-guest.sh` waits before row `M04-idle-memory`. `msb_exec` forwards the value into the guest. |
-| `IMAGE_SIZE_BYTES` | none | The image size in bytes for row `M06-image-size`. `msb_exec` forwards the value into the guest. |
 
 `run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, `SANDBOX_IMAGE`, and `AGRO_REF` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
 
