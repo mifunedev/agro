@@ -220,8 +220,8 @@
         "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and `agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "Second /code-review of PR #1637: fix findings 1 (COREPACK_HOME owned by uid 1000), 2 and 9 (profile.d PATH for root, literal paths), 6 (sudo docs), 7 (bash 3.2). No change for 3 (langfuse is pinned vendored; npx entries exist), 4 (publish-cli has its own checks), 5 (push order chosen in review round 1), 8 (check-pnpm-pin enforces parity), 10 (nested node_modules stay out of the seed by design). Accepted: advisor re-ran agro run pnpm test:scripts: 3522 pass, 4 fail only in standard-skills-link.test.ts (AC7); hadolint 0 (AC7); smoke on rebuilt mifunetu:dev exits 0 with 7 checks (AC6); root login PATH holds no /home/sandbox and find /usr/local -uid 1000 prints nothing (AC1, AC2); inspected diff: no COREPACK_HOME, sandbox cache primed with gosu from root's activated pin, fragment guarded on uid 1000 with PNPM_HOME and NPM_USER_PREFIX (AC1, AC2, AC5); worker ran the script under bash:3.2 (AC3); docs sudo note (AC4). Round 1 reopened after the third /code-review: fix 4 (second pnpm download), 8 (smoke failure message names the host path), 9 (prefix test misses npm i -g and continuation lines), 10 (licenses label on mifunetu). No change: 1 and 2 and 5 and 6 repeat earlier dispositions; 3 (global NPM_CONFIG_PREFIX predates this PR); 7 (the smoke runs from the release commit).",
+      "passes": true,
+      "notes": "Second /code-review of PR #1637: fix findings 1 (COREPACK_HOME owned by uid 1000), 2 and 9 (profile.d PATH for root, literal paths), 6 (sudo docs), 7 (bash 3.2). No change for 3 (langfuse is pinned vendored; npx entries exist), 4 (publish-cli has its own checks), 5 (push order chosen in review round 1), 8 (check-pnpm-pin enforces parity), 10 (nested node_modules stay out of the seed by design). Accepted: advisor re-ran agro run pnpm test:scripts: 3522 pass, 4 fail only in standard-skills-link.test.ts (AC7); hadolint 0 (AC7); smoke on rebuilt mifunetu:dev exits 0 with 7 checks (AC6); root login PATH holds no /home/sandbox and find /usr/local -uid 1000 prints nothing (AC1, AC2); inspected diff: no COREPACK_HOME, sandbox cache primed with gosu from root's activated pin, fragment guarded on uid 1000 with PNPM_HOME and NPM_USER_PREFIX (AC1, AC2, AC5); worker ran the script under bash:3.2 (AC3); docs sudo note (AC4). Round 1 reopened after the third /code-review: fix 4 (second pnpm download), 8 (smoke failure message names the host path), 9 (prefix test misses npm i -g and continuation lines), 10 (licenses label on mifunetu). No change: 1 and 2 and 5 and 6 repeat earlier dispositions; 3 (global NPM_CONFIG_PREFIX predates this PR); 7 (the smoke runs from the release commit). Round 1 accepted (d4a0bae0): advisor re-ran agro run pnpm test:scripts: 3530 of 3530 pass; hadolint 0; shellcheck 0; smoke exits 0; pnpm --version prints 10.33.0.",
       "dependsOn": [
         "US-005"
       ],
@@ -234,7 +234,7 @@
         "CHANGELOG.md",
         ".agro/cli/src/__tests__/harness-catalog.test.ts"
       ],
-      "commit": "0f02172c",
+      "commit": "0f02172c d4a0bae0",
       "rounds": 1
     }
   ],
