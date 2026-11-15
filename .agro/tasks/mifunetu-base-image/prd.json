@@ -396,13 +396,15 @@
       ],
       "priority": 15,
       "passes": false,
-      "notes": "Operator approved the fix through AskUserQuestion. Local runs at 9b7cf1fb and 294e4d15 timed out in 2 and 3 safe-retirement tests at 5000 ms.",
+      "notes": "Operator approved the fix through AskUserQuestion. Local runs at 9b7cf1fb and 294e4d15 timed out in 2 and 3 safe-retirement tests at 5000 ms. 394d46d8 sets a 30 s timeout for the concurrent standard-skills-link suite: 3 runs pass 41/41. Round 1: the fresh-worktree full suite then timed out once in cli-first-help.test.ts (sandbox upgrade argument test, 5064 ms of 5000 ms), the same flake class; the story now owns that file too.",
       "dependsOn": [
         "US-014"
       ],
       "files": [
-        ".agro/scripts/__tests__/standard-skills-link.test.ts"
-      ]
+        ".agro/scripts/__tests__/standard-skills-link.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts"
+      ],
+      "rounds": 1
     }
   ],
   "pr": 1637
