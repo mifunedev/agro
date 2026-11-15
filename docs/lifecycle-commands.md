@@ -153,24 +153,20 @@ Use `agro update` to upgrade the installed CLI without changing a sandbox.
 
 `agro self-upgrade` (alias: `agro update`) upgrades exactly one thing: the running `agro` executable.
 The upgrade writes no project file — no `.agro/`, no `agro.json`, no `.env` — and
-the upgrade never asks for `sudo`. The upgrade follows whichever mechanism installed the
-executable:
+the upgrade never asks for `sudo`. The realpath of the running executable selects
+the upgrade path:
 
 | Installation | Detected as | What `agro self-upgrade` does |
 |---|---|---|
-| `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | reads the registry version with `npm view`, then runs `npm install -g --prefix <owning prefix> @mifune/agro@<version>` |
-| `install.sh` | a plain file | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
+| `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | runs `npm i -g --prefix <owning prefix> @mifune/agro@latest` |
+| `install.sh` | a file named `agro` | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory. The upgrade checks the `#!` line and `--version` of the new file and renames the new file over the executable. A pinned absolute Node shebang stays. |
 
-`agro self-upgrade` refuses, and prints the supported procedure, in each of these
-cases: the sandbox image ships the executable (`/opt/agro`); the executable is a
-source checkout's `dist/`; the CLI cannot resolve the executable; the executable
-sits in a read-only directory; another `agro` earlier on PATH shadows the
-executable; or the executable does not report the running version. For the
-image-shipped CLI, refresh the image from the host with `agro stop <name>`, then
-`agro sandbox install docker --name <name>`. The upgrade
-refuses a downgrade. When the installed version is already current, the upgrade
-changes nothing. `--dry-run` reports the installation kind, target, and versions
-without a change.
+`agro self-upgrade` refuses every other executable and tells you to upgrade it
+with the mechanism that installed it. Examples are the sandbox image executable
+(`/opt/agro`), a source checkout's `dist/agro.js`, and a path that the CLI cannot
+resolve. For the image executable, refresh the image from the host with
+`agro stop <name>`, then `agro sandbox install docker --name <name>`.
+`--dry-run` prints the planned npm command or download URL and changes nothing.
 
 `agro self-upgrade` rejects the payload flags `--from`, `--from-remote`, `--ref`,
 and `--force` and points at `agro vendor`.

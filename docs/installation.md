@@ -84,8 +84,7 @@ See [Lifecycle commands → `agro self-upgrade`](lifecycle-commands.md#upgrading
 
 - `@mifune/agro` ships one executable, `agro`.
 - An npm install and an `install.sh` install can coexist. `agro self-upgrade`
-  refuses when another `agro` comes earlier on PATH than the file it replaces.
-  Remove or reorder one install first.
+  upgrades the running install.
 - The CLI reads only AGRO state: `~/.agro/`, the `.agro/` control plane,
   `agro.json`, and `AGRO_*` variables.
 
