@@ -68,8 +68,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/installation.md` reports no new finding compared with `development`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, 46828949): (1) grep .prev|downgrade|earlier on PATH|shadow in lifecycle-commands.md + installation.md -> only lifecycle-commands.md:181 (agro vendor --force, not self-upgrade); (2) git grep star.prompt|STAR_PROMPT in docs and .agro/cli/src -> exit 1, no match; (3) reasoned: CHANGELOG [Unreleased] has ### Changed and ### Removed entries linking #1651; (4) ste-check before/after on HEAD~1 copies: lifecycle-commands.md 2 -> 2, installation.md 0 -> 0, no new finding.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -80,7 +80,8 @@
         "docs/configuration.md",
         "CHANGELOG.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "46828949"
     },
     {
       "id": "US-004",
