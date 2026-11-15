@@ -74,8 +74,8 @@
         "`external` After the agro release, the operator approves one live run. The run creates one disposable hand on agro-console, records the refused `pause`, and deletes the hand."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Local criteria verified at 72c963a9 (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --disposable (body with disposable:true), node create --profile agro --disposable (HTTP 422 line, exit 1), hands pause, resume, fork 7 on a disposable hand (HTTP 409 line, exit 1), against the local stub on 127.0.0.1:3191 (port checked free); throwaway tokens inline; HOME set to a temp dir that was deleted; no env or credentials file; ste-check 0. Evidence force-added. A first resume by alias got 404 from the stub and the transcript keeps it; the rerun by index shows the line. External criterion pending: live run after the agro release, with operator approval.",
+      "passes": true,
+      "notes": "Local criteria verified at 72c963a9 (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --disposable (body with disposable:true), node create --profile agro --disposable (HTTP 422 line, exit 1), hands pause, resume, fork 7 on a disposable hand (HTTP 409 line, exit 1), against the local stub on 127.0.0.1:3191 (port checked free); throwaway tokens inline; HOME set to a temp dir that was deleted; no env or credentials file; ste-check 0. Evidence force-added. A first resume by alias got 404 from the stub and the transcript keeps it; the rerun by index shows the line. External criterion pending: live run after the agro release, with operator approval. | External criterion verified 2026-11-15 (lane P advisor): agro 0.39.0 from npm against the local dev agro-console. node create --profile sandbox --disposable made node 04869d43 (disposable true, warm n4 claim); hands pause printed the NODE_DISPOSABLE line, exit 1; node delete --yes deleted it; at 18:11:30Z the OVH list showed no instance or volume of the node. evidence/manual-review.md, section Live run.",
       "dependsOn": [
         "US-001",
         "US-002"

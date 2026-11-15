@@ -379,3 +379,77 @@ GET /api/billing/balance auth=Bearer <redacted> body=- -> 404
 After the last case, `ss -ltnp | grep ':3190'` printed nothing and `grep`
 exited 1. The run stopped only the stub PIDs that it started. The run deleted
 `/tmp/claude-1000/credit-review.mZghtK` after it copied the transcript here.
+
+## Live run against agro-console (external criterion)
+
+Date: 2026-11-15 (UTC). CLI: `@mifune/agro@0.39.0` from npm, installed with
+`npm install --prefix <throwaway dir>` on `agro-sbx-dev-001`. The harness
+checkout did not change. Console: the operator dev stack of agro-console on
+`http://127.0.0.1:3005`, at `development` `a1f08900`, with `payments: false`.
+The operator approved live spend on 2026-11-15, with at most one live node at
+a time. This run created no node.
+
+Setup:
+
+1. Sign in to the dev console as `dev@agro.local` with the dev credentials
+   provider over loopback.
+2. Create two throwaway API tokens with `POST /api/tokens`, one in each org
+   context: `proof-p-cli-acme-inc` (`mfc_NCvp6EOF…`, org `Acme, Inc`, a team
+   org without billing exemption and without free-tier eligibility) and
+   `proof-p-cli-admin` (`mfc_CvkBz79Y…`, the billing-exempt org `Admin`).
+3. Register one throwaway public key in each org: `40a55449-…` in Acme and
+   `11a917f4-…` in Admin.
+
+Each command passes `HOME=<throwaway dir>/home`,
+`AGRO_CONSOLE_URL=http://127.0.0.1:3005`, and `AGRO_CONSOLE_TOKEN=<redacted>`
+inline. The run wrote no env file and no credentials file.
+
+Transcript (the bracket names the org of the token):
+
+```text
+2026-11-15T18:04:32Z
+$ agro node check  [org token: acme-inc]
+fail ssh-key: no --ssh-key given and ~/.ssh/id_ed25519.pub not found — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>
+warn free-tier: not eligible — the n4 fallback needs free tier eligibility; run agro auth login in the personal context
+ok credit: payments are off
+exit: 1
+
+$ agro node check --ssh-key 11a917f4-de23-44dd-9e3f-5b689a980bb2  [org token: admin]
+ok ssh-key 11a917f4-de23-44dd-9e3f-5b689a980bb2
+warn free-tier: not eligible — the n4 fallback needs free tier eligibility; run agro auth login in the personal context
+ok credit: payments are off
+exit: 0
+
+2026-11-15T18:04:53Z
+$ agro node create --spec n8 --ssh-key 40a55449-cdaf-4273-9d85-7738359e6498  [org token: acme-inc]
+agro node create: top up credit at http://127.0.0.1:3005/billing
+agro node create: HTTP 403 PAYMENTS_DISABLED: Payments are not available yet. Use the free tier.
+exit: 1
+
+$ agro node list  [org token: acme-inc]
+no nodes
+exit: 0
+
+$ agro node check --ssh-key 40a55449-cdaf-4273-9d85-7738359e6498  [org token: acme-inc]
+ok ssh-key 40a55449-cdaf-4273-9d85-7738359e6498
+warn free-tier: not eligible — the n4 fallback needs free tier eligibility; run agro auth login in the personal context
+ok credit: payments are off
+exit: 0
+```
+
+The first `node check` failed only on the SSH key line, because the throwaway
+`HOME` has no `~/.ssh/id_ed25519.pub`. An earlier `node create --spec n8`
+without `--ssh-key` stopped on the same local key check before any request.
+The run then registered the Acme key and ran the create again.
+
+Result:
+
+- `agro node check` prints the credit line `ok credit: payments are off` in
+  both orgs and sends only GET requests.
+- `agro node create --spec n8` gets HTTP 403 `PAYMENTS_DISABLED`, reads the
+  free tier as not eligible, prints the top-up line, and exits 1. `agro node
+  list` shows no node, so the refusal created nothing.
+
+Cleanup: see the cleanup section of
+[`../../cli-disposable-hands/evidence/manual-review.md`](../../cli-disposable-hands/evidence/manual-review.md#live-run-cleanup).
+The two runs share the tokens, the keys, and the throwaway directory.
