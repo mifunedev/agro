@@ -186,7 +186,7 @@ Status: DRAFT
 
 ### US-014: Close the ninth code review
 
-**Description:** As the operator, I want the smoke to test only the local image, and I want the pnpm changelog entry to state its exact scope.
+**Description:** As the operator, I want the smoke to test only the local image. I also want the pnpm changelog entry to state its exact scope.
 
 **Acceptance Criteria:**
 

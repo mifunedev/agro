@@ -365,7 +365,7 @@
     {
       "id": "US-014",
       "title": "Close the ninth code review",
-      "description": "As the operator, I want the smoke to test only the local image, and I want the pnpm changelog entry to state its exact scope.",
+      "description": "As the operator, I want the smoke to test only the local image. I also want the pnpm changelog entry to state its exact scope.",
       "acceptanceCriteria": [
         "Each `docker run` in `.agro/scripts/mifunetu-smoke.sh` passes `--pull=never`. A fake-docker test asserts the flag.",
         "The `CHANGELOG.md` `### Fixed` pnpm entry states that the pin holds in a new image home. The entry also states that a persisted home with an existing `~/.cache` keeps its current behavior.",
