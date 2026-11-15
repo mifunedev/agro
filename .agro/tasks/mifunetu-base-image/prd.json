@@ -338,6 +338,28 @@
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
       ],
       "commit": "801faede"
+    },
+    {
+      "id": "US-013",
+      "title": "Restore the container marker before the systemd install",
+      "description": "As the operator, I want `ENV container=docker` set before stage `mifunetu` installs systemd and dbus. The package scripts then see the container marker, as they did before this change.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` sets `ENV container=docker` before its first `apt-get install`. Stage `base` does not set it again.",
+        "`.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the order and no longer lists `container=docker` as a forbidden string in stage `mifunetu`.",
+        "`.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` still passes its `ENV container=docker` assertion.",
+        "`docker run --rm mifunetu:dev printenv container` prints `docker` after a rebuild, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and hadolint at the CI threshold exits 0."
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Eighth /code-review: fix 3 (ENV container=docker moved after the systemd and dbus install). No change: 1, 2, 4, 5, 6, 8, 9, 10 repeat earlier dispositions; 7 (a file: spec is outside the release use).",
+      "dependsOn": [
+        "US-012"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts"
+      ]
     }
   ],
   "pr": 1637

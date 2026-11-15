@@ -26,7 +26,7 @@ Status: DRAFT
 - [ ] The first `FROM` line of `.devcontainer/Dockerfile` is `FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu`.
 - [ ] Stage `base` starts `FROM mifunetu` and holds only the agro additions: `ENV container=docker`, `AGRO_PROJECT_ROOT`, `HERMES_HOME`, `cc-safety-net`, `/opt/agro-assets`, and the agro CLI build.
 - [ ] Stage `mifunetu` holds the apt tool set, `gh`, `docker-ce-cli`, `docker-compose-plugin`, hadolint 2.12.0, uv, and pnpm 10.33.0. US-003 removed bun from this list. The stage also holds `TZ`, the pnpm, npm, and uv variables, and user `sandbox` with uid 1000.
-- [ ] Stage `mifunetu` contains none of these strings: `/opt/agro`, `agro-assets`, `cc-safety-net`, `AGRO_`, `HERMES_HOME`, `container=docker`.
+- [ ] Stage `mifunetu` contains none of these strings: `/opt/agro`, `agro-assets`, `cc-safety-net`, `AGRO_`, `HERMES_HOME`. US-013 moved `container=docker` back into this stage.
 - [ ] Stage `mifunetu` ends with `USER sandbox` and `WORKDIR /home/sandbox`. Stage `base` starts with `USER root`.
 - [ ] `cc-safety-net` installs under `/usr/local`, not under `/home/sandbox/.local`.
 - [ ] Stage `mifunetu` sets `org.opencontainers.image.source` to `https://github.com/mifunedev/agro` and `org.opencontainers.image.title` to `mifunetu`.
@@ -171,6 +171,18 @@ Status: DRAFT
 - [ ] A missing tarball path exits 2. A spec such as `github:mifunedev/agro` or `agro` installs from the registry, even when a local file named `agro` exists.
 - [ ] `.agro/scripts/__tests__/mifunetu-smoke.test.ts` covers each case above.
 - [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0.
+
+### US-013: Restore the container marker before the systemd install
+
+**Description:** As the operator, I want `ENV container=docker` set before stage `mifunetu` installs systemd and dbus. The package scripts then see the container marker, as they did before this change.
+
+**Acceptance Criteria:**
+
+- [ ] Stage `mifunetu` sets `ENV container=docker` before its first `apt-get install`. Stage `base` does not set it again.
+- [ ] `.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the order and no longer lists `container=docker` as a forbidden string in stage `mifunetu`.
+- [ ] `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` still passes its `ENV container=docker` assertion.
+- [ ] `docker run --rm mifunetu:dev printenv container` prints `docker` after a rebuild, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0.
+- [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and hadolint at the CI threshold exits 0.
 
 ## Summary
 
