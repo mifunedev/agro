@@ -1071,4 +1071,47 @@ describe("console hand provider create", () => {
     expect(h.calls).toHaveLength(1);
     expect(notices).toEqual([]);
   });
+
+  it("sends disposable true and keeps it in the free n4 retry", async () => {
+    const { h, hands } = provider([
+      CREDIT_REQUIRED,
+      FREE_TIER_ELIGIBLE,
+      { status: 202, body: { id: "u3", status: "running" } },
+    ]);
+    expect((await hands.create({ spec: "n8", disposable: true }, () => {})).ok).toBe(true);
+    expect(h.calls.map((c) => c.body)).toEqual([
+      { profile: "sandbox", spec: "n8", disposable: true },
+      undefined,
+      { profile: "sandbox", spec: "n4", disposable: true, freeTier: true },
+    ]);
+  });
+
+  it("sends no disposable key when the request does not set it", async () => {
+    const { h, hands } = provider([{ status: 202, body: { id: "u4", status: "running" } }]);
+    expect((await hands.create({ disposable: false }, () => {})).ok).toBe(true);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox" });
+  });
+
+  const NODE_DISPOSABLE: Reply = { status: 409, body: { error: "Node is disposable", code: "NODE_DISPOSABLE" } };
+
+  it.each(["pause", "resume"] as const)("maps HTTP 409 NODE_DISPOSABLE on %s to the delete line", async (verb) => {
+    const { hands } = provider([NODE_DISPOSABLE]);
+    expect(await hands[verb]("#4")).toEqual({
+      ok: false,
+      error: `hand #4 is disposable and cannot ${verb}: delete it with agro hands destroy #4`,
+    });
+  });
+
+  it("maps HTTP 409 NODE_DISPOSABLE on fork to the delete line", async () => {
+    const { hands } = provider([NODE_DISPOSABLE]);
+    expect(await hands.fork("quiet-otter", { spec: "n8" }, () => {})).toEqual({
+      ok: false,
+      error: "hand quiet-otter is disposable and cannot fork: delete it with agro hands destroy quiet-otter",
+    });
+  });
+
+  it("keeps the console message on destroy after HTTP 409 NODE_DISPOSABLE", async () => {
+    const { hands } = provider([NODE_DISPOSABLE]);
+    expect(await hands.destroy("4")).toEqual({ ok: false, error: "HTTP 409 NODE_DISPOSABLE: Node is disposable" });
+  });
 });
