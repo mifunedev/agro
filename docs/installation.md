@@ -201,8 +201,8 @@ See [Connecting → Mobile access over Tailscale](connecting.md#mobile-access-ov
 `agro tool install ffmpeg` installs `ffmpeg` and `ffprobe`. If `ffmpeg` has no
 `libx264` encoder, the install fails.
 
-The image also ships Node.js 24, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
-wget, lsof, htop, telnet, nano, openssh-client, unzip, and libatomic1.
+The image also ships Node.js 24, pnpm, uv, git, tmux, jq, ripgrep, curl, wget,
+lsof, htop, telnet, nano, openssh-client, unzip, and libatomic1.
 
 #### AWS CLI and Google Workspace CLI
 

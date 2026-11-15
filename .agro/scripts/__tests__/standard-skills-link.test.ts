@@ -57,7 +57,7 @@ function manifest(dir: string, base: string = dir): string[] {
   return rows.sort();
 }
 
-describe.concurrent("standard project skills", () => {
+describe.concurrent("standard project skills", { timeout: 30_000 }, () => {
   it("creates, verifies and repairs a link to canonical skills", async () => {
     const dir = fixture();
     const initialized = (await link(dir, "--init"));

@@ -240,7 +240,6 @@ describe.concurrent("verify-sandbox-image", () => {
     "gh --version",
     "docker --version",
     "docker compose version",
-    "bun --version",
     "uv --version",
     "hadolint --version",
   ])("rejects clean but non-version output from %s", async (tool) => {

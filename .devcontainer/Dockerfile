@@ -1,10 +1,6 @@
-FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS base
-
-ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
-ENV HERMES_HOME=/home/sandbox/harness/.hermes
+FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu
 
 ENV TZ=America/Denver
-
 ENV container=docker
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -18,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && command -v shellcheck >/dev/null \
  && test -x /usr/bin/python3 \
  && ldconfig -p | grep -q libatomic.so.1 \
+ && rm -f /etc/ssh/ssh_host_* \
  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
@@ -46,8 +43,6 @@ RUN case "$(dpkg --print-architecture)" in \
  && install -m 0755 /tmp/hadolint /usr/local/bin/hadolint \
  && rm -f /tmp/hadolint
 
-RUN BUN_INSTALL=/usr/local curl -fsSL https://bun.sh/install | bash
-
 RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 sh \
  && cp /root/.local/bin/uv /usr/local/bin/uv \
  && cp /root/.local/bin/uvx /usr/local/bin/uvx \
@@ -61,32 +56,69 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 SHELL ["/bin/bash", "-c"]
 
-RUN npm install -g cc-safety-net@2.6.8 \
- && npm cache clean --force \
- && rm -rf /tmp/*
-
-COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/openshell-policy.yaml /opt/agro-assets/.devcontainer/
-COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
-COPY .agro/cli/ /opt/agro/
-RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
- && chmod +x /opt/agro/dist/agro.js \
- && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
- && npm cache clean --force \
- && rm -rf /tmp/*
-
 ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"
 
 RUN userdel -r node 2>/dev/null || true \
  && useradd -m -u 1000 -s /bin/zsh sandbox \
  && echo "sandbox ALL=(ALL) ALL" > /etc/sudoers.d/sandbox \
  && chmod 0440 /etc/sudoers.d/sandbox \
- && groupadd -f docker && usermod -aG docker sandbox
+ && groupadd -f docker && usermod -aG docker sandbox \
+ && install -d -o sandbox -g sandbox /home/sandbox/.cache /home/sandbox/.cache/node \
+ && cp -a /root/.cache/node/corepack /home/sandbox/.cache/node/corepack \
+ && chown -R sandbox:sandbox /home/sandbox/.cache/node \
+ && install -o sandbox -g sandbox -m 0644 /dev/null /home/sandbox/.zshrc
 
 ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
 ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_PYTHON_INSTALL_DIR=/home/sandbox/.local/share/uv/python
 ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
+
+RUN printf '%s\n' \
+      'if [ "$(id -un)" = sandbox ]; then' \
+      "  for mifunetu_dir in $PNPM_HOME $NPM_USER_PREFIX/bin; do" \
+      '    case ":$PATH:" in *":$mifunetu_dir:"*) ;; *) PATH="$mifunetu_dir:$PATH" ;; esac' \
+      '  done' \
+      '  unset mifunetu_dir' \
+      '  export PATH' \
+      'fi' \
+      > /etc/profile.d/mifunetu-path.sh \
+ && chmod 0644 /etc/profile.d/mifunetu-path.sh \
+ && printf '%s\n' "emulate sh -c '. /etc/profile.d/mifunetu-path.sh'" >> /etc/zsh/zprofile
+
+LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
+LABEL org.opencontainers.image.title="mifunetu"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
+USER sandbox
+WORKDIR /home/sandbox
+ENTRYPOINT []
+CMD ["/bin/bash", "-l"]
+
+FROM mifunetu AS base
+# hadolint ignore=DL3002
+USER root
+WORKDIR /
+
+ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
+ENV HERMES_HOME=/home/sandbox/harness/.hermes
+
+RUN npm install -g cc-safety-net@2.6.8 --prefix /usr/local \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
+
+COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/openshell-policy.yaml /opt/agro-assets/.devcontainer/
+COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/cli/package.json .agro/cli/package-lock.json /opt/agro/
+RUN cd /opt/agro && npm install --ignore-scripts --no-audit --no-fund \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
+COPY .agro/cli/ /opt/agro/
+RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
+ && chmod +x /opt/agro/dist/agro.js \
+ && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
 
 FROM base AS home
 RUN install -d -o sandbox -g sandbox -m 0700 /home/sandbox/.ssh \

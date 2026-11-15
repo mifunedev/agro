@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1636-mifunetu-base-image",
+  "description": "mifunetu base image: an agro-free mifunetu stage at the root of .devcontainer/Dockerfile, published with each release (ADR #1635), plus two build performance improvements.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the build host and record the baseline",
+      "description": "As the advisor, I want a measured build host and build cost before any change. Each later story then compares against real numbers.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/mifunetu-base-image/evidence/perf-baseline.md` records `docker version`, `docker buildx version`, `nproc`, free memory, and free disk on the brain `agro-supervisor`.",
+        "The file records the wall time of two cold runs of `docker buildx build --target base --load -t mifunetu-baseline:base -f .devcontainer/Dockerfile .` at commit `0171d542`. Before each cold run, the story runs `docker builder prune -af`.",
+        "The file records the number of `apt-get update` commands in stage `base` and the size of image `mifunetu-baseline:base`.",
+        "The file records the wall time of two warm runs of the same command. Before each warm run, the story appends one empty line to a scratch copy of `.agro/cli/src/cli.ts` in a temporary build context. The story changes no tracked file.",
+        "The file records the build context size that `docker buildx build` reports for the default target.",
+        "After the story, `docker images` lists no `mifunetu-baseline` image. The story deletes only images and build cache that it created."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Executed by worker, re-checked by advisor: evidence/perf-baseline.md records docker 29.1.3, buildx 0.30.1, nproc 2, free memory 3905 MiB, free disk 8.0 GB (AC1). Cold --target base runs at 0171d542 after docker builder prune -af: 113.9 s and 129.1 s, mean 121.5 s (AC2). Stage base has 3 apt-get update commands; image size 391353542 bytes (AC3). Warm runs after a temp-context cli.ts change: 9.3 s and 10.2 s; npm install re-ran (AC4). Worktree context 39.95 MB vs 1.55 MB from git archive; .agro/cli/node_modules is 37 MB (AC5). docker images lists no mifunetu-baseline image; build cache 0 B (AC6). Evidence is not committed: .gitignore keeps task run artifacts local.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/mifunetu-base-image/evidence/perf-baseline.md"
+      ],
+      "commit": "none: evidence stays local under the .gitignore task-artifact rule"
+    },
+    {
+      "id": "US-002",
+      "title": "Split the agro-free mifunetu stage",
+      "description": "As the operator, I want a `mifunetu` stage at the root of `.devcontainer/Dockerfile`. The stage holds the general tools and user `sandbox`, so that one base image exists without agro (ADR #1635 D1 to D3).",
+      "acceptanceCriteria": [
+        "The first `FROM` line of `.devcontainer/Dockerfile` is `FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu`.",
+        "Stage `base` starts `FROM mifunetu` and holds only the agro additions: `ENV container=docker`, `AGRO_PROJECT_ROOT`, `HERMES_HOME`, `cc-safety-net`, `/opt/agro-assets`, and the agro CLI build.",
+        "Stage `mifunetu` holds the apt tool set, `gh`, `docker-ce-cli`, `docker-compose-plugin`, hadolint 2.12.0, uv, and pnpm 10.33.0. US-003 removed bun from this list. The stage also holds `TZ`, the pnpm, npm, and uv variables, and user `sandbox` with uid 1000.",
+        "Stage `mifunetu` contains none of these strings: `/opt/agro`, `agro-assets`, `cc-safety-net`, `AGRO_`, `HERMES_HOME`, `container=docker`.",
+        "Stage `mifunetu` ends with `USER sandbox` and `WORKDIR /home/sandbox`. Stage `base` starts with `USER root`.",
+        "`cc-safety-net` installs under `/usr/local`, not under `/home/sandbox/.local`.",
+        "Stage `mifunetu` sets `org.opencontainers.image.source` to `https://github.com/mifunedev/agro` and `org.opencontainers.image.title` to `mifunetu`.",
+        "A new test `.agro/scripts/__tests__/mifunetu-image.test.ts` asserts each criterion above against `.devcontainer/Dockerfile`.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/mifunetu-image.test.ts .agro/scripts/__tests__/sandbox-base-image.test.ts .agro/scripts/__tests__/sandbox-marker.test.ts .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts .agro/scripts/__tests__/hooks.test.ts .agro/scripts/__tests__/node-pnpm-parity.test.ts` exits 0.",
+        "`agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0. If DL3002 fires on `USER root` in stage `base`, the story adds DL3002 to `.hadolint.yaml` with a one-line reason.",
+        "`docker buildx build --target mifunetu --load -t mifunetu:dev -f .devcontainer/Dockerfile .` exits 0 on the brain."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Advisor re-ran: vitest on the 6 listed files exited 0 (290 tests) (AC1-AC9); agro run hadolint --failure-threshold warning exited 0 after DL3002 was ignored with a reason (AC10); docker buildx build --target mifunetu exited 0 and mifunetu:dev prints sandbox, 1000, /home/sandbox, no agro, v24.22.1 (AC11). Worker executed the --target base build: agro 0.37.0 and /usr/local/bin/cc-safety-net (AC2, AC6). Deviation accepted: base adds WORKDIR / so later stages keep their working directory. Reopened at Close: harness-catalog.test.ts 'sets NPM_CONFIG_PREFIX after the last image-layer global install' fails because the prefix now precedes the cc-safety-net install, which pins --prefix /usr/local. Round 1 accepted: a07bcaef renames the test to 'keeps every image-layer global install out of the user prefix'; advisor re-ran pnpm test:scripts in agro run: 3514 pass, 5 fail only in standard-skills-link.test.ts (known timeout flake, baseline-equivalent); worker showed the test fails without --prefix /usr/local.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".hadolint.yaml",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/cli/src/__tests__/harness-catalog.test.ts"
+      ],
+      "commit": "dd2ab0bc a07bcaef",
+      "rounds": 1
+    },
+    {
+      "id": "US-003",
+      "title": "Performance 1, cut mifunetu image bytes",
+      "description": "As the operator, I want stage `mifunetu` to drop unused bytes. A cold build then exports less data. The apt merge of `ad2cf369` made the cold build slower (`evidence/perf-apt.md`: mean 132.0 s before, 163.4 s after), so this story reverts that merge.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` keeps the three apt layers of commit `dd2ab0bc`. The single apt `RUN` of commit `ad2cf369` is gone.",
+        "The Dockerfile installs no bun. `git grep -n -i -w bun -- .devcontainer .agro/scripts docs` prints no match.",
+        "`.agro/scripts/verify-sandbox-image.sh` and `.agro/scripts/__tests__/verify-sandbox-image.test.ts` check no bun. `docs/installation.md` does not list Bun.",
+        "`docker run --rm mifunetu:dev bash -lc 'cd /tmp && pnpm --version'` prints `10.33.0` and downloads nothing.",
+        "`docker run --rm mifunetu:dev bash -lc 'gh --version && docker --version && docker compose version && hadolint --version && uv --version'` exits 0.",
+        "`.agro/tasks/mifunetu-base-image/evidence/perf-bytes.md` records two cold runs at `dd2ab0bc` and two cold runs at the story commit. The runs alternate, and `docker builder prune -af` runs before each. The file records the image size of each.",
+        "The mean cold wall time and the image size at the story commit are lower than at `dd2ab0bc`.",
+        "`agro run -- pnpm exec vitest run` on `mifunetu-image.test.ts`, `sandbox-base-image.test.ts`, `verify-sandbox-image.test.ts`, `check-pnpm-pin.test.ts`, and `node-pnpm-parity.test.ts` in `.agro/scripts/__tests__/` exits 0.",
+        "`agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Round 1. Advisor re-ran: git grep -i -w bun on .devcontainer .agro/scripts docs exits 1 (AC2); vitest on the 5 listed files exits 0, 111 tests (AC8); agro run hadolint exits 0 (AC9); mifunetu:dev 'cd /tmp && pnpm --version' prints 10.33.0 (AC4). Worker executed: apt region identical to dd2ab0bc (AC1); verify-sandbox-image.sh, its test, and docs/installation.md drop bun (AC3); tool check exits 0 (AC5); evidence/perf-bytes.md alternating cold runs: 158.3 s -> 147.5 s mean, 380557586 -> 327591125 bytes (AC6, AC7). New ENV COREPACK_HOME=/usr/local/share/corepack owned by uid 1000. Round 0 (ad2cf369 apt merge) was rejected: 132.0 s -> 163.4 s.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/scripts/verify-sandbox-image.sh",
+        ".agro/scripts/__tests__/verify-sandbox-image.test.ts",
+        "docs/installation.md",
+        ".agro/tasks/mifunetu-base-image/evidence/perf-bytes.md"
+      ],
+      "rounds": 1,
+      "commit": "b4770cbb"
+    },
+    {
+      "id": "US-004",
+      "title": "Performance 2, cache the agro CLI dependency layer",
+      "description": "As a developer, I want a change to agro CLI source to reuse the cached CLI dependency layer. A warm image rebuild after a source change then skips the full `npm install`.",
+      "acceptanceCriteria": [
+        "Stage `base` copies `.agro/cli/package.json` and `.agro/cli/package-lock.json` first, runs `npm install --ignore-scripts --no-audit --no-fund` in `/opt/agro`, then copies the rest of `.agro/cli/` and runs `npm run build`.",
+        "`.dockerignore` excludes `**/node_modules/`, so that the build context does not carry `.agro/cli/node_modules` from the host.",
+        "`/usr/local/bin/agro` resolves to `/opt/agro/dist/agro.js`, and `docker run --rm <base image> agro --version` prints the version in root `package.json`.",
+        "`.agro/tasks/mifunetu-base-image/evidence/perf-cli-layer.md` records the wall time of two warm runs at the US-003 commit and two warm runs at the US-004 commit. Each run is `docker buildx build --target base --load -t mifunetu-perf:base -f .devcontainer/Dockerfile .` after a one-line change to a scratch copy of `.agro/cli/src/cli.ts`. The story changes no tracked file for the measurement.",
+        "The file records the build context size before and after the `.dockerignore` change.",
+        "The mean warm wall time after the change is lower than the mean before the change. The log of the after run shows the `npm install` step as `CACHED`.",
+        "`.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the order of the manifest copy, the install, the source copy, and the build.",
+        "After the story, `docker images` lists no `mifunetu-perf` image."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor re-ran: vitest mifunetu-image, sandbox-base-image, hooks exits 0, 259 tests (AC7); agro run hadolint exits 0; inspected Dockerfile order: manifest COPY, npm install --ignore-scripts, source COPY, npm run build (AC1). Worker executed: .dockerignore **/node_modules/ (AC2); agro resolves to /opt/agro/dist/agro.js, version 0.37.0 (AC3); warm rebuild after cli.ts change 9.81 s -> 4.29 s mean, npm install CACHED (AC4, AC6); worktree context 39.95 MB -> 460.05 kB (AC5); no mifunetu-perf image left (AC8). esbuild postinstall was already skipped by npm allowScripts; --ignore-scripts changes no installed file.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".dockerignore",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/tasks/mifunetu-base-image/evidence/perf-cli-layer.md"
+      ],
+      "commit": "1d7353f8"
+    },
+    {
+      "id": "US-005",
+      "title": "Smoke test and publish mifunetu in the release workflow",
+      "description": "As the operator, I want each release to build, smoke-test, and push `ghcr.io/mifunedev/mifunetu` from the release commit. Consumers then get a tested base image with each agro version (ADR #1635 D4).",
+      "acceptanceCriteria": [
+        "A new script `.agro/scripts/mifunetu-smoke.sh <image>` exits 0 only when each check passes in `<image>`. The checks: `id -un` prints `sandbox`; `id -u` prints `1000`; `pwd` prints `/home/sandbox`; `command -v agro` fails; `node --version` starts with `v24.`. The last check: `npm i -g @mifune/agro && agro --version` exits 0 as user `sandbox` without `sudo`.",
+        "The script exits 2 and prints a usage line when `<image>` is missing.",
+        "Stage `mifunetu` adds `/home/sandbox/.local/bin` and `/home/sandbox/.local/share/pnpm` to `PATH` for login shells through a file in `/etc/profile.d/`. A login shell then finds `agro` after `npm i -g @mifune/agro`.",
+        "Stage `mifunetu` sets `CMD [\"/bin/bash\", \"-l\"]`. `docker run --rm mifunetu:dev` then starts a login shell in `/home/sandbox`, not a Node prompt. Stage `final` keeps `CMD [\"/sbin/init\"]`.",
+        "Job `publish-image` in `.github/workflows/release.yml` builds `--target mifunetu --load` after the agro image build in the same job. The build reuses the warm builder cache. The tags are `ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}` and `ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}`.",
+        "Job `publish-image` runs `.agro/scripts/mifunetu-smoke.sh` on that image before any `docker push` step of the job.",
+        "Job `publish-image` pushes the two mifunetu tags after the agro tags. No step moves a `latest` tag for mifunetu.",
+        "The job list of `release.yml` does not change.",
+        "`.agro/scripts/__tests__/release-reservation.test.ts` asserts the build, smoke, and push steps and their order.",
+        "A new test `.agro/scripts/__tests__/mifunetu-smoke.test.ts` runs the script with a fake `docker` on `PATH` and covers the pass case, each failed check, and the missing argument.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 on the brain against the US-004 image.",
+        "`agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor re-ran: vitest mifunetu-smoke, mifunetu-image, release-reservation, sandbox-privilege-boundary, sandbox-base-image exits 0, 130 tests (AC9, AC10, AC3/AC4 assertions); agro run shellcheck exits 0 (AC12); bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev exits 0, all 6 checks pass (AC1, AC11); no argument exits 2 with usage (AC2); inspected release.yml diff: mifunetu build after agro build, smoke before both pushes, mifunetu push after agro push, no latest, job list unchanged (AC5-AC8). Worker executed: login PATH holds both dirs; CMD /bin/bash -l with node entrypoint passthrough. Reopened after /code-review of PR #1637: fix findings 1 (langfuse bunx), 2 (CHANGELOG bun reason), 3 (push order), 4 (smoke installs the released CLI), 7 (pnpm pin check), 8 (scoped DL3002), 9 (one container for read-only checks), 10 (docs private-package note). Findings 5 and 6 need no change: npm skipped the esbuild postinstall before the change (allowScripts warning in the build log); no root process runs pnpm or corepack. Round 1 accepted (89349833): advisor re-ran vitest on mifunetu-smoke, mifunetu-image, release-reservation, sandbox-privilege-boundary, harness-catalog: 232 pass; hadolint 0; shellcheck 0; smoke on mifunetu:dev exits 0 with 7 checks; git grep for the bun runner in skills and scripts prints nothing; release.yml order is build, pack CLI, mifunetu smoke with version match, agro smokes, mifunetu push, agro push, promote. Round 2 reopened: CI behavioral-training-docs.test.ts 'pins the official Langfuse skill in skills.lock' fails, because the langfuse skill is a pinned vendored copy. Revert the langfuse edits; finding 1 becomes no change: npx is the skill default and works without bun. Round 2 accepted (2f3ea0c6): langfuse skill identical to 89349833~1; advisor re-ran pnpm test:scripts in agro run: only the known standard-skills-link timeouts fail.",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/skills/langfuse/SKILL.md",
+        ".agro/skills/langfuse/references/cli.md",
+        "CHANGELOG.md",
+        "docs/deployment-prebuilt-image.md",
+        ".hadolint.yaml"
+      ],
+      "commit": "5066c7d1 89349833 2f3ea0c6",
+      "rounds": 2
+    },
+    {
+      "id": "US-006",
+      "title": "Document mifunetu",
+      "description": "As a user, I want documentation for the published mifunetu image. The documentation names its tags, user, start directory, and the command that installs agro.",
+      "acceptanceCriteria": [
+        "`docs/deployment-prebuilt-image.md` has a section `## The mifunetu base image` that names the two tags, user `sandbox` with uid 1000, the start directory `/home/sandbox`, the absence of agro, and `npm i -g @mifune/agro`.",
+        "`.agro/skills/release/SKILL.md` \u00a7 Artifact set lists the two mifunetu tags. \u00a7 Operator prerequisites states that the operator sets the GHCR package `mifunedev/mifunetu` to public after its first push.",
+        "`CHANGELOG.md` `## [Unreleased]` has an `### Added` entry for mifunetu that links #1635.",
+        "`CHANGELOG.md` `## [Unreleased]` records the removal of bun from the image. The section also records the pnpm 10.33.0 pin for every image user and the faster rebuild after an agro CLI change.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/deployment-prebuilt-image.md` reports no finding on the new section."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Advisor inspected diff: docs section after The published image names both tags, no latest, user sandbox uid 1000, /home/sandbox, no agro, npm i -g @mifune/agro, with a code block (AC1); release SKILL artifact set and GHCR public prerequisite (AC2); CHANGELOG Added links #1635 (AC3); Changed, Removed, Fixed entries link #1636 (AC4); ste-check docs/deployment-prebuilt-image.md exits 0 (AC5). Worker executed: herdr-default, prompt-miner-retirement, release-notes, version-parity-contract tests exit 0, 32 tests.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        "docs/deployment-prebuilt-image.md",
+        ".agro/skills/release/SKILL.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "8bc2f83d"
+    },
+    {
+      "id": "US-007",
+      "title": "Manual review evidence",
+      "description": "As the advisor, I want a command transcript from fresh state. The transcript proves that the agro image keeps its user contract and that mifunetu meets its contract.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/mifunetu-base-image/evidence/manual-review.md` records each command and its output.",
+        "The transcript builds the default target and `--target mifunetu` from the task branch head on the brain.",
+        "The transcript shows that `docker run --rm --entrypoint id <new agro image> sandbox` and the same command on `ghcr.io/mifunedev/agro:0.37.0` print the same output.",
+        "The transcript shows that `/etc/agro/image-environment` in the new agro image equals the file in `ghcr.io/mifunedev/agro:0.37.0`, except for lines that name a version.",
+        "The transcript runs `bash .agro/scripts/mifunetu-smoke.sh` on the new mifunetu image with exit 0.",
+        "The transcript runs `agro run --image <new agro image> -- agro --version` with exit 0.",
+        "After the story, `docker images` lists only the images present before the story. The story deletes the build cache that it created."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Worker executed at f8e40e55, advisor reviewed transcript: default and mifunetu targets build (AC2); id sandbox identical to 0.37.0: uid=1000(sandbox) gid=1000(sandbox) groups=1000(sandbox),1001(docker) (AC3); image-environment diff: +COREPACK_HOME (this task) and 4 lines only in 0.37.0 (OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_EXPORTER_OTLP_TRACES_PROTOCOL, OTEL_TRACES_EXPORTER, TRACEPARENT) that come from the CI BuildKit environment at release build time, not from this change; reasoned as build-host noise (AC4); smoke on new mifunetu exits 0 (AC5); agro run --image mifunetu-review:agro -- agro --version prints 0.37.0 (AC6); agro image 401711573 vs 454419882 bytes, no bun (AC7); docker images back to the before set, cache pruned (AC1, AC8).",
+      "dependsOn": [
+        "US-005",
+        "US-006"
+      ],
+      "files": [
+        ".agro/tasks/mifunetu-base-image/evidence/manual-review.md"
+      ],
+      "commit": "none: evidence stays local under the .gitignore task-artifact rule"
+    },
+    {
+      "id": "US-008",
+      "title": "Harden mifunetu after code review",
+      "description": "As the operator, I want the second code review's security and portability findings fixed. User `sandbox` then cannot change code that root runs, and the smoke script runs on the bash of a macOS host.",
+      "acceptanceCriteria": [
+        "The image sets no `COREPACK_HOME`, and uid 1000 owns no path under `/usr/local`. `docker run --rm mifunetu:dev bash -lc 'cd /tmp && pnpm --version'` prints the pinned pnpm version and downloads nothing. The literal `corepack prepare pnpm@10.33.0 --activate` stays the only pin in the Dockerfile.",
+        "`/etc/profile.d/mifunetu-path.sh` changes `PATH` only for uid 1000, and the fragment reads `PNPM_HOME` and `NPM_USER_PREFIX` instead of literal home paths. `docker run --rm --user root mifunetu:dev bash -lc 'echo $PATH'` does not hold `/home/sandbox`.",
+        "`.agro/scripts/mifunetu-smoke.sh` uses no associative array and expands an empty array safely under `set -u`, so that bash 3.2 runs the script.",
+        "`docs/deployment-prebuilt-image.md` states that `sudo` in the image needs a password that user `sandbox` does not have, and names `docker run --user root` for system packages.",
+        "`.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the first two criteria against the Dockerfile.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild of `mifunetu:dev`.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and `agro run -- hadolint --config .hadolint.yaml --failure-threshold warning .devcontainer/Dockerfile` exits 0."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Second /code-review of PR #1637: fix findings 1 (COREPACK_HOME owned by uid 1000), 2 and 9 (profile.d PATH for root, literal paths), 6 (sudo docs), 7 (bash 3.2). No change for 3 (langfuse is pinned vendored; npx entries exist), 4 (publish-cli has its own checks), 5 (push order chosen in review round 1), 8 (check-pnpm-pin enforces parity), 10 (nested node_modules stay out of the seed by design). Accepted: advisor re-ran agro run pnpm test:scripts: 3522 pass, 4 fail only in standard-skills-link.test.ts (AC7); hadolint 0 (AC7); smoke on rebuilt mifunetu:dev exits 0 with 7 checks (AC6); root login PATH holds no /home/sandbox and find /usr/local -uid 1000 prints nothing (AC1, AC2); inspected diff: no COREPACK_HOME, sandbox cache primed with gosu from root's activated pin, fragment guarded on uid 1000 with PNPM_HOME and NPM_USER_PREFIX (AC1, AC2, AC5); worker ran the script under bash:3.2 (AC3); docs sudo note (AC4). Round 1 reopened after the third /code-review: fix 4 (second pnpm download), 8 (smoke failure message names the host path), 9 (prefix test misses npm i -g and continuation lines), 10 (licenses label on mifunetu). No change: 1 and 2 and 5 and 6 repeat earlier dispositions; 3 (global NPM_CONFIG_PREFIX predates this PR); 7 (the smoke runs from the release commit). Round 1 accepted (d4a0bae0): advisor re-ran agro run pnpm test:scripts: 3530 of 3530 pass; hadolint 0; shellcheck 0; smoke exits 0; pnpm --version prints 10.33.0. Round 2 reopened: CI verify-sandbox-image.sh runs pnpm as root and got 12.21.0, because d4a0bae0 moved root's corepack cache. Copy the cache instead. Round 2 accepted (412a79bf): advisor re-ran root pnpm --version with no network: 10.33.0; vitest mifunetu-image and verify-sandbox-image pass. Worker ran verify-sandbox-image.sh against a local default-target build: exit 0.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        "docs/deployment-prebuilt-image.md",
+        "CHANGELOG.md",
+        ".agro/cli/src/__tests__/harness-catalog.test.ts"
+      ],
+      "commit": "0f02172c d4a0bae0 412a79bf",
+      "rounds": 2
+    },
+    {
+      "id": "US-009",
+      "title": "Close the fourth code review",
+      "description": "As the operator, I want the last four review findings fixed. A flag argument to `docker run` then reaches a shell, and the release reads the CLI tarball name from structured output.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` sets `ENTRYPOINT []`. `docker run --rm mifunetu:dev -c 'echo hi'` fails to start or runs no `node`, and `docker run --rm mifunetu:dev bash -c 'echo hi'` prints `hi`. `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` accepts each `ENTRYPOINT []` line and rejects any other `ENTRYPOINT`.",
+        "The release pack step reads the tarball name from `npm pack --json` in a shell without a login profile.",
+        "`docs/deployment-prebuilt-image.md` names pnpm without a version number and points at the Dockerfile pin.",
+        "`.agro/scripts/mifunetu-smoke.sh` builds the install command one time and uses the same text for the run and for the failure message.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`. `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild."
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Fourth /code-review: fix 3 (node entrypoint routes flags to node), 4 (pack tarball name from login-shell stdout), 7 (docs hard-code the pnpm version), 8 (install command built twice). No change: 1 and 2 repeat earlier dispositions, and the langfuse skill already allowlists npx; 5 (uid 1000 PATH guard is the security fix); 6 (mifunetu has no home fragment, so the profile.d file is its only login PATH source); 9 (the second build is a cache hit and the smoke needs a loaded image); 10 (TZ and sudoers are operator preferences; the docs explain sudo). Accepted: advisor re-ran bash -c echo on mifunetu:dev (prints hi), smoke exits 0, vitest on sandbox-privilege-boundary, mifunetu-image, release-reservation, mifunetu-smoke passes (AC1-AC4). Worker ran pnpm test:scripts: only standard-skills-link timeouts fail (AC5); pack command against ghcr.io/mifunedev/agro:0.37.0 yields mifune-agro-0.37.0.tgz.",
+      "dependsOn": [
+        "US-008"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        "docs/deployment-prebuilt-image.md",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
+      ],
+      "commit": "f121fa44"
+    },
+    {
+      "id": "US-010",
+      "title": "Close the fifth code review",
+      "description": "As the operator, I want the smoke script to work from inside a sandbox. I also want a zsh login of user `sandbox` to get the same `PATH` as a bash login.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/mifunetu-smoke.sh` streams a tarball argument into the container on standard input. The script mounts no host path.",
+        "A zsh login shell of user `sandbox` in `mifunetu:dev` has `/home/sandbox/.local/bin` on `PATH` and shows no zsh first-run prompt. `docker run --rm mifunetu:dev zsh -lc 'echo $PATH'` holds `/home/sandbox/.local/bin` and exits 0.",
+        "The agro image keeps its own `.zshrc` and `.zshenv` from the `home` stage.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` and the same command with a tarball argument exit 0 after a rebuild.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`."
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Fifth /code-review: fix 3 (tarball bind mount fails when the Docker daemon cannot see the host path) and 4 (zsh login skips /etc/profile.d and shows zsh-newuser-install). No change: 1, 2, 5, 6, 7, 8 repeat earlier dispositions. Accepted: advisor re-ran zsh -lc PATH as sandbox (holds /home/sandbox/.local/bin), smoke exits 0, vitest mifunetu-image and mifunetu-smoke pass. Worker ran the tarball smoke over stdin (exit 0), pnpm test:scripts (only standard-skills-link timeouts), hadolint and shellcheck. Root zsh login PATH keeps the image ENV PATH entries, as before this PR; root's login shell is bash.",
+      "dependsOn": [
+        "US-009"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
+      ],
+      "commit": "98461138"
+    },
+    {
+      "id": "US-011",
+      "title": "Close the sixth code review",
+      "description": "As the operator, I want the smoke to prove the offline pnpm pin and reject a missing tarball. I also want the login `PATH` fragment to follow user `sandbox` after a uid remap.",
+      "acceptanceCriteria": [
+        "The smoke `pnpm-pin` probe runs with `COREPACK_ENABLE_NETWORK=0`.",
+        "`.agro/scripts/mifunetu-smoke.sh` exits 2 with a message when the second argument contains `/` or ends in `.tgz` and no such file exists.",
+        "`/etc/profile.d/mifunetu-path.sh` changes `PATH` only when `id -un` prints `sandbox`. After `usermod -u 501 sandbox` in a container, a bash login of user `sandbox` has `/home/sandbox/.local/bin` on `PATH`, and a root login does not.",
+        "The `CHANGELOG.md` `### Added` entry links #1636 and names ADR #1635.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild, and `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`."
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Sixth /code-review: fix 2 (pin probe with network), 3 (uid 1000 gate breaks after the entrypoint uid remap), 7 (missing tarball path falls back to a registry install), 8 (Added entry links the ADR, not the task issue). No change: 1, 4, 5, 6 repeat earlier dispositions; 9 (one version comparison in the workflow is acceptable). Accepted: advisor re-ran smoke (exit 0), missing ./nope.tgz (exit 2), root login PATH without /home/sandbox. Worker ran the uid 501 remap login check, vitest, pnpm test:scripts (only standard-skills-link timeouts), hadolint, shellcheck.",
+      "dependsOn": [
+        "US-010"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
+        "CHANGELOG.md"
+      ],
+      "commit": "97d5354a"
+    },
+    {
+      "id": "US-012",
+      "title": "Close the seventh code review",
+      "description": "As the operator, I want the smoke script to treat only an explicit file path as a tarball. A valid npm spec then installs from the registry.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/mifunetu-smoke.sh` treats the second argument as a tarball only when the argument ends in `.tgz` or `.tar.gz`, or starts with `./`, `../`, or `/`.",
+        "A missing tarball path exits 2. A spec such as `github:mifunedev/agro` or `agro` installs from the registry, even when a local file named `agro` exists.",
+        "`.agro/scripts/__tests__/mifunetu-smoke.test.ts` covers each case above.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Seventh /code-review: fix 4 (tarball heuristic). Advisor fixed 9 in the plan (stale bun in the US-002 criterion). No change: 1, 2, 3, 5, 6, 8, 10 repeat earlier dispositions; 7 (mifunetu and agro come from one Dockerfile and one job with a warm builder; a later release check can compare layers). Accepted: advisor re-ran vitest mifunetu-smoke (25 pass), shellcheck 0, smoke on mifunetu:dev exit 0, ./missing.tgz exit 2.",
+      "dependsOn": [
+        "US-011"
+      ],
+      "files": [
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
+      ],
+      "commit": "801faede"
+    },
+    {
+      "id": "US-013",
+      "title": "Restore the container marker before the systemd install",
+      "description": "As the operator, I want `ENV container=docker` set before stage `mifunetu` installs systemd and dbus. The package scripts then see the container marker, as they did before this change.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` sets `ENV container=docker` before its first `apt-get install`. Stage `base` does not set it again.",
+        "`.agro/scripts/__tests__/mifunetu-image.test.ts` asserts the order and no longer lists `container=docker` as a forbidden string in stage `mifunetu`.",
+        "`.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` still passes its `ENV container=docker` assertion.",
+        "`docker run --rm mifunetu:dev printenv container` prints `docker` after a rebuild, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0.",
+        "`agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`, and hadolint at the CI threshold exits 0."
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Eighth /code-review: fix 3 (ENV container=docker moved after the systemd and dbus install). No change: 1, 2, 4, 5, 6, 8, 9, 10 repeat earlier dispositions; 7 (a file: spec is outside the release use). Accepted: advisor re-ran printenv container (docker), smoke exit 0, vitest mifunetu-image and sandbox-privilege-boundary pass. Worker ran pnpm test:scripts (only standard-skills-link timeouts) and hadolint.",
+      "dependsOn": [
+        "US-012"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts"
+      ],
+      "commit": "30f3d646"
+    },
+    {
+      "id": "US-014",
+      "title": "Close the ninth code review",
+      "description": "As the operator, I want the smoke to test only the local image. I also want the pnpm changelog entry to state its exact scope.",
+      "acceptanceCriteria": [
+        "Each `docker run` in `.agro/scripts/mifunetu-smoke.sh` passes `--pull=never`. A fake-docker test asserts the flag.",
+        "The `CHANGELOG.md` `### Fixed` pnpm entry states that the pin holds in a new image home. The entry also states that a persisted home with an existing `~/.cache` keeps its current behavior.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:not-built` exits non-zero without a pull.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/mifunetu-smoke.test.ts .agro/scripts/__tests__/release-notes.test.ts` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Ninth /code-review: fix 1 as a changelog scope correction (an upgraded home with an existing ~/.cache keeps the pre-PR behavior; no regression) and 5 (--pull=never). No change: 2, 3, 4, 6, 7, 8, 9 repeat earlier dispositions. Accepted: advisor re-ran smoke on mifunetu:dev (exit 0), mifunetu:not-built (exit 1, no pull, image list unchanged), vitest mifunetu-smoke and release-notes (31 pass), shellcheck 0; changelog entry scoped to a new image home.",
+      "dependsOn": [
+        "US-013"
+      ],
+      "files": [
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
+        "CHANGELOG.md"
+      ],
+      "commit": "996dcb69"
+    },
+    {
+      "id": "US-015",
+      "title": "Remove the standard-skills-link timing flake",
+      "description": "As the operator, I want `standard-skills-link.test.ts` to pass on the 2-CPU brain under `agro run`. The full suite is then green at the PR head on that host.",
+      "acceptanceCriteria": [
+        "The parameterized `%s safe retirement` tests in `.agro/scripts/__tests__/standard-skills-link.test.ts` complete within their timeout on the brain. The fix changes only that test file. The fix keeps every assertion of the file.",
+        "Three consecutive runs of `agro run -- pnpm exec vitest run .agro/scripts/__tests__/standard-skills-link.test.ts` pass 41 of 41.",
+        "`agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit."
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Operator approved the fix through AskUserQuestion. Local runs at 9b7cf1fb and 294e4d15 timed out in 2 and 3 safe-retirement tests at 5000 ms. 394d46d8 sets a 30 s timeout for the concurrent standard-skills-link suite: 3 runs pass 41/41. Round 1: the fresh-worktree full suite then timed out once in cli-first-help.test.ts (sandbox upgrade argument test, 5064 ms of 5000 ms), the same flake class; the story now owns that file too. Accepted: worker ran each file 3 times (41/41, 27/27). Advisor ran a fresh worktree at f1bc8cab: typecheck 0, pnpm test:scripts 128 of 128 files and 3544 of 3544 tests.",
+      "dependsOn": [
+        "US-014"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/standard-skills-link.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts"
+      ],
+      "rounds": 1,
+      "commit": "394d46d8 f1bc8cab"
+    },
+    {
+      "id": "US-016",
+      "title": "Close the final code review",
+      "description": "As the operator, I want the published images to ship no SSH host private keys. I also want the release pack step to fail with a clear cause, and the entrypoint test to pin stage `final`.",
+      "acceptanceCriteria": [
+        "Stage `mifunetu` deletes `/etc/ssh/ssh_host_*` in the layer that installs `openssh-server`. `docker run --rm --user root mifunetu:dev sh -c 'ls /etc/ssh/ssh_host_* 2>/dev/null | wc -l'` prints `0`.",
+        "The agro image still generates host keys at start through `ssh-keygen -A` in `.devcontainer/entrypoint.sh`. The sandbox boot smoke in CI passes.",
+        "The release pack step runs with `set -o pipefail` and stops with a message that names the failed command.",
+        "`.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` asserts that stage `final` holds `ENTRYPOINT []`.",
+        "`docs/deployment-prebuilt-image.md` states that mifunetu ships no SSH host keys and names `ssh-keygen -A` for a user who starts `sshd`.",
+        "`agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0."
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Final /code-review: fix 1 (SSH host keys baked into the published images; pre-existing in the agro image), 6 (pack step without pipefail), 7 (entrypoint test no longer pins stage final). No change: 2 and 3 and 8 repeat earlier dispositions; 4 (a remote URL or package directory is outside the release use); 5 repeats #1638; 9 (sized timeouts were the operator-approved fix). Accepted: advisor re-ran ssh_host count in mifunetu:dev (0), smoke (exit 0), fresh worktree at 38af81ce: typecheck 0, pnpm test:scripts 128 of 128 files and 3545 of 3545 tests. Worker ran verify-sandbox-image.sh on the default target (exit 0) and ssh-keygen -A in the agro image (0 to 3 keys). The CI boot smoke runs on push.",
+      "dependsOn": [
+        "US-015"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
+        "docs/deployment-prebuilt-image.md"
+      ],
+      "commit": "38af81ce"
+    }
+  ],
+  "pr": 1637
+}

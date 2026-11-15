@@ -230,14 +230,17 @@ describe("harness catalog", () => {
       expect(DOCKERFILE).toContain('ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"');
     });
 
-    it("sets NPM_CONFIG_PREFIX after the last image-layer global install", () => {
-      const lines = DOCKERFILE.split("\n");
-      const configAt = lines.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
-      const lastGlobalInstallAt = lines.reduce(
-        (found, line, i) => (line.includes("npm install -g") ? i : found),
-        -1,
+    it("keeps every image-layer global install out of the user prefix", () => {
+      const instructions = DOCKERFILE.replace(/\\\n/g, " ").split("\n");
+      const configAt = instructions.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
+      expect(configAt).toBeGreaterThanOrEqual(0);
+      const globalInstall = /\bnpm\s+(?:install|i)\b[^\n]*?(?:\s-g\b|\s--global\b)/;
+      const imagePrefix = /\s--prefix[\s=]\/usr\/local(?:\s|$)/;
+      const intoUserPrefix = instructions.filter(
+        (instruction, i) => i > configAt && globalInstall.test(instruction) && !imagePrefix.test(instruction),
       );
-      expect(configAt).toBeGreaterThan(lastGlobalInstallAt);
+      expect(instructions.some((instruction, i) => i > configAt && globalInstall.test(instruction))).toBe(true);
+      expect(intoUserPrefix).toEqual([]);
     });
 
     it("exports the same prefix from the shell profile fragment", () => {
