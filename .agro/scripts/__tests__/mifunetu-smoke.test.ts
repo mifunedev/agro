@@ -112,7 +112,7 @@ describe("mifunetu-smoke.sh", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      "check 'agro-install' failed: 'npm i -g @mifune/agro@0.38.0 && agro --version' exited 243",
+      "check 'agro-install' failed: 'npm i -g @mifune/agro@0.38.0 >&2 && agro --version' exited 243",
     );
   });
 
@@ -123,7 +123,7 @@ describe("mifunetu-smoke.sh", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      `check 'agro-install' failed: 'npm i -g /tmp/agro.tgz && agro --version' exited 243 (tarball ${tarball} mounted at /tmp/agro.tgz)`,
+      `check 'agro-install' failed: 'npm i -g /tmp/agro.tgz >&2 && agro --version' exited 243 (tarball ${tarball} mounted at /tmp/agro.tgz)`,
     );
   });
 

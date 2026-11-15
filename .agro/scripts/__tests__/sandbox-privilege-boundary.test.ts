@@ -103,7 +103,9 @@ describe("VM image mode contract", () => {
     expect(dockerfile).toMatch(/^STOPSIGNAL SIGRTMIN\+3$/m);
     expect(dockerfile).toMatch(/^ENTRYPOINT \[\]$/m);
     expect(dockerfile).toMatch(/^CMD \["\/sbin\/init"\]$/m);
-    expect(dockerfile.match(/^ENTRYPOINT\b.*$/gm)).toEqual(["ENTRYPOINT []"]);
+    const entrypoints = dockerfile.match(/^ENTRYPOINT\b.*$/gm) ?? [];
+    expect(entrypoints.length).toBeGreaterThan(0);
+    for (const entrypoint of entrypoints) expect(entrypoint).toBe("ENTRYPOINT []");
   });
 });
 

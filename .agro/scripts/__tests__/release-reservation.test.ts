@@ -569,7 +569,10 @@ describe("release workflow contract", () => {
     expect(steps[build].run).toContain('-t "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"');
     expect(steps[build].run?.match(/-t "/g)).toHaveLength(2);
     expect(steps[pack].run).toContain('"$SMOKE_IMAGE"');
-    expect(steps[pack].run).toContain("cd /opt/agro && npm pack --ignore-scripts --pack-destination /out");
+    expect(steps[pack].run).toContain("-c 'cd /opt/agro && npm pack --json --ignore-scripts --pack-destination /out'");
+    expect(steps[pack].run).toContain("| jq -r '.[0].filename')");
+    expect(steps[pack].run).not.toMatch(/-lc|tail/);
+    expect(steps[pack].run).toContain('test -f "$RUNNER_TEMP/$tarball"');
     expect(steps[pack].run).toContain('echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"');
     expect(steps[smoke].run).toContain(
       'bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" "$MIFUNETU_AGRO_TARBALL"',

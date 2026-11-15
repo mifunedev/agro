@@ -44,7 +44,8 @@ The image has no `latest` tag. After the first push, a new GHCR package is
 private. Until the operator makes the package public, an anonymous pull fails.
 The image holds Node 24 on Debian Trixie slim and the general tools: the apt
 tool set, `gh`, the Docker CLI with the Compose plugin, `hadolint`, `uv`, and
-pnpm 10.33.0. The image holds no agro and no bun.
+pnpm. The pin `corepack prepare pnpm@<version>` in `.devcontainer/Dockerfile`
+sets the pnpm version. The image holds no agro and no bun.
 
 The image runs as user `sandbox` with uid 1000. The start directory is
 `/home/sandbox`, and the default command is `/bin/bash -l`. To add agro, run

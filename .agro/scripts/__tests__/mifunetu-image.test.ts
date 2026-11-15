@@ -85,13 +85,17 @@ describe("mifunetu image stage", () => {
     expect(dockerfile).not.toMatch(/\bb[u]n\b/i);
   });
 
-  it("ends as user sandbox in the home directory with a login shell as the default command", () => {
-    expect(instructions(mifunetu).slice(-3)).toEqual([
+  it("ends as user sandbox in the home directory with no entrypoint and a login shell as the default command", () => {
+    expect(instructions(mifunetu).slice(-4)).toEqual([
       "USER sandbox",
       "WORKDIR /home/sandbox",
+      "ENTRYPOINT []",
       'CMD ["/bin/bash", "-l"]',
     ]);
-    expect(mifunetu.filter((line) => /^(CMD|ENTRYPOINT)\b/.test(line))).toEqual(['CMD ["/bin/bash", "-l"]']);
+    expect(mifunetu.filter((line) => /^(CMD|ENTRYPOINT)\b/.test(line))).toEqual([
+      "ENTRYPOINT []",
+      'CMD ["/bin/bash", "-l"]',
+    ]);
   });
 
   it("adds the sandbox user bin directories to PATH only for uid 1000 login shells through /etc/profile.d", () => {

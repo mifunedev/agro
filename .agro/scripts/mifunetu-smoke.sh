@@ -72,9 +72,9 @@ if [[ -f $agro_package ]]; then
   install_spec=/tmp/agro.tgz
 fi
 
-install_command="npm i -g $(printf '%q' "$install_spec") && agro --version"
+install_command="npm i -g $(printf '%q' "$install_spec") >&2 && agro --version"
 install_status=0
-agro_version=$(docker run --rm ${mount[@]+"${mount[@]}"} "$image" bash -lc "npm i -g $(printf '%q' "$install_spec") >&2 && agro --version") || install_status=$?
+agro_version=$(docker run --rm ${mount[@]+"${mount[@]}"} "$image" bash -lc "$install_command") || install_status=$?
 if [[ $install_status -ne 0 ]]; then
   if [[ $install_spec != "$agro_package" ]]; then
     fail agro-install "'$install_command' exited $install_status (tarball $agro_package mounted at $install_spec)"

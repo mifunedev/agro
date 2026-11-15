@@ -120,7 +120,7 @@ jobs:
         run: |
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
           tarball=$(docker run --rm --user root --entrypoint /bin/bash -v "$RUNNER_TEMP:/out" "$SMOKE_IMAGE" \
-            -lc 'cd /opt/agro && npm pack --ignore-scripts --pack-destination /out' | tail -n 1)
+            -c 'cd /opt/agro && npm pack --json --ignore-scripts --pack-destination /out' | jq -r '.[0].filename')
           test -f "$RUNNER_TEMP/$tarball"
           echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"
 

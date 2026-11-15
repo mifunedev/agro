@@ -88,6 +88,7 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 USER sandbox
 WORKDIR /home/sandbox
+ENTRYPOINT []
 CMD ["/bin/bash", "-l"]
 
 FROM mifunetu AS base
