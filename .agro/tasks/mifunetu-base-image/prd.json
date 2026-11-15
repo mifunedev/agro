@@ -328,15 +328,16 @@
         "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0."
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "Seventh /code-review: fix 4 (tarball heuristic). Advisor fixed 9 in the plan (stale bun in the US-002 criterion). No change: 1, 2, 3, 5, 6, 8, 10 repeat earlier dispositions; 7 (mifunetu and agro come from one Dockerfile and one job with a warm builder; a later release check can compare layers).",
+      "passes": true,
+      "notes": "Seventh /code-review: fix 4 (tarball heuristic). Advisor fixed 9 in the plan (stale bun in the US-002 criterion). No change: 1, 2, 3, 5, 6, 8, 10 repeat earlier dispositions; 7 (mifunetu and agro come from one Dockerfile and one job with a warm builder; a later release check can compare layers). Accepted: advisor re-ran vitest mifunetu-smoke (25 pass), shellcheck 0, smoke on mifunetu:dev exit 0, ./missing.tgz exit 2.",
       "dependsOn": [
         "US-011"
       ],
       "files": [
         ".agro/scripts/mifunetu-smoke.sh",
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
-      ]
+      ],
+      "commit": "801faede"
     }
   ],
   "pr": 1637
