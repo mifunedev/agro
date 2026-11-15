@@ -39,8 +39,9 @@ let bin = "";
 let dockerLog = "";
 let dockerStdin = "";
 
-function run(args: string[], fail = "") {
+function run(args: string[], fail = "", cwd = process.cwd()) {
   return spawnSync("bash", [SCRIPT, ...args], {
+    cwd,
     encoding: "utf8",
     env: {
       ...process.env,
@@ -101,7 +102,7 @@ describe("mifunetu-smoke.sh", () => {
     expect(result.stderr).toContain(`1 check(s) failed in ${IMAGE}`);
   });
 
-  it("streams a tarball on standard input and mounts no host path when the second argument is a file", () => {
+  it("streams an existing .tgz on standard input and mounts no host path", () => {
     const tarball = join(fixture, "mifune-agro-0.38.0.tgz");
     writeFileSync(tarball, "tarball-bytes\n", "utf8");
     const result = run([IMAGE, tarball]);
@@ -134,7 +135,7 @@ describe("mifunetu-smoke.sh", () => {
     );
   });
 
-  it("installs a package spec without standard input when the second argument is not a file", () => {
+  it("installs a versioned scoped spec from the registry without standard input", () => {
     const result = run([IMAGE, "@mifune/agro@0.38.0"]);
 
     expect(result.status).toBe(0);
@@ -149,17 +150,47 @@ describe("mifunetu-smoke.sh", () => {
     expect(script).not.toMatch(/(^|[\s(])(-v|--volume|--mount)[\s=]["$\/]/);
   });
 
-  it.each(["./nope.tgz", "dist/agro", "agro-0.38.0.tgz"])(
+  it.each(["./x.tgz", "../x.tgz", "/abs/missing.tar.gz", "agro-0.38.0.tgz", "/abs/agro"])(
     "exits 2 and names the path when the tarball argument %s does not exist",
     (missing) => {
-      const result = run([IMAGE, join(fixture, "..", "absent-dir", missing)]);
-      const relative = run([IMAGE, missing]);
+      const result = run([IMAGE, missing], "", fixture);
 
-      for (const outcome of [result, relative]) expect(outcome.status).toBe(2);
-      expect(relative.stderr).toContain(`mifunetu-smoke: tarball ${missing} does not exist`);
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain(`mifunetu-smoke: tarball ${missing} does not exist`);
       expect(readFileSync(dockerLog, "utf8")).toBe("");
     },
   );
+
+  it.each(["github:mifunedev/agro", "git+https://github.com/mifunedev/agro.git", "dist/agro"])(
+    "installs the npm spec %s from the registry without standard input",
+    (spec) => {
+      const result = run([IMAGE, spec], "", fixture);
+
+      expect(result.status).toBe(0);
+      expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g ${spec} >&2 && agro --version`);
+      expect(existsSync(dockerStdin)).toBe(false);
+    },
+  );
+
+  it("installs a bare agro spec from the registry even when a local file named agro exists", () => {
+    writeFileSync(join(fixture, "agro"), "not-a-tarball\n", "utf8");
+    const result = run([IMAGE, "agro"], "", fixture);
+
+    expect(result.status).toBe(0);
+    expect(calls()[1]).toBe(`run --rm ${IMAGE} bash -lc npm i -g agro >&2 && agro --version`);
+    expect(existsSync(dockerStdin)).toBe(false);
+  });
+
+  it("streams an existing relative .tar.gz on standard input", () => {
+    writeFileSync(join(fixture, "agro.tar.gz"), "tar-gz-bytes\n", "utf8");
+    const result = run([IMAGE, "agro.tar.gz"], "", fixture);
+
+    expect(result.status).toBe(0);
+    expect(calls()[1]).toBe(
+      `run --rm -i ${IMAGE} bash -lc cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version`,
+    );
+    expect(readFileSync(dockerStdin, "utf8")).toBe("tar-gz-bytes\n");
+  });
 
   it("treats a scoped package name as a package spec, not a tarball path", () => {
     const result = run([IMAGE, "@mifune/agro"]);

@@ -8,7 +8,11 @@ fi
 
 image=$1
 agro_package=${2:-@mifune/agro}
-if [[ ($agro_package == */* && $agro_package != @* || $agro_package == *.tgz) && ! -f $agro_package ]]; then
+tarball=false
+case $agro_package in
+  *.tgz | *.tar.gz | ./* | ../* | /*) tarball=true ;;
+esac
+if [[ $tarball == true && ! -f $agro_package ]]; then
   echo "mifunetu-smoke: tarball $agro_package does not exist" >&2
   exit 2
 fi
@@ -72,7 +76,7 @@ expect pnpm-pin "^${pnpm_pin//./\\.}$"
 run_flags=()
 install_input=/dev/null
 install_command="npm i -g $(printf '%q' "$agro_package") >&2 && agro --version"
-if [[ -f $agro_package ]]; then
+if [[ $tarball == true ]]; then
   run_flags=(-i)
   install_input=$agro_package
   install_command="cat > /tmp/agro.tgz && npm i -g /tmp/agro.tgz >&2 && agro --version"
