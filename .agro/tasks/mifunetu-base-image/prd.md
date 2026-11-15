@@ -149,6 +149,18 @@ Status: DRAFT
 - [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` and the same command with a tarball argument exit 0 after a rebuild.
 - [ ] `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`.
 
+### US-011: Close the sixth code review
+
+**Description:** As the operator, I want the smoke to prove the offline pnpm pin and reject a missing tarball. I also want the login `PATH` fragment to follow user `sandbox` after a uid remap.
+
+**Acceptance Criteria:**
+
+- [ ] The smoke `pnpm-pin` probe runs with `COREPACK_ENABLE_NETWORK=0`.
+- [ ] `.agro/scripts/mifunetu-smoke.sh` exits 2 with a message when the second argument contains `/` or ends in `.tgz` and no such file exists.
+- [ ] `/etc/profile.d/mifunetu-path.sh` changes `PATH` only when `id -un` prints `sandbox`. After `usermod -u 501 sandbox` in a container, a bash login of user `sandbox` has `/home/sandbox/.local/bin` on `PATH`, and a root login does not.
+- [ ] The `CHANGELOG.md` `### Added` entry links #1636 and names ADR #1635.
+- [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild, and `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.

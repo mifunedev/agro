@@ -290,6 +290,31 @@
         ".agro/scripts/__tests__/mifunetu-smoke.test.ts"
       ],
       "commit": "98461138"
+    },
+    {
+      "id": "US-011",
+      "title": "Close the sixth code review",
+      "description": "As the operator, I want the smoke to prove the offline pnpm pin and reject a missing tarball. I also want the login `PATH` fragment to follow user `sandbox` after a uid remap.",
+      "acceptanceCriteria": [
+        "The smoke `pnpm-pin` probe runs with `COREPACK_ENABLE_NETWORK=0`.",
+        "`.agro/scripts/mifunetu-smoke.sh` exits 2 with a message when the second argument contains `/` or ends in `.tgz` and no such file exists.",
+        "`/etc/profile.d/mifunetu-path.sh` changes `PATH` only when `id -un` prints `sandbox`. After `usermod -u 501 sandbox` in a container, a bash login of user `sandbox` has `/home/sandbox/.local/bin` on `PATH`, and a root login does not.",
+        "The `CHANGELOG.md` `### Added` entry links #1636 and names ADR #1635.",
+        "`bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0 after a rebuild, and `agro run -- pnpm test:scripts` fails only in `standard-skills-link.test.ts`."
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Sixth /code-review: fix 2 (pin probe with network), 3 (uid 1000 gate breaks after the entrypoint uid remap), 7 (missing tarball path falls back to a registry install), 8 (Added entry links the ADR, not the task issue). No change: 1, 4, 5, 6 repeat earlier dispositions; 9 (one version comparison in the workflow is acceptable).",
+      "dependsOn": [
+        "US-010"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/mifunetu-image.test.ts",
+        ".agro/scripts/mifunetu-smoke.sh",
+        ".agro/scripts/__tests__/mifunetu-smoke.test.ts",
+        "CHANGELOG.md"
+      ]
     }
   ],
   "pr": 1637
