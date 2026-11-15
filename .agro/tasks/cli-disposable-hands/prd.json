@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1646-cli-disposable-hands",
+  "description": "agro CLI disposable hands: --disposable on agro node create and agro hands create (console), clear lines for HTTP 422 DISPOSABLE_PROFILE_UNSUPPORTED and HTTP 409 NODE_DISPOSABLE, help text, and changelog (follow-up of mifunedev/agro-console#786).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create a disposable node with agro node create",
+      "description": "As a console user, I want `agro node create --disposable` to request a disposable node. I then get a hand with no data volume without a call to the raw API.",
+      "acceptanceCriteria": [
+        "`agro node create --disposable` sends `\"disposable\": true` in the `POST /api/nodes` body. Without the flag, the body holds no `disposable` key.",
+        "After a credit refusal, the free `n4` retry of `createConsoleNode` keeps `\"disposable\": true`.",
+        "When the console answers HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED`, the command prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox` to stderr and exits 1.",
+        "The CLI sends the request for `--profile agro --disposable` and lets the console refuse it. The CLI adds no local profile rule.",
+        "The `create` help text in `.agro/cli/src/commands/node.ts` names `--disposable` and states these rules: A disposable node has no data volume. Pause, resume, fork, snapshot, convert, and disk grow return HTTP 409 `NODE_DISPOSABLE`. `agro node delete <id>` deletes the node. The platform deletes a running disposable node at the end of the credit grace window after the low-balance email. The platform also deletes a running disposable node at the end of the free-tier allowance.",
+        "Tests in `.agro/cli/src/__tests__/node.test.ts` fail before the change and pass after the change. The tests cover the body with and without the flag, the free `n4` retry, and the HTTP 422 line.",
+        "`npm run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/__tests__/node.test.ts"
+      ],
+      "external": false
+    },
+    {
+      "id": "US-002",
+      "title": "Create a disposable hand and explain the refused verbs in agro hands\n\n- [ ] The CLI sends the request for `--profile agro --disposable`, and the console refuses the request. The CLI adds no local profile rule.\n\n**Acceptance Criteria:**\n\n- [ ] `HandRequest` in `.agro/cli/src/lib/hands/provider.ts` gets the optional boolean `disposable`. The console provider sends `\"disposable\": true` when the request sets it.\n- [ ] `agro hands create --disposable` creates a disposable hand through the console provider.\n- [ ] With `hands.provider` `exedev`, `agro hands create --disposable` exits 1 before any provider call and prints `--disposable applies only to console hands`.\n- [ ] When the console answers HTTP 409 `NODE_DISPOSABLE` to `agro hands pause`, `agro hands resume`, or `agro hands fork`, the command prints `hand <ref> is disposable and cannot <verb>: delete it with agro hands destroy <ref>` to stderr and exits 1.\n- [ ] Any other refusal keeps its current message.\n- [ ] The `create` help text in `.agro/cli/src/commands/hands.ts` names `--disposable`, the console-only rule, the refused verbs, the delete command, and the deletion rule of US-001.\n- [ ] `CHANGELOG.md` `## [Unreleased]` lists the flag under `### Added`. The entry names `--disposable`, HTTP 409 `NODE_DISPOSABLE`, HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED`, and the deletion rule.\n- [ ] `docs/lifecycle-commands.md` stays unchanged.\n- [ ] Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` and the console provider tests in `.agro/cli/src/__tests__/node.test.ts` fail before the change and pass after the change.\n- [ ] `npm run typecheck` exits 0.\n\n### US-003: Capture the manual review transcript",
+      "description": "As the reviewer, I want a command transcript of each disposable path. The PR then shows the behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/cli-disposable-hands/evidence/manual-review.md` records these commands through `node .agro/cli/dist/agro.js` after `npm --prefix .agro/cli run build`, against a local stub console: `node create --disposable`, with the request body that the stub received; `node create --profile agro --disposable`, with the HTTP 422 line; `hands pause`, `hands resume`, and `hands fork` on a disposable hand, each with the HTTP 409 line.",
+        "The story commits the stub source as `evidence/stub-console.mjs`. The story adds each evidence file with `git add -f`, because `.gitignore` ignores task evidence.",
+        "Before the run, the story checks that the stub port is free. If the port is busy, the story sets `blocked`, names the process, and stops no process.",
+        "The story passes each environment value inline and uses a throwaway token. The story writes no env file and no credentials file. The story deletes its temp directory after the run.",
+        "`external` After the agro release, the operator approves one live run. The run creates one disposable hand on agro-console, records the refused `pause`, and deletes the hand."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        "CHANGELOG.md"
+      ],
+      "external": false
+    }
+  ]
+}
