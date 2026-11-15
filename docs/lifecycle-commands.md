@@ -655,7 +655,7 @@ agro node create --spec <spec>   # create a node with another spec
 agro node create --spec n4 --profile agro --t3   # create an agro-profile node with T3
 agro node list                   # every node: id, name, profile, status, IPv4
 agro node delete <id>            # destroy one node after a confirmation
-agro node check                  # check the SSH key and the free tier, create nothing
+agro node check                  # check the SSH key, the free tier, and the credit, create nothing
 ```
 
 - Each verb finds the token and the URL in the same order as `agro auth`. If
@@ -675,12 +675,23 @@ agro node check                  # check the SSH key and the free tier, create n
 
   `--spec` is optional. The spec is `n4` by default. `--name` sets the node
   name.
-- If the console refuses the spec with HTTP 403 `PAYMENTS_DISABLED`, the
-  command sends one more request for `n4` in the free tier. Before that
-  request, the command prints
-  `spec <spec> is not in the free tier; creating n4` to stderr. When the
-  requested spec is `n4`, the command prints no notice. Any other error
-  makes the command exit 1 after the first request.
+- A credit refusal is HTTP 402 `CREDIT_REQUIRED` or HTTP 403
+  `PAYMENTS_DISABLED`. After a credit refusal, the command reads
+  `GET /api/free-tier`:
+  - If the reply holds `eligible: false`, the command sends no second request.
+    The command prints `top up credit at <console url>/billing` to stderr and
+    exits 1 with the first refusal.
+  - If the account is eligible, or the read fails, the command sends one more
+    request for `n4` in the free tier. Before that request, the command prints
+    `spec <spec> is not in the free tier; creating n4` to stderr. When the
+    requested spec is `n4`, the command prints no notice. The console decides
+    the eligibility of that request.
+  - If the `n4` request fails, the command prints
+    `top up credit at <console url>/billing` to stderr and exits 1 with the
+    error of that request.
+
+  Any other error makes the command exit 1 after the first request. With
+  `--json`, stdout holds only the JSON line, and each notice goes to stderr.
 - A node with the profile `sandbox` from `agro node create` is not a hand. It
   is a hand only when a brain manages the node.
 - `--docker`, `--t3`, and `--code-server` require `--profile agro`. If the
@@ -712,11 +723,26 @@ agro node check                  # check the SSH key and the free tier, create n
   `--ssh-key`, the command finds `~/.ssh/id_ed25519.pub` among the console SSH
   keys by key identity. With `--ssh-key <uuid>`, the command finds each id among
   the console SSH keys. The command also reads the free tier eligibility of
-  the console account. The command prints one line for each check, for example
+  the console account, and the org credit from `GET /api/billing/balance`.
+  The command prints one line for each check, for example
   `ok ssh-key <id>` or `fail ssh-key <id>: ...`. Each failure line names a
-  remedy. An account that is not eligible for the free tier gets a line that
+  remedy. An account outside the free tier gets a line that
   starts with `warn free-tier: not eligible`. A warn line does not change the
-  exit status. The command exits 1 when a check fails. Otherwise it exits 0.
+  exit status. The command exits 1 when a check fails. Otherwise the command
+  exits 0.
+- The credit line of `agro node check` is one of these lines:
+  - `ok credit: payments are off` when `paymentsEnabled` is `false`.
+  - `ok credit: balance $<amount>` when the balance is above 0. The amount is
+    in USD to 2 decimals. The line adds `, auto top-up on` when auto top-up is
+    on.
+  - `ok credit: balance $<amount>, auto top-up on` when the balance is 0 or
+    less and auto top-up is on. A negative amount prints as `-$0.04`.
+  - `warn credit: no credit (balance $<amount>) — top up at <console url>/billing`
+    when the balance is 0 or less and auto top-up is off.
+  - `warn credit: <message>` when the read fails. A console without the route
+    answers HTTP 404, and the line names that answer.
+
+  The credit line never changes the exit status.
 - `--json` on `create` and `list` prints JSON instead of text.
 
 ## Hands from a brain: `agro hands`
@@ -810,9 +836,17 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   the brain pins the host key by the hand uuid.
 - `agro hands create` requests a hand with the profile `sandbox`, waits up to
   15 minutes for the status `running`, then prints the index, the alias, and
-  the SSH host. If the free tier does not offer the requested `--spec`, the
-  command prints `spec <spec> is not in the free tier; creating n4` and
-  creates `n4`.
+  the SSH host. After a credit refusal (HTTP 402 `CREDIT_REQUIRED` or HTTP 403
+  `PAYMENTS_DISABLED`), the command follows the credit rule of
+  `agro node create`. The console refuses `GET /api/free-tier` for a brain
+  token, so the command always sends the free `n4` request and the console
+  decides the eligibility. Before that request, the command prints
+  `spec <spec> is not in the free tier; creating n4`. If the `n4` request
+  fails, the command prints `top up credit at <console url>/billing` to stderr
+  and exits 1.
+- `agro hands list` shows no credit state. A brain token cannot read
+  `/api/billing/balance`. Run `agro node check` with an operator token to read
+  the credit of the org.
 - The fork takes the spec of the source hand. `--spec` sets another spec. If
   the console response names the fork, the command waits for the fork as
   `create` does and prints the same lines. Otherwise, the command prints the
@@ -910,7 +944,7 @@ lists `docker-compose.yml` and nothing else. It never runs
 
 - `access.ssh` → no `docker-compose.ssh.yml`, so no sshd and no published SSH port
 - `access.dockerSocket` → no `docker-compose.docker-sock.yml`, so no host Docker socket
-- `composeOverrides[]` → every extra overlay path is ignored
+- `composeOverrides[]` → no extra overlay path takes effect
 
 Secrets still reach that container: compose auto-loads the `.devcontainer/.env`
 beside the compose file, and that file is a symlink to the root `.env`.
