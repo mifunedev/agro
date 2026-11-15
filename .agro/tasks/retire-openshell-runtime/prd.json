@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1652-retire-openshell-runtime",
+  "description": "Retire the OpenShell runtime: remove agro sandbox install openshell, the OpenShell execution target, docs, validation journey, and tests; keep the agro run default image under defaultImage(config).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the OpenShell runtime from the CLI and the image",
+      "description": "As an operator, I want the CLI and the sandbox image to hold no OpenShell code. Then Docker is the only persistent sandbox runtime.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/execution/openshell-target.ts`, `.agro/cli/src/__tests__/openshell-target.test.ts`, `.agro/cli/src/__tests__/openshell-runtime-contract.test.ts`, `.devcontainer/openshell-main.sh`, and `.devcontainer/agro-image-env.sh` do not exist.",
+        "The worker renames `.devcontainer/openshell-policy.yaml` to `.devcontainer/egress-policy.yaml`. The new file holds only the `version` key and the `network_policies` section. `egressAllowHosts({ version: 1 })` returns the same host list as before the rename.",
+        "`lib/execution/index.ts` exports `defaultImage(config)` in place of `openshellImage(config)`. `defaultImage` returns `image.ref` when `image.ref` is not empty, and `officialImageRef(AGRO_VERSION)` otherwise. `agro run` container mode uses `defaultImage` when `--image` is absent.",
+        "`RUNTIME_CATALOG` holds `docker` and `microsandbox` only. `SANDBOX_RUNTIMES` equals `[\"docker\"]`. The agro.json `runtime` field accepts only `\"docker\"`.",
+        "`agro sandbox install openshell` exits 1 and prints `unknown runtime \"openshell\"`.",
+        "The worker deletes each code path that only a non-docker runtime reaches. The paths are the OpenShell branches in `commands/sandbox.ts`, `lib/execution/index.ts`, `lib/registry.ts`, `commands/egress.ts`, and `lib/runtimes/verbs.ts`, plus the OpenShell lines of the `controllers/sandbox.ts` help text.",
+        "`git grep -n -i openshell -- .agro/cli .devcontainer` prints nothing.",
+        "`agro run -- pnpm run typecheck` exits 0.",
+        "`agro run -- pnpm test` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src",
+        ".devcontainer"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Remove OpenShell from the docs, the sandbox skill, and the changelog",
+      "description": "As an operator, I want the docs and the sandbox skill to describe only the Docker runtime. Then no instruction routes work to a removed runtime.",
+      "acceptanceCriteria": [
+        "`docs/runtimes/openshell.md` and `.agro/skills/sandbox/checks/openshell-journey.sh` do not exist.",
+        "`.agro/skills/sandbox/references/validation.md` has no OpenShell journey scenario, and its contents list has no link to that scenario.",
+        "Routing case R8 in `.agro/scripts/__tests__/fixtures/sandbox-routing/cases.json` asks for a persistent Docker workspace. The R8 oracle stays `{ \"route\": \"lifecycle\", \"owners\": [\"lifecycle\", \"herdr\", \"worktrees\"] }`.",
+        "`instructionFiles` in `.agro/scripts/__tests__/helpers/sandbox-routing.ts` does not list `docs/runtimes/openshell.md`. The provenance test in `.agro/scripts/__tests__/sandbox-routing.test.ts` names only existing documents.",
+        "`CHANGELOG.md` `## [Unreleased]` has a `### Removed` entry for `agro sandbox install openshell` and the OpenShell runtime.",
+        "`git grep -n -i openshell -- ':!.agro/tasks' ':!CHANGELOG.md' ':!.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json'` prints nothing.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file in `docs/` and `.agro/skills/sandbox/`."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs",
+        ".agro/skills/sandbox",
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/sandbox-routing.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record the sandbox routing replay again",
+      "description": "As a maintainer, I want the routing replay to match the new instruction files so that the routing test proves the current sandbox skill.",
+      "acceptanceCriteria": [
+        "Seventeen fresh decision-only agents record one decision each for R1 to R17 against the final instruction files and `cases.json`.",
+        "Each record in `.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json` matches its oracle.",
+        "The provenance in `decisions.json` comes from `sourceProvenance()`.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0.",
+        "`agro run -- pnpm test` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Capture the manual review transcript",
+      "description": "As a reviewer, I want a command transcript from the branch CLI so that I can see the removed runtime. The transcript also shows the kept `agro run` default image.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/retire-openshell-runtime/evidence/manual-review.md` holds the commands and the observed output.",
+        "The transcript builds the branch CLI with `agro run -- pnpm run build:harness`.",
+        "The transcript shows `node .agro/cli/dist/agro.js sandbox install openshell` exits 1 with `unknown runtime \"openshell\"`.",
+        "The transcript shows `node .agro/cli/dist/agro.js sandbox install --help` lists no `openshell` runtime.",
+        "The transcript creates a new temp git project, and the project does not exist before the run. The project agro.json sets `image.ref` to `alpine:3.20`. In the project, `node <worktree>/.agro/cli/dist/agro.js run -- cat /etc/alpine-release` exits 0 and prints the Alpine version. The transcript deletes the temp project at the end."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/retire-openshell-runtime/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
