@@ -195,6 +195,16 @@ Status: DRAFT
 - [ ] `bash .agro/scripts/mifunetu-smoke.sh mifunetu:dev` exits 0, and `bash .agro/scripts/mifunetu-smoke.sh mifunetu:not-built` exits non-zero without a pull.
 - [ ] `agro run -- pnpm exec vitest run .agro/scripts/__tests__/mifunetu-smoke.test.ts .agro/scripts/__tests__/release-notes.test.ts` exits 0, and `agro run -- shellcheck .agro/scripts/mifunetu-smoke.sh` exits 0.
 
+### US-015: Remove the standard-skills-link timing flake
+
+**Description:** As the operator, I want `standard-skills-link.test.ts` to pass on the 2-CPU brain under `agro run`. The full suite is then green at the PR head on that host.
+
+**Acceptance Criteria:**
+
+- [ ] The parameterized `%s safe retirement` tests in `.agro/scripts/__tests__/standard-skills-link.test.ts` complete within their timeout on the brain. The fix changes only that test file. The fix keeps every assertion of the file.
+- [ ] Three consecutive runs of `agro run -- pnpm exec vitest run .agro/scripts/__tests__/standard-skills-link.test.ts` pass 41 of 41.
+- [ ] `agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit.
+
 ## Summary
 
 ADR #1635 (accepted) moves the general layers of stage `base` into a new root stage `mifunetu`. Stage `base` keeps only the agro additions. The release workflow publishes `ghcr.io/mifunedev/mifunetu:<version>` and `:sha-<sha>`.
@@ -292,6 +302,6 @@ None.
 
 - The operator accepted the US-003 byte cut in place of the apt merge.
 - The operator accepted the US-007 transcript and the US-013 test as the evidence for `/etc/agro/image-environment`, because the container-inspect guard blocked a re-run.
-- `standard-skills-link.test.ts` is a timing flake under `agro run` on the 2-CPU brain. A fresh worktree at `aeed7e67` passed 3544 of 3544 tests. A fresh worktree at `9b7cf1fb`, which changes only `prd.md`, timed out in 2 tests of that file. The operator accepted the file as an environment effect, and CI passes the file.
+- `standard-skills-link.test.ts` is a timing flake under `agro run` on the 2-CPU brain. A fresh worktree at `aeed7e67` passed 3544 of 3544 tests. A fresh worktree at `9b7cf1fb`, which changes only `prd.md`, timed out in 2 tests of that file. The operator first accepted the file as an environment effect, then approved a fix (US-015).
 - The operator approved issues #1638 and #1639.
 - A local build of the `v0.37.0` source holds the same `/etc/agro/image-environment` keys as the build at `aeed7e67`. The published `0.37.0` image holds four more keys (`OTEL_*`, `TRACEPARENT`) from the release CI environment (#1639).

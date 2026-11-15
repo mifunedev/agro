@@ -384,6 +384,25 @@
         "CHANGELOG.md"
       ],
       "commit": "996dcb69"
+    },
+    {
+      "id": "US-015",
+      "title": "Remove the standard-skills-link timing flake",
+      "description": "As the operator, I want `standard-skills-link.test.ts` to pass on the 2-CPU brain under `agro run`. The full suite is then green at the PR head on that host.",
+      "acceptanceCriteria": [
+        "The parameterized `%s safe retirement` tests in `.agro/scripts/__tests__/standard-skills-link.test.ts` complete within their timeout on the brain. The fix changes only that test file. The fix keeps every assertion of the file.",
+        "Three consecutive runs of `agro run -- pnpm exec vitest run .agro/scripts/__tests__/standard-skills-link.test.ts` pass 41 of 41.",
+        "`agro run -- pnpm test:scripts` passes every test in a fresh worktree at the story commit."
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Operator approved the fix through AskUserQuestion. Local runs at 9b7cf1fb and 294e4d15 timed out in 2 and 3 safe-retirement tests at 5000 ms.",
+      "dependsOn": [
+        "US-014"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/standard-skills-link.test.ts"
+      ]
     }
   ],
   "pr": 1637
