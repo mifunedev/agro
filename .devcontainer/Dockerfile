@@ -1,6 +1,7 @@
 FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS mifunetu
 
 ENV TZ=America/Denver
+ENV container=docker
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg \
@@ -100,8 +101,6 @@ WORKDIR /
 
 ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
 ENV HERMES_HOME=/home/sandbox/harness/.hermes
-
-ENV container=docker
 
 RUN npm install -g cc-safety-net@2.6.8 --prefix /usr/local \
  && npm cache clean --force \

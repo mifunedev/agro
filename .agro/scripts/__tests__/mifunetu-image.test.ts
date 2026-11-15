@@ -65,7 +65,15 @@ describe("mifunetu image stage", () => {
     expect(mifunetuText).toContain(text);
   });
 
-  it.each(["/opt/agro", "agro-assets", "cc-safety-net", "AGRO_", "HERMES_HOME", "container=docker"])(
+  it("sets the container marker before the first apt-get install", () => {
+    const marker = mifunetu.indexOf("ENV container=docker");
+    const firstInstall = mifunetu.findIndex((line) => line.includes("apt-get install"));
+    expect(marker).toBeGreaterThan(0);
+    expect(firstInstall).toBeGreaterThan(marker);
+    expect(dockerfile.match(/^ENV container=docker$/gm)).toHaveLength(1);
+  });
+
+  it.each(["/opt/agro", "agro-assets", "cc-safety-net", "AGRO_", "HERMES_HOME"])(
     "contains no agro string %s",
     (text) => {
       expect(mifunetuText).not.toContain(text);
@@ -147,8 +155,11 @@ describe("base stage on mifunetu", () => {
     expect(readFileSync(path.join(repoRoot, ".hadolint.yaml"), "utf8")).not.toContain("DL3002");
   });
 
+  it("does not set the container marker, which it inherits from mifunetu", () => {
+    expect(baseText).not.toContain("container=docker");
+  });
+
   it.each([
-    "ENV container=docker",
     "ENV AGRO_PROJECT_ROOT=",
     "ENV HERMES_HOME=",
     "npm install -g cc-safety-net@2.6.8 --prefix /usr/local",
