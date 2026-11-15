@@ -60,7 +60,7 @@
       "title": "Update documentation and changelog",
       "description": "As an operator, I want the documentation to state the new upgrade behavior so that the documentation matches the code.",
       "acceptanceCriteria": [
-        "`docs/lifecycle-commands.md` \u00a7 Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev`, a downgrade refusal, or a PATH shadow refusal.",
+        "`docs/lifecycle-commands.md` § Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev`, a downgrade refusal, or a PATH shadow refusal.",
         "`docs/configuration.md` has no `AGRO_NO_STAR_PROMPT` row.",
         "`CHANGELOG.md` `## [Unreleased]` has entries for the simpler self-upgrade and the star prompt removal.",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/installation.md` reports no new finding compared with `development`."
@@ -124,5 +124,6 @@
       ],
       "external": false
     }
-  ]
+  ],
+  "pr": 1655
 }
