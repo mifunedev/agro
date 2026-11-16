@@ -46,7 +46,7 @@ The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destro
    bash "$SKILL/scripts/run.sh" exedev --preflight
    ```
 
-4. For the `console` provider, the preflight runs `agro hands check --provider console`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
+4. For the `console` provider, the preflight runs `agro hands check --provider console --operator`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
 
 ### Main scenario: fresh install
 
@@ -162,7 +162,7 @@ cat run.out
 | `X07-refusals` | `--isolation microvm` with `run.services` exits 1, and `--isolation vm` exits 1. |
 | `X08-leftovers` | Cleanup leaves no `agro-run-` Docker container, Docker network, or msb sandbox. |
 
-The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro hands check --provider console` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` has no value and the host has AGRO `0.32.0` or later, the check skips the install. Start the run detached on the driver host:
+The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro hands check --provider console --operator` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` has no value and the host has AGRO `0.32.0` or later, the check skips the install. Start the run detached on the driver host:
 
 ```bash
 setsid nohup bash "$SKILL/scripts/run.sh" console checks/agro-run-matrix.sh > run.out 2>&1 < /dev/null &

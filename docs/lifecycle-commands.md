@@ -56,7 +56,7 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` | create and manage hands and console VMs, and move projects to them over SSH — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -729,13 +729,21 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
 
 ### Console hands
 
-- Each verb reads the console token from `AGRO_CONSOLE_TOKEN`, then from the
-  brain token `/home/sandbox/.agro/brain-token`, then from the `agro auth login`
-  credentials. A token from the credentials gives the verb operator authority.
-  Each verb reads the console URL from `AGRO_CONSOLE_URL`, then from
-  `/home/sandbox/.agro/brain-console-url` when the brain token file
-  exists, then from the credentials, then uses `https://console.mifune.dev`. If
-  no token resolves, the verb exits 2 and prints
+- A console verb runs with brain authority or operator authority. `--operator`
+  selects operator authority. Put `--operator` before or after the verb. The
+  exe.dev provider refuses `--operator` and exits 1.
+- With `--operator`, each verb reads the token and the URL as `agro auth` does:
+  `AGRO_CONSOLE_TOKEN` with `AGRO_CONSOLE_URL`, else the `agro auth login`
+  credentials with the credentials URL. Without a URL, the verb uses
+  `https://console.mifune.dev`. The verb ignores the brain token. If no token
+  resolves, the verb exits 2.
+- Without `--operator`, `AGRO_CONSOLE_TOKEN` or the brain token
+  `/home/sandbox/.agro/brain-token` gives brain authority. The URL is
+  `AGRO_CONSOLE_URL`, else `/home/sandbox/.agro/brain-console-url`. If neither
+  gives a URL, the verb exits 2 and prints `no brain console URL: ...`. If no
+  brain token resolves, the `agro auth login` credentials give operator
+  authority, with the credentials URL or `https://console.mifune.dev`. If no
+  token resolves, the verb exits 2 and prints
   `no console token: /home/sandbox/.agro/brain-token not found and no agro auth login credentials; run agro auth login`.
   No output holds the token.
 - `<hand>` is `#<index>`, `<index>`, an alias, or a uuid. Quote `#<index>` in a
@@ -751,13 +759,15 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   `--code-server` turn on Docker, T3, and code-server. Each of the three flags
   requires `--profile agro`.
 - `create --ssh-key <uuid>` adds a console SSH key to the hand. Repeat the flag
-  for more keys. Without `--ssh-key` and without a brain token, `create` finds
+  for more keys. Without `--ssh-key` and with operator authority, `create` finds
   `~/.ssh/id_ed25519.pub` in the console SSH keys, or registers the file as
   `agro-cli@<host>`, and sends its id. If the file does not exist, `create`
-  exits 1 and creates no hand. On a brain, `create` sends only the `--ssh-key`
-  ids.
+  exits 1 and creates no hand. With brain authority, `create` sends only the
+  `--ssh-key` ids.
 - `create --json` prints one JSON line with `id`, `index`, `alias`, `name`,
-  `status`, `spec`, `sshHost`, and `ssh`. If the console returns a hand id and
+  `status`, `spec`, `sshHost`, and `ssh`. `ssh` is `ssh sandbox@<sshHost>` only
+  when the status is `running`, else `null`. After the free tier refuses the
+  spec, `spec` is `n4`. If the console returns a hand id and
   the wait then fails, `create --json` prints the line with the last status and
   exits 1. `--json` excludes `--project` and `--clone`.
 - `list --json` adds `name` and `profile` to each console row.
@@ -766,16 +776,18 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   `create` does and prints the same lines. Otherwise, the command prints the
   job id and tells you to run `agro hands list` to find the fork.
 - `pause` and `resume` call the matching console route.
-- If the console returns HTTP 403, the command prints the console code
-  (`BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN`), exits 1, and does
-  not retry. If the console returns HTTP 403 without a brain token code to
-  `destroy`, the command prints `destroy needs the admin role in agro-console`.
+- If the console returns HTTP 403 to `destroy` without an error code, the
+  command prints `destroy needs the admin role in agro-console`. For other
+  HTTP 403 responses, the command prints the console message and exits 1.
 - `agro hands check [--ssh-key <uuid>]...` sends only GET requests and creates
-  nothing. The command finds each `--ssh-key` id in the console SSH keys.
-  Without `--ssh-key`, the command finds `~/.ssh/id_ed25519.pub` there. The
+  nothing. The command exits 0 only when no line starts with `fail `.
+- With brain authority, `check` reads `/api/nodes` and prints
+  `ok console: <url>` or `fail console: ...`, then one line for each
+  `--ssh-key` id in the console SSH keys.
+- With operator authority, `check` finds each `--ssh-key` id in the console SSH
+  keys. Without `--ssh-key`, `check` finds `~/.ssh/id_ed25519.pub` there. The
   command prints one line for the SSH key check, the free tier eligibility, and
-  the org credit. The command exits 0 only when no line starts with `fail `.
-  The credit line never changes the exit status.
+  the org credit. The credit line never changes the exit status.
 - `--profile`, `--docker`, `--t3`, `--code-server`, `--disposable`,
   `--ssh-key`, `--json` on `create`, and the `check` verb apply only to console
   hands. The exe.dev provider refuses them and exits 1.

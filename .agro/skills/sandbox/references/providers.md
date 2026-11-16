@@ -66,7 +66,7 @@ vercel sandbox remove <name> --scope "$VERCEL_SCOPE"
 
 The provider name is `console`. The adapter is `adapters/console.sh`. The adapter defines the five required functions and the hook `console_row_ssh`. The adapter defines no `console_row_https` and no `console_restart`.
 
-The adapter drives the `agro` CLI on the driver host. Each call passes `--provider console`. `console_preflight` runs `agro hands check`; `console_list` runs `agro hands list --json`. `console_create` runs `agro hands create --json`. `console_destroy` runs `agro hands destroy <id> --yes`. `console_exec` runs each command with `ssh` to `sandbox@<ip>`. The `sandbox` user has passwordless sudo.
+The adapter drives the `agro` CLI on the driver host. Each call passes `--provider console --operator`, so the adapter uses the `agro auth login` credentials and ignores a brain token. `console_preflight` runs `agro hands check`; `console_list` runs `agro hands list --json`. `console_create` runs `agro hands create --json`. `console_destroy` runs `agro hands destroy <id> --yes`. `console_exec` runs each command with `ssh` to `sandbox@<ip>`. The `sandbox` user has passwordless sudo.
 
 The validation reference linked directly from SKILL.md owns the driver variable table.
 Keep console defaults there, not in a second setup table.

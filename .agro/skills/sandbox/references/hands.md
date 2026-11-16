@@ -60,9 +60,9 @@ Two owners share this route:
 A hand request that runs application work names both owners: `agro hands` and `agro run`.
 
 This route uses `agro hands` for project offload.
-The validation driver's `console` adapter also uses `agro hands`, with `--provider console` and operator authority from `agro auth login`.
+The validation driver's `console` adapter also uses `agro hands`, with `--provider console --operator` and the `agro auth login` credentials.
 The adapter calls `agro hands check`, `agro hands create --json`, `agro hands list --json`, and `agro hands destroy <id> --yes`.
-A console node from `agro hands create` on an operator host is not a hand unless a brain manages it.
+A console node from `agro hands create --operator` is not a hand unless a brain manages it.
 
 ## Prerequisites
 
@@ -213,7 +213,7 @@ Never destroy an unrelated hand or a borrowed VM.
 ## Failure remedies
 
 If the console returns HTTP 403, stop. Do not retry.
-Report `BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN` to the operator.
+Report the console message to the operator.
 Do not inspect the token or switch credentials to bypass the refusal.
 The `exedev` provider refuses a write to a VM without the tag `agro-hand` and to the brain itself.
 If a guard refuses, stop and report the refusal. Do not tag a VM or rename a target to pass the guard.
