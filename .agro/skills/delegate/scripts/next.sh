@@ -151,8 +151,15 @@ green_ci_on_head() {
   return 0
 }
 
-if [ "$(field '.review == true')" = true ] &&
-  [ -z "$(field 'if (.reviewed | type) == "string" then .reviewed else "" end')" ]; then
+review_is_current() {
+  local reviewed reviewed_commit
+  reviewed="$(field 'if (.reviewed | type) == "string" then .reviewed else "" end')"
+  [ -n "$reviewed" ] || return 1
+  reviewed_commit="$(git rev-parse --verify --quiet --end-of-options "$reviewed^{commit}" 2>/dev/null)" || return 1
+  git diff --quiet "$reviewed_commit" HEAD -- . ':!.agro/tasks' 2>/dev/null
+}
+
+if [ "$(field '.review == true')" = true ] && ! review_is_current; then
   green_ci_on_head
   emit review
 fi
