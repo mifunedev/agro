@@ -1144,8 +1144,8 @@ describe("docker verb routing", () => {
   });
 });
 
-describe("retired agro node", () => {
-  it("routes `agro node list` through the unknown-command path with exit 1", async () => {
+describe("retired node command", () => {
+  it("routes the retired node command through the unknown-command path with exit 1", async () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 

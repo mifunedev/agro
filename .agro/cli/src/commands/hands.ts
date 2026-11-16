@@ -133,7 +133,7 @@ function defaultDeps(): HandsDeps {
 }
 
 export function handsHelp(bin: string): string {
-  return `${bin} hands — Create and manage hands (sandbox nodes) from a brain
+  return `${bin} hands — Create and manage hands and console VMs from a brain or an operator host
 
 Usage:
   ${bin} hands list [--json]
