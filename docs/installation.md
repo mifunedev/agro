@@ -78,6 +78,9 @@ The script has no source-build fallback, so it reads no ref option.
 
 Upgrade the CLI with `agro self-upgrade`. The alias is `agro update`. The upgrade
 uses the mechanism that installed the running file and changes no project file.
+`agro self-upgrade` refuses an npm install outside the global npm prefix, a
+symbolic link, a file in a directory without write access, and a lower release
+version.
 See [Lifecycle commands → `agro self-upgrade`](lifecycle-commands.md#upgrading-the-cli-agro-self-upgrade).
 
 ### Package and PATH rules

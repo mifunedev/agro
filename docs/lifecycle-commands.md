@@ -158,15 +158,28 @@ the upgrade path:
 
 | Installation | Detected as | What `agro self-upgrade` does |
 |---|---|---|
-| `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | runs `npm i -g --prefix <owning prefix> @mifune/agro@latest` |
-| `install.sh` | a file named `agro` | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory. The upgrade checks the `#!` line and `--version` of the new file and renames the new file over the executable. A pinned absolute Node shebang stays. |
+| `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | compares the owning prefix with the realpath of `npm prefix -g`. When the two prefixes are equal, runs `npm i -g @mifune/agro@latest` and prints the version that the executable reports. |
+| `install.sh` | a regular file named `agro`, not a symbolic link | checks that the directory of the file is writable. Then downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into that directory, checks the `#!` line, and runs `--version` on the new file with a 30 second limit. The version must be a SemVer version. When the version is equal to the running version, the upgrade keeps the executable and prints `already current`. When the version is higher, the upgrade renames the new file over the executable. A pinned absolute Node shebang stays. |
+
+`agro self-upgrade` refuses these cases:
+
+- An npm install outside the global npm prefix, for example
+  the npx cache, the pnpm global store, or a project `node_modules`. The error
+  names both prefixes.
+- An `npm i -g` failure with `EACCES`. The error tells you to re-run as the
+  user who owns the prefix.
+- An `install.sh` file in a directory without write access. The error tells you
+  to re-run as the user who owns the file.
+- A downloaded version lower than the running version.
 
 `agro self-upgrade` refuses every other executable and tells you to upgrade it
 with the mechanism that installed it. Examples are the sandbox image executable
-(`/opt/agro`), a source checkout's `dist/agro.js`, and a path that the CLI cannot
-resolve. For the image executable, refresh the image from the host with
-`agro stop <name>`, then `agro sandbox install docker --name <name>`.
-`--dry-run` prints the planned npm command or download URL and changes nothing.
+(`/opt/agro`), a source checkout's `dist/agro.js`, a symbolic link such as a
+Homebrew or Nix link, and a path that the CLI cannot resolve. For an unresolvable
+path, the error names the cause. For the image executable, refresh the image from
+the host with `agro stop <name>`, then `agro sandbox install docker --name <name>`.
+`--dry-run` prints the planned npm command (after the prefix check) or the
+download URL and changes nothing.
 
 `agro self-upgrade` rejects the payload flags `--from`, `--from-remote`, `--ref`,
 and `--force` and points at `agro vendor`.
