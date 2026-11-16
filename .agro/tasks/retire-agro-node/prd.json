@@ -11,7 +11,7 @@
       "acceptanceCriteria": [
         "`agro hands` accepts `--provider console` and `--provider exedev` (also `--provider=<id>`) before or after the verb, and the flag overrides `hands.provider` in the host config.",
         "`agro hands list --provider desktop` exits 1 with an error that names `console` and `exedev`.",
-        "For the console provider, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. The URL order is `AGRO_CONSOLE_URL`, then the brain console URL file when the brain token file supplies the token, then the credentials file URL, then `https://console.mifune.dev`.",
+        "For the console provider, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. The URL order is `AGRO_CONSOLE_URL`, then the brain console URL file when the brain token file exists, then the credentials file URL, then `https://console.mifune.dev`.",
         "With no token from any source, a console verb exits 2. The message names the brain token path and `agro auth login`.",
         "Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each source order row, the missing-token exit 2, and the `--provider` override of a host config that selects `exedev`.",
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
