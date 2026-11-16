@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "project": "agro",
-  "branchName": "feat/1660-fold-runtime-catalog",
+  "branchName": "fix/1662-apply-1661-review-repairs",
   "description": "Fold the runtime catalog into a constant and remove the openshell shim: Docker is the only runtime (#1653); invalid registry entries are handled generically.",
   "userStories": [
     {
@@ -58,25 +58,34 @@
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Executed by advisor: git grep of shim symbols exit 1 (no match); agro run -- pnpm run typecheck exit 0; agro run -- pnpm test exit 0 (125 files, 3461 tests). Tests (executed in the suite): sandbox.test.ts list skips an openshell entry and a malformed-JSON entry with one `agro sandbox list: skipped <name>: <error>` line, probes only the healthy entry, --json valid with healthy rows only, key order name/checkout/repo/status, no runtime column; invalid-entry.test.ts: 11 verbs via runCli exit 1 with validation error plus `fix <path>/agro.json, or remove the entry <root>` remedy, zero runner calls, entry holds only unchanged agro.json; cwd scan skips the invalid entry and resolves the healthy one; registry.test.ts: materialize throws on invalid entry and writes nothing (no runtime check, safeReadAgroConfig fallback deleted).",
+      "notes": "Executed by advisor: git grep of shim symbols exit 1 (no match); agro run -- pnpm run typecheck exit 0; agro run -- pnpm test exit 0 (125 files, 3461 tests). Tests (executed in the suite): sandbox.test.ts list skips an openshell entry and a malformed-JSON entry with one `agro sandbox list: skipped <name>: <error>` line, probes only the healthy entry, --json valid with healthy rows only, key order name/checkout/repo/status, no runtime column; invalid-entry.test.ts: 11 verbs via runCli exit 1 with validation error plus `fix <path>/agro.json, or remove the entry <root>` remedy, zero runner calls, entry holds only unchanged agro.json; cwd scan skips the invalid entry and resolves the healthy one; registry.test.ts: materialize throws on invalid entry and writes nothing (no runtime check, safeReadAgroConfig fallback deleted). | Round 1 (code review of #1661, findings 1-4, 7, 8): repair c27a591c. Executed by advisor: agro run -- pnpm run typecheck exit 0; agro run -- pnpm test exit 0 (125 files, 3476 tests). invalid-entry.test.ts covers config show/set --sandbox, secret set/get/list --sandbox, run --sandbox, sandbox install docker --name <invalid>, harness uninstall via cwd: exit 1 with error and remedy, entry unchanged; openshell line only for runtime openshell; cwd scan refuses an invalid entry whose checkout holds cwd and prefers a nested invalid entry over a healthy parent; help shows sandbox install docker (lifecycle.test.ts); lifecycle.ts re-reads of agro.json 2 -> 1, the resolver hands the validated config to the verb. langfuse and plain run read the project root, not a registry entry (reasoned).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
+        ".agro/cli/src/__tests__/invalid-entry.test.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/__tests__/retired-runtime.test.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/config.ts",
+        ".agro/cli/src/commands/egress.ts",
+        ".agro/cli/src/commands/harness.ts",
+        ".agro/cli/src/commands/langfuse.ts",
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/commands/run.ts",
+        ".agro/cli/src/commands/sandbox-list.ts",
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/commands/secret.ts",
+        ".agro/cli/src/controllers/sandbox.ts",
+        ".agro/cli/src/lib/__tests__/agro-config.test.ts",
+        ".agro/cli/src/lib/__tests__/registry.test.ts",
         ".agro/cli/src/lib/agro-config.ts",
         ".agro/cli/src/lib/registry.ts",
-        ".agro/cli/src/commands/sandbox-list.ts",
-        ".agro/cli/src/commands/lifecycle.ts",
-        ".agro/cli/src/commands/egress.ts",
-        ".agro/cli/src/services/sandbox-upgrade.ts",
-        ".agro/cli/src/cli.ts",
-        ".agro/cli/src/__tests__/retired-runtime.test.ts",
-        ".agro/cli/src/__tests__/invalid-entry.test.ts",
-        ".agro/cli/src/__tests__/sandbox.test.ts",
-        ".agro/cli/src/lib/__tests__/registry.test.ts",
-        ".agro/cli/src/lib/__tests__/agro-config.test.ts"
+        ".agro/cli/src/services/sandbox-upgrade.ts"
       ],
-      "commit": "90377912"
+      "commit": "c27a591c",
+      "rounds": 1
     },
     {
       "id": "US-003",
@@ -92,7 +101,7 @@
       ],
       "priority": 3,
       "passes": true,
-      "notes": "Commits 58a7e35c (docs, changelog) and 5cd474b5 (routing fixture). Reasoned from diff: configuration.md runtime row is a legacy docker-only field with list-skip and verb exit-1 wording and no openshell mention; lifecycle-commands.md, quickstart.md, overview.md list name, status, checkout; overview.md quotes the new unknown-runtime refusal and drops the help catalog line; CHANGELOG Unreleased replaces the openshell line and adds the runtime column/key/config-set removal line (#1652 rename kept under Changed). Executed: git grep lifecycle-commands-sandbox-list -- docs (no match) and the png is deleted; ste-check exit 0 on the four docs files (CHANGELOG.md has 276 pre-existing findings, none on the new lines); 17 fresh decision-only opus agents (replay13-R1..R17) recorded against the final instruction files, each route and required owners match the oracle; agro run -- pnpm test exit 0 (125 files, 3461 tests, sandbox-routing.test.ts included); typecheck exit 0.",
+      "notes": "Commits 58a7e35c (docs, changelog) and 5cd474b5 (routing fixture). Reasoned from diff: configuration.md runtime row is a legacy docker-only field with list-skip and verb exit-1 wording and no openshell mention; lifecycle-commands.md, quickstart.md, overview.md list name, status, checkout; overview.md quotes the new unknown-runtime refusal and drops the help catalog line; CHANGELOG Unreleased replaces the openshell line and adds the runtime column/key/config-set removal line (#1652 rename kept under Changed). Executed: git grep lifecycle-commands-sandbox-list -- docs (no match) and the png is deleted; ste-check exit 0 on the four docs files (CHANGELOG.md has 276 pre-existing findings, none on the new lines); 17 fresh decision-only opus agents (replay13-R1..R17) recorded against the final instruction files, each route and required owners match the oracle; agro run -- pnpm test exit 0 (125 files, 3461 tests, sandbox-routing.test.ts included); typecheck exit 0. | Round 1 (code review findings 2, 5, 6): 02e6cd26. Reasoned from diff: configuration.md runtime row names the openshell sandbox delete step; CHANGELOG restores docs/runtimes/openshell.md and openshell-journey.sh removal (#1652) and states the targeted-verb remedy; .agro/cli/README.md shows name, status, checkout and install docker. Executed: git grep for runtime column phrases in README and docs (no match); ste-check exit 0 on configuration.md, no findings on new README and CHANGELOG lines; no routing-hashed file changed.",
       "dependsOn": [
         "US-002"
       ],
@@ -103,9 +112,11 @@
         "docs/runtimes/overview.md",
         "docs/img/lifecycle-commands-sandbox-list.png",
         "CHANGELOG.md",
-        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+        ".agro/cli/README.md"
       ],
-      "commit": "5cd474b5"
+      "commit": "02e6cd26",
+      "rounds": 1
     },
     {
       "id": "US-004",
@@ -120,15 +131,15 @@
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Reasoned from the committed transcript (advisor read it): fresh build agro run -- pnpm run build exit 0 at e9fa4aa8; new mktemp AGRO_HOME passed inline; seeded mr-healthy and mr-old (runtime openshell); sandbox list and --json print one `skipped mr-old: agro.json: runtime must be one of docker` line and only mr-healthy, exit 0; destroy mr-old --yes and ps mr-old exit 1 with the error and the `fix <path>/agro.json, or remove the entry <root>` line; ls -A shows only agro.json and cat shows it unchanged; sandbox install microsandbox --yes exit 1 with unknown runtime, no new entry; no container created (docker ps -a | grep mr- empty before and after); rm -rf of the temp dir shown, exit 0.",
+      "notes": "Reasoned from the committed transcript (advisor read it): fresh build agro run -- pnpm run build exit 0 at e9fa4aa8; new mktemp AGRO_HOME passed inline; seeded mr-healthy and mr-old (runtime openshell); sandbox list and --json print one `skipped mr-old: agro.json: runtime must be one of docker` line and only mr-healthy, exit 0; destroy mr-old --yes and ps mr-old exit 1 with the error and the `fix <path>/agro.json, or remove the entry <root>` line; ls -A shows only agro.json and cat shows it unchanged; sandbox install microsandbox --yes exit 1 with unknown runtime, no new entry; no container created (docker ps -a | grep mr- empty before and after); rm -rf of the temp dir shown, exit 0. | Round 1: 58c40f0c re-recorded from a fresh build after c27a591c and 02e6cd26 (advisor read it): destroy, ps and config show --sandbox on mr-old exit 1 with the error, the openshell sandbox delete line and the remedy; ps on malformed mr-bad exits 1 with two lines and no openshell line; list, unknown runtime and cleanup steps as before.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/tasks/fold-runtime-catalog/evidence/manual-review.md"
       ],
-      "commit": "bf93405b"
+      "commit": "58c40f0c",
+      "rounds": 1
     }
-  ],
-  "pr": 1661
+  ]
 }
