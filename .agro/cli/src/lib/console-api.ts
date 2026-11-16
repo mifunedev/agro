@@ -122,13 +122,13 @@ export function resolveHandsConsoleConfig(
     config: { url: trimConsoleUrl(url), token, source },
     authority,
   });
-  if (envToken === undefined && brainToken !== undefined) {
+  if (brainToken !== undefined) {
     const urlPath = brainConsoleUrlPath(homeDir());
     const url = envUrl ?? present(readFile(urlPath));
     if (url === undefined) {
       return { ok: false, error: `no brain console URL: ${urlPath} not found and AGRO_CONSOLE_URL is unset` };
     }
-    return done(url, brainToken);
+    return done(url, envToken ?? brainToken);
   }
   const credentials = envToken === undefined || envUrl === undefined ? readCredentials() : undefined;
   const token = envToken ?? present(credentials?.token);

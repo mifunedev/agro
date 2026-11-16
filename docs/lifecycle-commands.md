@@ -733,8 +733,8 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   brain token `/home/sandbox/.agro/brain-token`, then from the `agro auth login`
   credentials. A token from the credentials gives the verb operator authority.
   Each verb reads the console URL from `AGRO_CONSOLE_URL`, then from
-  `/home/sandbox/.agro/brain-console-url` when the brain token supplies the
-  token, then from the credentials, then uses `https://console.mifune.dev`. If
+  `/home/sandbox/.agro/brain-console-url` when the brain token file
+  exists, then from the credentials, then uses `https://console.mifune.dev`. If
   no token resolves, the verb exits 2 and prints
   `no console token: /home/sandbox/.agro/brain-token not found and no agro auth login credentials; run agro auth login`.
   No output holds the token.

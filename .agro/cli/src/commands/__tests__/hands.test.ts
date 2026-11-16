@@ -108,7 +108,8 @@ const noCredentials = () => undefined;
 describe("hands console config source order", () => {
   it.each([
     ["env token and env URL beat every file", ENV_BOTH, BRAIN, credentials("cred"), "env_token", "https://env.example", "env", "brain"],
-    ["env token skips the brain URL file and takes the credentials URL", ENV_TOKEN, BRAIN, credentials("cred"), "env_token", "https://login.example", "env", "brain"],
+    ["env token takes the brain URL file when the brain token file exists", ENV_TOKEN, BRAIN, credentials("cred"), "env_token", "https://brain.example", "env", "brain"],
+    ["env token without a brain token file takes the credentials URL", ENV_TOKEN, { [URL_PATH]: "https://brain.example/" }, credentials("cred"), "env_token", "https://login.example", "env", "operator"],
     ["env token without a URL source takes the public console", ENV_TOKEN, {}, noCredentials, "env_token", "https://console.mifune.dev", "env", "operator"],
     ["brain token takes the brain URL file", {}, BRAIN, credentials("cred"), TOKEN, "https://brain.example", "file", "brain"],
     ["brain token takes AGRO_CONSOLE_URL over the brain URL file", { AGRO_CONSOLE_URL: "https://env.example" }, BRAIN, noCredentials, TOKEN, "https://env.example", "file", "brain"],
@@ -146,6 +147,14 @@ describe("hands console config source order", () => {
       expect(result.error).toContain(URL_PATH);
       expect(result.error).toContain("AGRO_CONSOLE_URL");
     }
+  });
+
+  it("fails with an env token, the brain token file, and no brain URL source", () => {
+    const result = resolveHandsConsoleConfig(ENV_TOKEN, HOME, brainFiles({ [TOKEN_PATH]: TOKEN }).readFile, credentials("cred"));
+    expect(result).toEqual({
+      ok: false,
+      error: `no brain console URL: ${URL_PATH} not found and AGRO_CONSOLE_URL is unset`,
+    });
   });
 
   it("strips only a leading # from a hand ref", () => {

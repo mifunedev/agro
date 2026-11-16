@@ -203,7 +203,7 @@ The verbs read the console token from AGRO_CONSOLE_TOKEN, then from the
 brain token ${brainTokenPath(BRAIN_HOME)}, then from the credentials that
 \`${bin} auth login\` writes. The verbs read the console URL from
 AGRO_CONSOLE_URL, then from ${brainConsoleUrlPath(BRAIN_HOME)} when the brain
-token supplies the token, then from the credentials, then use
+token file exists, then from the credentials, then use
 ${DEFAULT_CONSOLE_URL}. Without a token, the verbs exit 2.
 
 exe.dev hands:
