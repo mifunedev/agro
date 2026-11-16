@@ -47,8 +47,8 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Round 1 repaired: missing local key now exits 1 with no console call (node parity). C1-C8 executed: hands.test.ts and hands-exedev.test.ts cases for profile/app flags, request body, key find/register and brain no-key, 422 line, --json success and failure line, list name/profile, 403 destroy, exedev console-only refusals; vitest commands/__tests__ exit 0. C9 executed: ported node cases pass under runHands. C10 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3597 tests).",
       "dependsOn": [
         "US-001"
       ],
@@ -59,8 +59,11 @@
         ".agro/cli/src/lib/hands/console-provider.ts",
         ".agro/cli/src/lib/hands/exedev-provider.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts",
-        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
-      ]
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-project.test.ts"
+      ],
+      "rounds": 1,
+      "commit": "34714635"
     },
     {
       "id": "US-003",
