@@ -160,3 +160,8 @@ None.
 - [ ] The diagram and the state table in `.agro/skills/delegate/SKILL.md` list the same state order as `next.sh`.
 
 ## Lessons
+
+1. Claim: the plan named `docs/harnesses/pi.md` as a Stop hook state list. Evidence: `docs/harnesses/pi.md:145` states that Pi has no `Stop` hook, and the file lists no blocking states. Outcome: dropped. The advisor marked that US-003 criterion reasoned as not applicable. No file needs a change.
+2. Claim: US-001 criterion 8 asked each new case to fail before the change. Evidence: 12 of 24 new cases guard the default order and pass on the old `next.sh` by design. Outcome: dropped. The finding is a plan wording observation, and the 12 new-behavior cases failed first.
+3. Claim: `.gitignore` rule `.agro/tasks/*/*` ignores task evidence files, so each evidence commit needs `git add -f`. Evidence: `git check-ignore -v` on `evidence/baseline.md` printed `.gitignore:26`. Outcome: dropped. The finding is tooling friction, and other tasks already track evidence with `git add -f`.
+4. Claim: the Safety Net hook blocked heredocs inside command groups in three worker sessions. Evidence: the US-001, US-003, and US-004 worker reports. Outcome: dropped. The finding is tooling friction, and each worker used the Write tool or the Edit tool instead.
