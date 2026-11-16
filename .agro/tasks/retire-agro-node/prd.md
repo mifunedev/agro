@@ -189,3 +189,10 @@ None
 - [ ] CI is green on the PR.
 
 ## Lessons
+
+- The plan cited `agro run -- pnpm -C .agro/cli typecheck`. A fresh worktree has no `.agro/cli/node_modules`, so `tsc` was not found. The root `pnpm typecheck` installs the CLI packages first. Outcome: fixed in this PR. The plan now cites `agro run -- pnpm typecheck`.
+- The plan ordered the removal of `agro node` (US-004) before the docs story (US-006). The removal made `docs-reference.test.ts` fail on the old docs section. Outcome: fixed in this PR. US-004 round 1 removed the `agro node` section from `docs/lifecycle-commands.md`.
+- The US-001 URL criterion read the brain console URL file only when the brain token file supplied the token. On a brain with `AGRO_CONSOLE_TOKEN` and no `AGRO_CONSOLE_URL`, that order dropped the brain URL. The advisor found the regression at Close. Outcome: fixed in this PR (`e69c5dbf`). The criterion now says "when the brain token file exists".
+- Each edit to a file that `sandbox-routing.ts` hashes needs 17 fresh decision agents. This task recorded the replay two times. Outcome: dropped. The test requires this cost by design.
+- The secret-exposure guard blocked two read-only searches whose pattern held an SSH key file name. One worker ran the search again with another pattern. The guard also matched the text of an advisor note, and the advisor reworded the note. Outcome: dropped. The PR reports these process observations for the operator.
+- US-004 removed `export` from 12 `console-api.ts` names that no module imports, `CREDIT_REFUSALS` among them. Outcome: dropped. No importer needs the export.
