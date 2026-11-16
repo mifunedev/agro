@@ -159,8 +159,8 @@
         "`agro run -- pnpm test` exits 0, except the sandbox routing replay that US-007 records again."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Round 1 reworded lifecycle.test.ts titles and handsHelp first line. C1 executed: git grep 'agro node' (excl CHANGELOG, tasks) prints nothing, exit 1. C2 executed: diff review of docs/lifecycle-commands.md hands section (provider, token order, create flags, --json, check). C3 executed: AGENTS.md console node entry names agro hands --provider console with operator authority. C4 executed: hands.md, providers.md, validation.md name hands check/list/create/destroy. C5 executed: CHANGELOG Unreleased Added + Removed with #1654. C6 executed: ste-check exit 0 on AGENTS.md and three references; lifecycle-commands.md 1 finding pre-existing (2 on origin/development); CHANGELOG 275 = 275 on origin/development. C7 executed: agro run -- pnpm test 3508/3509, sole failure routing replay (US-007); typecheck exit 0.",
       "dependsOn": [
         "US-005"
       ],
@@ -174,7 +174,8 @@
         ".agro/cli/src/__tests__/lifecycle.test.ts",
         ".agro/cli/src/commands/hands.ts"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "49f2f883"
     },
     {
       "id": "US-007",
