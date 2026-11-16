@@ -5,6 +5,7 @@ import {
   findKeyIdByIdentity,
   FREE_TIER_SPEC,
   toKeyList,
+  type ConsoleAuthority,
   type ConsoleConfig,
   type ConsoleFetchDeps,
 } from "../console-api.js";
@@ -26,33 +27,49 @@ export function parseCheck(tokens: string[]): { ok: true; sshKeyIds: string[] } 
   return { ok: true, sshKeyIds };
 }
 
-async function checkSshKeys(
+async function listSshKeys(
   deps: ConsoleFetchDeps,
   config: ConsoleConfig,
-  sshKeyIds: string[],
-  readLocalKey: () => string | undefined,
-): Promise<string[]> {
-  const publicKey = sshKeyIds.length === 0 ? readLocalKey()?.trim() || undefined : undefined;
-  if (sshKeyIds.length === 0 && publicKey === undefined) {
-    return [`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`];
-  }
+): Promise<{ ok: true; keys: Record<string, unknown>[] } | { ok: false; line: string }> {
   const listed = await callApi(deps, config, "GET", "/api/ssh-keys");
-  if (!listed.ok) return [`fail ssh-key: ${listed.message} — check the console login with agro auth status`];
-  const keys = toKeyList(listed.body);
-  if (publicKey !== undefined) {
-    const id = findKeyIdByIdentity(keys, publicKey);
-    return [
-      id === null
-        ? "fail ssh-key ~/.ssh/id_ed25519.pub: not registered in agro-console — add the key in agro-console or pass --ssh-key <uuid>"
-        : `ok ssh-key ${id} ~/.ssh/id_ed25519.pub`,
-    ];
-  }
-  const known = new Set(keys.map((key) => asText(key.id)));
+  return listed.ok
+    ? { ok: true, keys: toKeyList(listed.body) }
+    : { ok: false, line: `fail ssh-key: ${listed.message} — check the console login with agro auth status` };
+}
+
+async function checkSshKeyIds(deps: ConsoleFetchDeps, config: ConsoleConfig, sshKeyIds: string[]): Promise<string[]> {
+  const listed = await listSshKeys(deps, config);
+  if (!listed.ok) return [listed.line];
+  const known = new Set(listed.keys.map((key) => asText(key.id)));
   return sshKeyIds.map((id) =>
     known.has(id)
       ? `ok ssh-key ${id}`
       : `fail ssh-key ${id}: not found in agro-console — pass the id of an SSH key in agro-console`,
   );
+}
+
+async function checkLocalSshKey(
+  deps: ConsoleFetchDeps,
+  config: ConsoleConfig,
+  readLocalKey: () => string | undefined,
+): Promise<string[]> {
+  const publicKey = readLocalKey()?.trim();
+  if (publicKey === undefined || publicKey === "") {
+    return [`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`];
+  }
+  const listed = await listSshKeys(deps, config);
+  if (!listed.ok) return [listed.line];
+  const id = findKeyIdByIdentity(listed.keys, publicKey);
+  return [
+    id === null
+      ? "fail ssh-key ~/.ssh/id_ed25519.pub: not registered in agro-console — add the key in agro-console or pass --ssh-key <uuid>"
+      : `ok ssh-key ${id} ~/.ssh/id_ed25519.pub`,
+  ];
+}
+
+async function checkConsole(deps: ConsoleFetchDeps, config: ConsoleConfig): Promise<string> {
+  const listed = await callApi(deps, config, "GET", "/api/nodes");
+  return listed.ok ? `ok console: ${config.url}` : `fail console: ${listed.message}`;
 }
 
 async function checkFreeTier(deps: ConsoleFetchDeps, config: ConsoleConfig): Promise<string> {
@@ -91,11 +108,21 @@ async function checkCredit(deps: ConsoleFetchDeps, config: ConsoleConfig): Promi
 export async function consoleCheckLines(
   deps: ConsoleFetchDeps,
   config: ConsoleConfig,
+  authority: ConsoleAuthority,
   sshKeyIds: string[],
   readLocalKey: () => string | undefined,
 ): Promise<string[]> {
-  const lines = await checkSshKeys(deps, config, sshKeyIds, readLocalKey);
-  lines.push(await checkFreeTier(deps, config));
-  lines.push(await checkCredit(deps, config));
-  return lines;
+  if (authority === "brain") {
+    const [console, keys] = await Promise.all([
+      checkConsole(deps, config),
+      sshKeyIds.length === 0 ? [] : checkSshKeyIds(deps, config, sshKeyIds),
+    ]);
+    return [console, ...keys];
+  }
+  const [keys, freeTier, credit] = await Promise.all([
+    sshKeyIds.length === 0 ? checkLocalSshKey(deps, config, readLocalKey) : checkSshKeyIds(deps, config, sshKeyIds),
+    checkFreeTier(deps, config),
+    checkCredit(deps, config),
+  ]);
+  return [...keys, freeTier, credit];
 }

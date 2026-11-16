@@ -63,7 +63,7 @@ type CreatedNodeResult =
   | { ok: true; status: number; body: unknown; spec: string | undefined }
   | { ok: false; status?: number; code?: string; message: string };
 
-type ConsoleAuthority = "brain" | "operator";
+export type ConsoleAuthority = "brain" | "operator";
 
 type HandsConfigResult =
   | { ok: true; config: ConsoleConfig; authority: ConsoleAuthority }
@@ -110,32 +110,32 @@ export function resolveHandsConsoleConfig(
   homeDir: () => string,
   readFile: (path: string) => string | undefined,
   readCredentials: () => ConsoleCredentials | undefined,
+  operator: boolean,
 ): HandsConfigResult {
+  const asOperator = (): HandsConfigResult | undefined => {
+    const config = resolveConsoleConfig(env, readCredentials);
+    return config === undefined ? undefined : { ok: true, config, authority: "operator" };
+  };
+  if (operator) return asOperator() ?? { ok: false, error: CONSOLE_CONFIG_MISSING };
   const tokenPath = brainTokenPath(homeDir());
-  const brainToken = present(readFile(tokenPath));
-  const authority: ConsoleAuthority = brainToken === undefined ? "operator" : "brain";
   const envToken = present(env.AGRO_CONSOLE_TOKEN);
-  const envUrl = present(env.AGRO_CONSOLE_URL);
-  const source: ConsoleTokenSource = envToken === undefined ? "file" : "env";
-  const done = (url: string, token: string): HandsConfigResult => ({
-    ok: true,
-    config: { url: trimConsoleUrl(url), token, source },
-    authority,
-  });
-  if (brainToken !== undefined) {
-    const urlPath = brainConsoleUrlPath(homeDir());
-    const url = envUrl ?? present(readFile(urlPath));
-    if (url === undefined) {
-      return { ok: false, error: `no brain console URL: ${urlPath} not found and AGRO_CONSOLE_URL is unset` };
-    }
-    return done(url, envToken ?? brainToken);
-  }
-  const credentials = envToken === undefined || envUrl === undefined ? readCredentials() : undefined;
-  const token = envToken ?? present(credentials?.token);
+  const token = envToken ?? present(readFile(tokenPath));
   if (token === undefined) {
-    return { ok: false, error: `no console token: ${tokenPath} not found and no agro auth login credentials; run agro auth login` };
+    return asOperator() ?? {
+      ok: false,
+      error: `no console token: ${tokenPath} not found and no agro auth login credentials; run agro auth login`,
+    };
   }
-  return done(envUrl ?? present(credentials?.url) ?? DEFAULT_CONSOLE_URL, token);
+  const urlPath = brainConsoleUrlPath(homeDir());
+  const url = present(env.AGRO_CONSOLE_URL) ?? present(readFile(urlPath));
+  if (url === undefined) {
+    return { ok: false, error: `no brain console URL: ${urlPath} not found and AGRO_CONSOLE_URL is unset` };
+  }
+  return {
+    ok: true,
+    config: { url: trimConsoleUrl(url), token, source: envToken === undefined ? "file" : "env" },
+    authority: "brain",
+  };
 }
 
 export function nodePollDelayMs(elapsedMs: number): number {

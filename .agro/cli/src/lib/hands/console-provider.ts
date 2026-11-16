@@ -42,7 +42,7 @@ function refusalMessage(
     : result.message;
 }
 
-function toHand(node: ConsoleNode): Hand {
+function toHand(node: ConsoleNode, fallbackSpec: string | null = null): Hand {
   return {
     id: node.id,
     label: `#${node.orgIndex}`,
@@ -51,7 +51,7 @@ function toHand(node: ConsoleNode): Hand {
     name: node.name,
     profile: node.profile,
     status: node.status,
-    spec: node.spec,
+    spec: node.spec ?? fallbackSpec,
     sshHost: node.sshHost,
     sshDest: node.sshHost === null ? null : `sandbox@${node.sshHost}`,
     hostKeyAlias: node.id,
@@ -85,11 +85,12 @@ export function createConsoleProvider(
     requestedAt: number,
     onStatus: HandStatusReport,
     fork?: { job: string | null },
+    fallbackSpec: string | null = null,
   ): Promise<HandOutcome<Hand>> {
-    const report = (next: ConsoleNode) => onStatus(toHand(next));
+    const report = (next: ConsoleNode) => onStatus(toHand(next, fallbackSpec));
     report(initial);
     const waited = await waitForRunning(deps, config, initial, requestedAt, report, { pendingOn404: fork !== undefined });
-    if (waited.ok) return { ok: true, value: toHand(waited.node) };
+    if (waited.ok) return { ok: true, value: toHand(waited.node, fallbackSpec) };
     const last = waited.node;
     if (waited.reason === "request") return { ok: false, error: `hand ${last.id}: ${waited.message}` };
     if (waited.reason === "timeout" && !waited.appeared) {
@@ -113,7 +114,7 @@ export function createConsoleProvider(
     async list() {
       const listed = await callApi(deps, config, "GET", "/api/nodes");
       if (!listed.ok) return { ok: false, error: listed.message };
-      return { ok: true, value: toNodeList(listed.body).map(toHand) };
+      return { ok: true, value: toNodeList(listed.body).map((node) => toHand(node)) };
     },
 
     async resolve(ref) {
@@ -149,7 +150,7 @@ export function createConsoleProvider(
       }
       const node = toNode(created.body);
       if (node === undefined) return { ok: false, error: NO_NODE_ID };
-      return awaitRunning(node, requestedAt, onStatus);
+      return awaitRunning(node, requestedAt, onStatus, undefined, created.spec ?? null);
     },
 
     async fork(ref, { name, spec: requested }, onStatus) {
@@ -181,7 +182,7 @@ export function createConsoleProvider(
     async destroy(ref) {
       const result = await callApi(deps, config, "DELETE", handPath(ref));
       if (result.ok) return { ok: true, value: undefined };
-      const adminRefused = result.status === 403 && !result.code?.startsWith("BRAIN_TOKEN_");
+      const adminRefused = result.status === 403 && result.code === undefined;
       return { ok: false, error: adminRefused ? DESTROY_ADMIN_LINE : result.message };
     },
   };

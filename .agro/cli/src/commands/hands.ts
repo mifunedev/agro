@@ -11,6 +11,7 @@ import {
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
   resolveHandsConsoleConfig,
+  type ConsoleAuthority,
   type ConsoleConfig,
   type ConsoleIO,
   type ConsolePollDeps,
@@ -153,6 +154,25 @@ Providers:
   \`--provider console|exedev\` selects the provider for one call and
   overrides \`hands.provider\`. Put it before or after the verb.
 
+Authority:
+  Console hands run with brain authority or operator authority.
+  \`--operator\` selects operator authority. Put it before or after the verb.
+  \`--operator\` applies only to console hands.
+
+  With \`--operator\`, the verbs read the token and the URL like
+  \`${bin} auth\`: AGRO_CONSOLE_TOKEN, then the credentials that
+  \`${bin} auth login\` writes. The URL is AGRO_CONSOLE_URL with the env
+  token, else the credentials URL, else ${DEFAULT_CONSOLE_URL}. The verbs
+  ignore the brain token. Without a token, the verbs exit 2.
+
+  Without \`--operator\`, AGRO_CONSOLE_TOKEN gives brain authority. Else the
+  brain token ${brainTokenPath(BRAIN_HOME)} gives brain authority. With brain
+  authority, the URL is AGRO_CONSOLE_URL, else
+  ${brainConsoleUrlPath(BRAIN_HOME)}. Else the credentials that
+  \`${bin} auth login\` writes give operator authority. The URL is the
+  credentials URL, else ${DEFAULT_CONSOLE_URL}. Without a token, the verbs
+  exit 2.
+
 Console hands:
 <hand> is an index (4), an alias, or a uuid.
 Quote '#4' if you write the # sign: an unquoted #4 starts a shell comment.
@@ -167,14 +187,16 @@ admin role in agro-console.
 \`--docker\` turns on Docker. \`--t3\` turns on T3. \`--code-server\` turns on
 code-server. Each app flag requires \`--profile agro\`. \`--ssh-key <uuid>\`
 adds a console SSH key to the hand. Repeat it for more keys. Without
-\`--ssh-key\` and without a brain token, \`create\` finds ~/.ssh/id_ed25519.pub
-in the console SSH keys, or registers it as agro-cli@<host name>, and sends
-its id. When the file does not exist, \`create\` exits 1 and creates no hand.
-On a brain, \`create\` sends only the \`--ssh-key\` ids.
+\`--ssh-key\` and with operator authority, \`create\` finds
+~/.ssh/id_ed25519.pub in the console SSH keys, or registers it as
+agro-cli@<host name>, and sends its id. When the file does not exist,
+\`create\` exits 1 and creates no hand. With brain authority, \`create\`
+sends only the \`--ssh-key\` ids.
 
 \`--json\` prints one JSON line with id, index, alias, name, status, spec,
-sshHost, and ssh. When the console returns a hand id and the wait then
-fails, \`create --json\` prints the line with the last status and exits 1.
+sshHost, and ssh. The ssh field is null unless the status is running.
+When the console returns a hand id and the wait then fails,
+\`create --json\` prints the line with the last status and exits 1.
 \`--json\` excludes --project and --clone.
 
 \`create --disposable\` requests a disposable hand with no data volume.
@@ -192,19 +214,18 @@ source unless --spec is given. When the console names the fork, \`fork\`
 waits for it like \`create\`. Otherwise, run \`${bin} hands list\` to find it.
 
 \`check\` applies only to console hands. It sends only GET requests and
-creates nothing. It finds each \`--ssh-key\` id in the console SSH keys.
-Without \`--ssh-key\`, it finds ~/.ssh/id_ed25519.pub there. It reads the free
-tier eligibility. It reads the org credit from /api/billing/balance for the
-credit line. \`check\` prints one line for each check and exits 0 only when
-no line starts with \`fail \`. An account outside the free tier gets a warn
-line. The credit line is ok or warn and never changes the exit status.
+creates nothing. \`check\` prints one line for each check and exits 0 only
+when no line starts with \`fail \`.
 
-The verbs read the console token from AGRO_CONSOLE_TOKEN, then from the
-brain token ${brainTokenPath(BRAIN_HOME)}, then from the credentials that
-\`${bin} auth login\` writes. The verbs read the console URL from
-AGRO_CONSOLE_URL, then from ${brainConsoleUrlPath(BRAIN_HOME)} when the brain
-token file exists, then from the credentials, then use
-${DEFAULT_CONSOLE_URL}. Without a token, the verbs exit 2.
+With brain authority, \`check\` reads /api/nodes for the console line. It
+finds each \`--ssh-key\` id in the console SSH keys.
+
+With operator authority, \`check\` finds each \`--ssh-key\` id in the console
+SSH keys. Without \`--ssh-key\`, it finds ~/.ssh/id_ed25519.pub there. It
+reads the free tier eligibility. It reads the org credit from
+/api/billing/balance for the credit line. An account outside the free tier
+gets a warn line. The credit line is ok or warn and never changes the exit
+status.
 
 exe.dev hands:
 <hand> is an exe.dev VM name. A hand is a VM with the tag ${HAND_TAG}.
@@ -406,7 +427,7 @@ function createdLine(hand: Hand): string {
     status: hand.status,
     spec: hand.spec,
     sshHost: hand.sshHost,
-    ssh: hand.sshHost === null ? null : `ssh sandbox@${hand.sshHost}`,
+    ssh: hand.status === "running" && hand.sshDest !== null ? `ssh ${hand.sshDest}` : null,
   })}\n`;
 }
 
@@ -729,25 +750,34 @@ async function runCheck(
   io: HandsIO,
   deps: HandsDeps,
   config: ConsoleConfig,
+  authority: ConsoleAuthority,
   keyPath: string,
   prefix: string,
 ): Promise<number> {
   const parsed = parseCheck(tokens);
   if (!parsed.ok) return failed(io, prefix, parsed.error);
-  const lines = await consoleCheckLines(deps, config, parsed.sshKeyIds, () => deps.readFile(keyPath));
+  const lines = await consoleCheckLines(deps, config, authority, parsed.sshKeyIds, () => deps.readFile(keyPath));
   for (const line of lines) io.stdout(`${line}\n`);
   return lines.some((line) => line.startsWith("fail ")) ? 1 : 0;
 }
 
-type ProviderFlag = { ok: true; provider: string | undefined; args: string[] } | { ok: false; error: string };
+type GlobalFlags =
+  | { ok: true; provider: string | undefined; operator: boolean; args: string[] }
+  | { ok: false; error: string };
 
-function takeProviderFlag(args: string[]): ProviderFlag {
+function takeGlobalFlags(args: string[]): GlobalFlags {
   const end = args.includes("--") ? args.indexOf("--") : args.length;
   const kept: string[] = [];
   let provider: string | undefined;
+  let operator = false;
   for (let i = 0; i < end; i++) {
     const token = args[i];
-    if (token === "--provider") {
+    if (isOneOf(VALUE_FLAGS, token)) {
+      kept.push(token);
+      if (i + 1 < end) kept.push(args[++i]);
+    } else if (token === "--operator") {
+      operator = true;
+    } else if (token === "--provider") {
       provider = args[++i];
       if (provider === undefined || i >= end) return { ok: false, error: "--provider requires a value" };
     } else if (token.startsWith("--provider=")) {
@@ -756,7 +786,7 @@ function takeProviderFlag(args: string[]): ProviderFlag {
       kept.push(token);
     }
   }
-  return { ok: true, provider, args: [...kept, ...args.slice(end)] };
+  return { ok: true, provider, operator, args: [...kept, ...args.slice(end)] };
 }
 
 export async function runHands(
@@ -765,7 +795,7 @@ export async function runHands(
   overrides: Partial<HandsDeps> = {},
   bin = "agro",
 ): Promise<number> {
-  const flag = takeProviderFlag(args);
+  const flag = takeGlobalFlags(args);
   if (!flag.ok) {
     io.stderr(`${bin} hands: ${flag.error}\n`);
     return 1;
@@ -798,6 +828,10 @@ export async function runHands(
   let safe: HandsIO;
   let provider: HandProvider;
   if (providerId === "exedev") {
+    if (flag.operator) {
+      io.stderr(`${prefix}: --operator applies only to console hands\n`);
+      return 1;
+    }
     if (verb === "check") {
       io.stderr(`${prefix}: check applies only to console hands\n`);
       return 1;
@@ -818,7 +852,7 @@ export async function runHands(
     safe = io;
     provider = createExedevProvider(deps);
   } else {
-    const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials);
+    const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials, flag.operator);
     if (!resolved.ok) {
       io.stderr(`${resolved.error}\n`);
       return 2;
@@ -827,7 +861,7 @@ export async function runHands(
     const hidden = hiding(io, config.token);
     safe = hidden;
     const keyPath = join(deps.userHome(), ".ssh", "id_ed25519.pub");
-    if (verb === "check") return runCheck(rest, hidden, deps, config, keyPath, prefix);
+    if (verb === "check") return runCheck(rest, hidden, deps, config, authority, keyPath, prefix);
     const localKey: LocalSshKey | undefined =
       authority === "operator"
         ? { read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
