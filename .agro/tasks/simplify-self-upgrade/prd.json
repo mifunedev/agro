@@ -77,8 +77,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/installation.md` reports no new finding compared with `development`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "executed (advisor, 46828949): (1) grep .prev|downgrade|earlier on PATH|shadow in lifecycle-commands.md + installation.md -> only lifecycle-commands.md:181 (agro vendor --force, not self-upgrade); (2) git grep star.prompt|STAR_PROMPT in docs and .agro/cli/src -> exit 1, no match; (3) reasoned: CHANGELOG [Unreleased] has ### Changed and ### Removed entries linking #1651; (4) ste-check before/after on HEAD~1 copies: lifecycle-commands.md 2 -> 2, installation.md 0 -> 0, no new finding. | reopened round 1 for /code-review findings on PR #1655",
+      "passes": true,
+      "notes": "round 1 repair executed (advisor, e375492b): (1) grep npm view|.prev|PATH-shadow|legacy-package in .agro/cli/README.md -> no match; (2) reasoned from diff: lifecycle-commands.md, installation.md, printSelfUpgradeHelp, CHANGELOG #1651 entry describe global-prefix, symlink, writable-dir, downgrade refusals; grep .prev|shadow in both docs -> no match; (3) ste-check before/after: lifecycle-commands.md 2->2, installation.md 0->0, README 11->10; (4) agro run -- pnpm exec vitest run cli-first-help, bundle-identity -> exit 0, 33 passed; typecheck exit 0. Round 0: 46828949.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -92,7 +92,7 @@
         ".agro/cli/src/cli.ts"
       ],
       "external": false,
-      "commit": "46828949",
+      "commit": "e375492b",
       "rounds": 1
     },
     {
