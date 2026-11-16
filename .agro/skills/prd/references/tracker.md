@@ -8,6 +8,7 @@ in the same folder. The folder name is the slug. Do not derive the slug again.
 - The task folder, for example `.agro/tasks/install-prereq-detection/`.
 - `--issue <N>`: the GitHub issue number. This argument is required.
 - `--prefix <feat|bug|task|audit|skill>`: the branch prefix. The default is `feat`.
+- `--review`: write `"review": true` at the top level of `prd.json`. This argument is optional.
 
 If `--issue` is missing, stop and write nothing. Print this message:
 "issue number required: open the GitHub issue first per `.agro/skills/git/SKILL.md`, then run again with `--issue <N>`."
@@ -53,14 +54,16 @@ The task also has optional top-level fields:
 
 - `pr`: the number of the task pull request.
 - `blocked`: a reason string. When this string is not empty, the task stops. Only the operator clears this field.
+- `review`: a boolean. Set `true` to turn on the review step of `/delegate` § Review. When this field is absent or `false`, the task skips the review step.
+- `reviewed`: the SHA of the reviewed commit. The advisor writes this field after the review. When `review` is `true` and this string is not empty, `next.sh` continues to Close.
 
 The optional fields need no `schemaVersion` change. Each tool must accept a file without them.
-Omit `commit`, `rounds`, `pr`, and `blocked` at conversion time.
+Omit `commit`, `rounds`, `pr`, `blocked`, and `reviewed` at conversion time. Write `review` only when the conversion has `--review`.
 `bash .agro/skills/delegate/scripts/next.sh` reads these fields and prints the next task state.
 
 ## Field ownership
 
-- Only the advisor writes `passes`, `commit`, `notes`, `rounds`, `pr`, and `blocked`.
+- Only the advisor writes `passes`, `commit`, `notes`, `rounds`, `pr`, `blocked`, and `reviewed`.
 - The advisor writes `passes`, `commit`, and `notes` only after acceptance.
 - `notes` records each acceptance criterion as executed (command and exit status) or reasoned.
 - Workers never write `prd.json`.
