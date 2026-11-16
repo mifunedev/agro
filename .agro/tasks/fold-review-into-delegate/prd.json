@@ -71,7 +71,7 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "AC1 executed: hooks.test.ts it.each contains review. AC2: claude-code.md and codex.md list review between ci-red and ready (diff reviewed); pi.md reasoned N/A - Pi has no Stop hook and no state list (docs/harnesses/pi.md:145). AC3: CHANGELOG [Unreleased] ### Changed entry for #1658. AC4 executed: pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts exit 0 (198 passed). ste-check on 3 docs exit 0.",
       "dependsOn": [
         "US-001"
@@ -83,7 +83,8 @@
         "docs/harnesses/pi.md",
         "CHANGELOG.md"
       ],
-      "commit": "718d2dfa"
+      "commit": "718d2dfa",
+      "rounds": 1
     },
     {
       "id": "US-004",
