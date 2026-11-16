@@ -207,14 +207,15 @@
         "The story stops the stub server. The story then deletes the temp `HOME` and reports."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: evidence/manual-review.md shows built CLI (node .agro/cli/dist/agro.js) for node list (exit 1 unknown command), hands --help (exit 0), and with --provider console: check, create --profile agro --t3 --json, list --json, destroy --yes, list after (all exit 0); run on 598480b8. C2 executed: stub on 127.0.0.1:18741 after ss free-port check; temp HOME and AGRO_HOME via mktemp, token and URL inline, XDG_CONFIG_HOME unset, no credentials file (find listing); request log shows create body profile agro, t3 true, sshKeyIds; token count 0 in every output; no live resource. C3 executed: stub killed (143, kill -0 no such process, ss 0 listeners), temp dirs removed, test -e returns 1.",
       "dependsOn": [
         "US-007"
       ],
       "files": [
         ".agro/tasks/retire-agro-node/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "8f7e458b"
     }
   ],
   "pr": 1656
