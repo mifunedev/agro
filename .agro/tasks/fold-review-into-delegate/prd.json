@@ -142,5 +142,6 @@
     }
   ],
   "pr": 1659,
-  "review": true
+  "review": true,
+  "blocked": "Review pass 3 found regressions from pass-2 fixes; further repair exceeds the 2-round cap. Operator decision needed on the simplification proposal."
 }
