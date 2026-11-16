@@ -11,13 +11,13 @@ import {
   type ConsoleNode,
   type ConsolePollDeps,
 } from "../console-api.js";
+import { LOCAL_SSH_KEY_MISSING } from "./console-check.js";
 import type { Hand, HandOutcome, HandProvider, HandStatusReport } from "./provider.js";
 
 const NO_NODE_ID = "the console response has no node id";
 const DISPOSABLE_PROFILE_UNSUPPORTED_LINE =
   "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox";
 const DESTROY_ADMIN_LINE = "destroy needs the admin role in agro-console";
-const LOCAL_SSH_KEY_MISSING = "no --ssh-key given and ~/.ssh/id_ed25519.pub not found";
 
 export interface LocalSshKey {
   read: () => string | undefined;

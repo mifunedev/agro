@@ -6,19 +6,19 @@ export const DEFAULT_CONSOLE_URL = "https://console.mifune.dev";
 export const CONSOLE_CONFIG_MISSING = "not logged in to agro-console: run agro auth login";
 
 export const FREE_TIER_SPEC = "n4";
-export const CREDIT_REFUSALS: readonly { status: number; code: string }[] = [
+const CREDIT_REFUSALS: readonly { status: number; code: string }[] = [
   { status: 403, code: "PAYMENTS_DISABLED" },
   { status: 402, code: "CREDIT_REQUIRED" },
 ];
 
 export const NODE_READY_TIMEOUT_MS = 15 * 60 * 1000;
-export const NODE_FAST_POLL_INTERVAL_MS = 1000;
-export const NODE_FAST_POLL_WINDOW_MS = 30 * 1000;
-export const NODE_POLL_INTERVAL_MS = 5000;
+const NODE_FAST_POLL_INTERVAL_MS = 1000;
+const NODE_FAST_POLL_WINDOW_MS = 30 * 1000;
+const NODE_POLL_INTERVAL_MS = 5000;
 
 const FAILURE_STATUSES = new Set(["failed", "destroy_requested", "destroying", "destroyed", "retired"]);
 
-export type ConsoleTokenSource = "env" | "file";
+type ConsoleTokenSource = "env" | "file";
 
 export interface ConsoleConfig {
   url: string;
@@ -59,28 +59,28 @@ export type ApiResult =
   | { ok: true; status: number; body: unknown }
   | { ok: false; status?: number; code?: string; message: string };
 
-export type CreatedNodeResult =
+type CreatedNodeResult =
   | { ok: true; status: number; body: unknown; spec: string | undefined }
   | { ok: false; status?: number; code?: string; message: string };
 
-export type ConsoleAuthority = "brain" | "operator";
+type ConsoleAuthority = "brain" | "operator";
 
-export type HandsConfigResult =
+type HandsConfigResult =
   | { ok: true; config: ConsoleConfig; authority: ConsoleAuthority }
   | { ok: false; error: string };
 
-export type WaitResult =
+type WaitResult =
   | { ok: true; node: ConsoleNode }
   | { ok: false; reason: "timeout"; node: ConsoleNode; appeared: boolean }
   | { ok: false; reason: "failed"; node: ConsoleNode }
   | { ok: false; reason: "request"; node: ConsoleNode; message: string };
 
-export function present(value: string | undefined): string | undefined {
+function present(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed === undefined || trimmed === "" ? undefined : trimmed;
 }
 
-export function trimConsoleUrl(url: string): string {
+function trimConsoleUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
@@ -233,7 +233,7 @@ export async function callApi(
   return { ok: true, status: response.status, body };
 }
 
-export function keyIdentity(publicKey: string): string {
+function keyIdentity(publicKey: string): string {
   return publicKey.trim().split(/\s+/).slice(0, 2).join(" ");
 }
 

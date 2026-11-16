@@ -1143,3 +1143,13 @@ describe("docker verb routing", () => {
     expect(destroyConfirmationPhrase(root)).toBe("configured");
   });
 });
+
+describe("retired agro node", () => {
+  it("routes `agro node list` through the unknown-command path with exit 1", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    expect(await runCli(["node", "list"])).toBe(1);
+    expect(stderr.mock.calls.map((c) => String(c[0])).join("")).toContain('agro: unknown command "node"');
+  });
+});
