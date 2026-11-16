@@ -19,8 +19,8 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "C1 executed: hands.test.ts --provider before/after verb and = forms over exedev host config, vitest exit 0. C2 executed: unknown provider test exit 1 names console and exedev. C3 executed: source-order table test. C4 executed: runHands exit 2, no request. C5 executed: hands tests 166 pass; worker saw 22 red before change. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3552 tests) by advisor. Round 1 (Close finding): with a brain token file, the URL comes from AGRO_CONSOLE_URL or the brain URL file even when AGRO_CONSOLE_TOKEN supplies the token, matching pre-PR behaviour (e69c5dbf); docs sentence updated; replay re-recorded (98fcb51e, replay9, 17/17). agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3511 tests).",
+      "passes": true,
+      "notes": "C1 executed: hands.test.ts --provider before/after verb and = forms over exedev host config, vitest exit 0. C2 executed: unknown provider test exit 1 names console and exedev. C3 executed: source-order table test. C4 executed: runHands exit 2, no request. C5 executed: hands tests 166 pass; worker saw 22 red before change. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3552 tests) by advisor. Round 1 (Close finding): with a brain token file, the URL comes from AGRO_CONSOLE_URL or the brain URL file even when AGRO_CONSOLE_TOKEN supplies the token, matching pre-PR behaviour (e69c5dbf); docs sentence updated; replay re-recorded (98fcb51e, replay9, 17/17). agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3511 tests). Review repair (8a3be650): explicit authority, --operator via resolveConsoleConfig, brain-authority env token, value-flag-safe global flag parsing, brain/operator check modes with parallel operator reads, 403 admin line only without a code, --json ssh only when running via sshDest, fallback spec kept. Worker saw 28 red before the fix. Advisor: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3537 tests).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/hands.ts",
@@ -32,7 +32,7 @@
         "docs/lifecycle-commands.md",
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "e69c5dbf",
+      "commit": "8a3be650",
       "rounds": 2
     },
     {
@@ -52,8 +52,8 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Round 1 repaired: missing local key now exits 1 with no console call (node parity). C1-C8 executed: hands.test.ts and hands-exedev.test.ts cases for profile/app flags, request body, key find/register and brain no-key, 422 line, --json success and failure line, list name/profile, 403 destroy, exedev console-only refusals; vitest commands/__tests__ exit 0. C9 executed: ported node cases pass under runHands. C10 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3597 tests).",
+      "passes": true,
+      "notes": "Round 1 repaired: missing local key now exits 1 with no console call (node parity). C1-C8 executed: hands.test.ts and hands-exedev.test.ts cases for profile/app flags, request body, key find/register and brain no-key, 422 line, --json success and failure line, list name/profile, 403 destroy, exedev console-only refusals; vitest commands/__tests__ exit 0. C9 executed: ported node cases pass under runHands. C10 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3597 tests). Review repair (8a3be650): explicit authority, --operator via resolveConsoleConfig, brain-authority env token, value-flag-safe global flag parsing, brain/operator check modes with parallel operator reads, 403 admin line only without a code, --json ssh only when running via sshDest, fallback spec kept. Worker saw 28 red before the fix. Advisor: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3537 tests).",
       "dependsOn": [
         "US-001"
       ],
@@ -68,7 +68,7 @@
         ".agro/cli/src/commands/__tests__/hands-project.test.ts"
       ],
       "rounds": 2,
-      "commit": "34714635"
+      "commit": "8a3be650"
     },
     {
       "id": "US-003",
@@ -84,8 +84,8 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "C1 executed: HANDS_VERBS has check; test asserts. C2 executed: tests assert GET-only call list and node-identical lines with agro hands check prefix. C3 executed: warn-only exit 0, fail exit 1 tests. C4 executed: hands-exedev.test.ts check refused with no calls; refusal precedes exedevPreflight (hands.ts:801). C5 executed: 15 ported runHands check cases. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3624 tests).",
+      "passes": true,
+      "notes": "C1 executed: HANDS_VERBS has check; test asserts. C2 executed: tests assert GET-only call list and node-identical lines with agro hands check prefix. C3 executed: warn-only exit 0, fail exit 1 tests. C4 executed: hands-exedev.test.ts check refused with no calls; refusal precedes exedevPreflight (hands.ts:801). C5 executed: 15 ported runHands check cases. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3624 tests). Review repair (8a3be650): explicit authority, --operator via resolveConsoleConfig, brain-authority env token, value-flag-safe global flag parsing, brain/operator check modes with parallel operator reads, 403 admin line only without a code, --json ssh only when running via sshDest, fallback spec kept. Worker saw 28 red before the fix. Advisor: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3537 tests).",
       "dependsOn": [
         "US-002"
       ],
@@ -97,7 +97,7 @@
         ".agro/cli/src/commands/__tests__/hands.test.ts",
         ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
       ],
-      "commit": "99b106f8",
+      "commit": "8a3be650",
       "rounds": 1
     },
     {
