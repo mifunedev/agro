@@ -71,8 +71,8 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "AC1 executed: hooks.test.ts it.each contains review. AC2: claude-code.md and codex.md list review between ci-red and ready (diff reviewed); pi.md reasoned N/A - Pi has no Stop hook and no state list (docs/harnesses/pi.md:145). AC3: CHANGELOG [Unreleased] ### Changed entry for #1658. AC4 executed: pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts exit 0 (198 passed). ste-check on 3 docs exit 0.",
+      "passes": true,
+      "notes": "AC1 executed: hooks.test.ts it.each contains review. AC2: claude-code.md and codex.md list review between ci-red and ready (diff reviewed); pi.md reasoned N/A - Pi has no Stop hook and no state list (docs/harnesses/pi.md:145). AC3: CHANGELOG [Unreleased] ### Changed entry for #1658. AC4 executed: pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts exit 0 (198 passed). ste-check on 3 docs exit 0. Round 1 repair: catch-up merge of origin/development (1ee51121); CHANGELOG conflict resolved, #1658 entry under [Unreleased] ### Changed, no conflict markers. Executed: hooks+next tests exit 0 (305), pnpm typecheck exit 0. Full pnpm test: 1 local-only failure in sandbox-skill.test.ts from ignored untracked .agro/skills/remote-sandbox/ leftover on disk; not in the tree.",
       "dependsOn": [
         "US-001"
       ],
@@ -83,7 +83,7 @@
         "docs/harnesses/pi.md",
         "CHANGELOG.md"
       ],
-      "commit": "718d2dfa",
+      "commit": "1ee51121",
       "rounds": 1
     },
     {
