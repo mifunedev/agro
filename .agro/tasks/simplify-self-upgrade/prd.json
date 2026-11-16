@@ -130,8 +130,8 @@
         "The story creates no live resource and deletes each temp directory that it creates."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "executed (advisor reviewed 4c507e43 evidence/manual-review.md): (1) built branch CLI (build exit 0, 0.39.0) run on copies in new temp dir /tmp/claude-1000/su-review.R6t6; (2) both standalone runs set AGRO_JS_URL inline to http://127.0.0.1:18765/agro.js (port checked free first); (3) npm-shaped --dry-run prints npm i -g --prefix $TMP/npm @mifune/agro@latest exit 0; standalone upgrade exit 0, pinned fnm node shebang kept, mode 755, no temp file; checkout dist/agro.js refused exit 1; (4) star prompt git grep exit 1, no output; (5) server killed and port free, temp dir removed (ls exit 2), no live resource. File force-added per git/references/manual-review.md. | reopened round 1 for /code-review findings on PR #1655",
+      "passes": true,
+      "notes": "round 1 repair executed (advisor reviewed ad48ae71 evidence/manual-review.md, tested commit b0009b5b): (1) built branch CLI 0.39.0 on copies in new temp dir /tmp/claude-1000/su-review2.yxvr; (2) standalone runs set AGRO_JS_URL inline to http://127.0.0.1:18766/{same,older,newer}.js (port checked free); (3) npm dry run with inline npm_config_prefix prints npm i -g @mifune/agro@latest exit 0, update alias same; real prefix refused exit 1; same.js already current exit 0 checksum unchanged; older.js downgrade refused exit 1; newer.js stub upgraded to 0.40.0 exit 0 with pinned fnm shebang, 755, no temp; symlink refused exit 1; checkout dist/agro.js refused exit 1; missing path fails in node before the CLI (MODULE_NOT_FOUND), so the unit test covers that refusal; (4) star prompt git grep exit 1; (5) server stopped, temp dir removed, no live resource. Round 0: 4c507e43.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -140,7 +140,7 @@
         ".agro/tasks/simplify-self-upgrade/evidence/manual-review.md"
       ],
       "external": false,
-      "commit": "4c507e43",
+      "commit": "ad48ae71",
       "rounds": 1
     }
   ],
