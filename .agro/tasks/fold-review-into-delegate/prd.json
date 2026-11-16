@@ -98,8 +98,8 @@
         "The story creates the temp repository under a new temp path, deletes the temp path at the end, and changes no existing task."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Executed by advisor: extracted stub gh and drive.sh from evidence/manual-review.md, ran drive.sh default -> story close push ci ready done removed; drive.sh review -> story push ci review close push ci ready done removed. Temp paths under scratchpad, deleted; git status clean after run (no existing task changed).",
+      "passes": true,
+      "notes": "Executed by advisor: extracted stub gh and drive.sh from evidence/manual-review.md, ran drive.sh default -> story close push ci ready done removed; drive.sh review -> story push ci review close push ci ready done removed. Temp paths under scratchpad, deleted; git status clean after run (no existing task changed). Repair round 1 (da257caa): driver writes reviewed as the HEAD SHA. Executed by advisor: drive.sh default -> story close push ci ready done removed; drive.sh review -> story push ci review close push ci ready done removed.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -108,7 +108,7 @@
       "files": [
         ".agro/tasks/fold-review-into-delegate/evidence/manual-review.md"
       ],
-      "commit": "9b0eb155",
+      "commit": "da257caa",
       "rounds": 1
     },
     {
