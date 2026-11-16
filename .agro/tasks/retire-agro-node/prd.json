@@ -113,7 +113,7 @@
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Round 1 added docs/lifecycle-commands.md node removal (docs-reference test). C1 executed: both files deleted in 2cd9d293. C2 executed: git grep NODE_VERBS/runNode in .agro/cli matches only self-upgrade.ts (unrelated dep). C3 executed: lifecycle.test.ts runCli([node,list]) exit 1 'unknown command'. C4 executed: git grep commands/node prints nothing; 12 unused console-api exports made private. C5 executed with deferral: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 1 only on sandbox-routing observed replay (stale instructionSha256 from the docs edit), which US-007 re-records; Close reruns the suite. Round 2: top-level hands help line lists check and drops brain-only wording (60700440); agro run -- pnpm typecheck exit 0, agro run -- pnpm test exit 0 (127 files, 3509 tests).",
+      "notes": "Round 1 added docs/lifecycle-commands.md node removal (docs-reference test). C1 executed: both files deleted in 2cd9d293. C2 executed: git grep NODE_VERBS/runNode in .agro/cli matches only self-upgrade.ts (unrelated dep). C3 executed: lifecycle.test.ts runCli([node,list]) exit 1 'unknown command'. C4 executed: git grep commands/node prints nothing; 12 unused console-api exports made private. C5 executed with deferral: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 1 only on sandbox-routing observed replay (stale instructionSha256 from the docs edit), which US-007 re-records; Close reruns the suite. Round 2: top-level hands help line lists check and drops brain-only wording (60700440); agro run -- pnpm typecheck exit 0, agro run -- pnpm test exit 0 (127 files, 3509 tests). Rebase onto 9ee29fe9: #1653 dropped the runCli import from lifecycle.test.ts; the advisor restored it during conflict resolution (43d390bc); typecheck exit 0, lifecycle.test.ts 113/113.",
       "dependsOn": [
         "US-003"
       ],
@@ -197,14 +197,14 @@
       ],
       "priority": 7,
       "passes": true,
-      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral. Re-recorded at 98fcb51e (replay9-R1..R17, 17/17, instructionSha256 298e739c...) after the US-001 round 1 docs edit. After the review repair and the rebase onto 980dc6e2: 17 fresh agents (replay11-R1..R17) graded 17/17 against the oracles; provenance instructionSha256 c8fd5c04... from sourceProvenance(); agro run -- pnpm test exit 0 (126 files, 3521 tests).",
+      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral. Re-recorded at 98fcb51e (replay9-R1..R17, 17/17, instructionSha256 298e739c...) after the US-001 round 1 docs edit. After the review repair and the rebase onto 980dc6e2: 17 fresh agents (replay11-R1..R17) graded 17/17 against the oracles; provenance instructionSha256 c8fd5c04... from sourceProvenance(); agro run -- pnpm test exit 0 (126 files, 3521 tests). After the rebase onto 9ee29fe9 (#1653: helper drops docs/runtimes/openshell.md, R8 prompt changed): 17 fresh agents (replay12-R1..R17) graded 17/17; instructionSha256 2643234e..., casesSha256 7c0b4d22...; agro run -- pnpm test exit 0 (125 files, 3459 tests).",
       "dependsOn": [
         "US-006"
       ],
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "aa6e3718",
+      "commit": "089221c2",
       "rounds": 1
     },
     {

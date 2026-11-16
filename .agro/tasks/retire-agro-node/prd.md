@@ -204,3 +204,4 @@ None
 - The review found that the operator URL order differed from `agro auth` and duplicated `resolveConsoleConfig`. Outcome: fixed in this PR (`8a3be650`). The operator branch calls `resolveConsoleConfig`.
 - The review found five smaller defects. The `destroy` verb hid HTTP 403 codes. The `create --json` output set `ssh` for a failed or provisioning hand and dropped the fallback spec. The `--provider` parser took the value of another flag. The three `check` reads ran in series. Outcome: fixed in this PR (`8a3be650`).
 - The CHANGELOG conflict resolver of the rebase dropped the `### Removed` bullets of one conflict hunk. Outcome: fixed in this PR (`20f74153`).
+- The rebase onto `9ee29fe9` (PR #1653) dropped the `runCli` import of `lifecycle.test.ts`, and the retired node command test still used the import. Typecheck and the test failed after a clean text merge. Outcome: fixed in this PR (`43d390bc`).
