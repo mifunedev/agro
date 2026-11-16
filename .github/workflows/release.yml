@@ -105,6 +105,51 @@ jobs:
           docker buildx build --load -f .devcontainer/Dockerfile \
             -t "$VERSION_IMAGE" -t "$SHA_IMAGE" -t "$SMOKE_IMAGE" .
 
+      - name: Build immutable mifunetu image tags
+        env:
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          docker buildx build --target mifunetu --load -f .devcontainer/Dockerfile \
+            -t "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" \
+            -t "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}" .
+
+      - name: Pack the release agro CLI from the agro image
+        env:
+          SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
+        run: |
+          set -o pipefail
+          SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
+          if ! pack_json=$(docker run --rm --user root --entrypoint /bin/bash -v "$RUNNER_TEMP:/out" "$SMOKE_IMAGE" \
+            -c 'cd /opt/agro && npm pack --json --ignore-scripts --pack-destination /out'); then
+            echo "::error::docker run of 'npm pack --json' in $SMOKE_IMAGE failed" >&2
+            exit 1
+          fi
+          if ! tarball=$(jq -r '.[0].filename // empty' <<<"$pack_json") || [ -z "$tarball" ]; then
+            echo "::error::jq found no '.[0].filename' in the 'npm pack --json' output" >&2
+            exit 1
+          fi
+          if ! test -f "$RUNNER_TEMP/$tarball"; then
+            echo "::error::'npm pack' wrote no $RUNNER_TEMP/$tarball" >&2
+            exit 1
+          fi
+          echo "MIFUNETU_AGRO_TARBALL=$RUNNER_TEMP/$tarball" >> "$GITHUB_ENV"
+
+      - name: Smoke-test mifunetu image before publish
+        env:
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          smoke_output=$(bash .agro/scripts/mifunetu-smoke.sh "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}" "$MIFUNETU_AGRO_TARBALL") || {
+            echo "$smoke_output"
+            exit 1
+          }
+          echo "$smoke_output"
+          agro_version=$(sed -n 's/^mifunetu-smoke: agro --version //p' <<<"$smoke_output")
+          if [ "$agro_version" != "$RELEASE_VERSION" ]; then
+            echo "agro --version in mifunetu ('$agro_version') does not match the release version $RELEASE_VERSION" >&2
+            exit 1
+          fi
+
       # Keep this pre-push smoke gate between build and publication: it boots
       # the exact image object that carries both immutable GHCR tags.
       - name: Smoke-test Docker image before publish
@@ -128,6 +173,14 @@ jobs:
             exit 1
           fi
 
+      - name: Push immutable mifunetu SemVer and sha-full-SHA tags
+        env:
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          docker push "ghcr.io/mifunedev/mifunetu:${RELEASE_VERSION}"
+          docker push "ghcr.io/mifunedev/mifunetu:sha-${RELEASE_SHA}"
+
       - name: Push immutable SemVer and sha-full-SHA tags
         env:
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
@@ -142,48 +195,6 @@ jobs:
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: .agro/scripts/promote-release-latest.sh promote
-
-  publish-msb-image:
-    name: Build and publish GHCR agro-msb image
-    needs: [reserve, publish-image]
-    if: ${{ needs.reserve.outputs.publishedNoop != 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    concurrency:
-      group: release-msb-image-${{ needs.reserve.outputs.releaseVersion }}
-      cancel-in-progress: false
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout the reserved commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.reserve.outputs.releaseSha }}
-          submodules: recursive
-
-      - name: Ensure Mifune submodule
-        run: bash .agro/scripts/link-providers.sh --init
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push immutable agro-msb SemVer and sha-full-SHA tags
-        env:
-          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
-          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-        run: |
-          docker buildx build --push --target agro-msb -f .devcontainer/Dockerfile \
-            -t "ghcr.io/mifunedev/agro:${RELEASE_VERSION}-msb" \
-            -t "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}-msb" .
 
   publish-cli:
     name: Publish CLI for the released commit

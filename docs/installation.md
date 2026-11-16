@@ -78,14 +78,16 @@ The script has no source-build fallback, so it reads no ref option.
 
 Upgrade the CLI with `agro self-upgrade`. The alias is `agro update`. The upgrade
 uses the mechanism that installed the running file and changes no project file.
+`agro self-upgrade` refuses an npm install outside the global npm prefix, a
+symbolic link, a file in a directory without write access, and a lower release
+version.
 See [Lifecycle commands → `agro self-upgrade`](lifecycle-commands.md#upgrading-the-cli-agro-self-upgrade).
 
 ### Package and PATH rules
 
 - `@mifune/agro` ships one executable, `agro`.
 - An npm install and an `install.sh` install can coexist. `agro self-upgrade`
-  refuses when another `agro` comes earlier on PATH than the file it replaces.
-  Remove or reorder one install first.
+  upgrades the running install.
 - The CLI reads only AGRO state: `~/.agro/`, the `.agro/` control plane,
   `agro.json`, and `AGRO_*` variables.
 
@@ -201,8 +203,8 @@ See [Connecting → Mobile access over Tailscale](connecting.md#mobile-access-ov
 `agro tool install ffmpeg` installs `ffmpeg` and `ffprobe`. If `ffmpeg` has no
 `libx264` encoder, the install fails.
 
-The image also ships Node.js 24, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
-wget, lsof, htop, telnet, nano, openssh-client, unzip, and libatomic1.
+The image also ships Node.js 24, pnpm, uv, git, tmux, jq, ripgrep, curl, wget,
+lsof, htop, telnet, nano, openssh-client, unzip, and libatomic1.
 
 #### AWS CLI and Google Workspace CLI
 

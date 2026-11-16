@@ -30,6 +30,9 @@ One release produces, from one build and one commit:
 - Two immutable GHCR tags: `ghcr.io/mifunedev/agro:<version>` and
   `ghcr.io/mifunedev/agro:sha-<sha>`, then `latest`
   (`.agro/scripts/promote-release-latest.sh`).
+- Two immutable GHCR tags of the base image without agro:
+  `ghcr.io/mifunedev/mifunetu:<version>` and
+  `ghcr.io/mifunedev/mifunetu:sha-<sha>`. The base image has no `latest` tag.
 - Three GitHub Release assets: `agro.js`, `install.sh`, and a copy of
   `install.sh` under the earlier installer name for one minor release. The
   workflow attaches them before it undrafts the release, so
@@ -54,6 +57,8 @@ not have to match a later canonical version.
 - The GHCR package `mifunedev/agro` is set to public after its first push. A new
   GHCR package is private by default, so `agro sandbox install docker` cannot
   pull it until the operator changes the visibility.
+- The operator sets the GHCR package `mifunedev/mifunetu` to public after its
+  first push. Until then, an anonymous pull of the image fails.
 - The compatibility SLA clock starts at the first public AGRO release, that is,
   the first release that publishes `@mifune/agro` and `ghcr.io/mifunedev/agro`.
 

@@ -1,0 +1,14 @@
+{
+  "storyId": "US-001",
+  "dependencies": [],
+  "readScope": ["AGENTS.md", ".agro/README.md", ".agro/scripts/README.md", "docs/README.md", ".agro/skills/builder/", ".agro/skills/ste/", ".agro/tasks/sandbox-skill-refinement/", ".agro/cli/src/commands/hands.ts", ".agro/cli/src/commands/run.ts", ".agro/cli/src/lib/execution/", ".agro/scripts/__tests__/sandbox-skill.test.ts", "docs/lifecycle-commands.md"],
+  "ownedWritePaths": [".agro/skills/sandbox/references/mifune-console.md", ".agro/skills/sandbox/references/local-msb.md", "docs/lifecycle-commands.md", "CHANGELOG.md", ".agro/scripts/__tests__/sandbox-routing.test.ts", ".agro/scripts/__tests__/helpers/sandbox-routing.ts", ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json", ".agro/scripts/__tests__/sandbox-skill.test.ts"],
+  "deliverable": "Bounded working diff plus executed/reasoned criterion report; advisor accepts and commits after actual replay evidence exists.",
+  "verification": "Grader-focused unit tests and existing skill tests in agro run, STE for changed prose, diff check. The full observed-decision assertion must remain unsatisfied until advisor captures genuine replay data; no skipped or fabricated evidence.",
+  "executionDirectory": "/home/exedev/.agro/workspaces/harness/.worktrees/feat/1618-sandbox-skill",
+  "executionLocation": "host control-plane edits; all test/build execution inside agro run",
+  "workspaceDecision": "existing isolated PR worktree; single writer, no worktree creation or branch change",
+  "modelRequested": "provider default; no override",
+  "modelReason": "One coupled small control-plane documentation/test change; no specialized implementation agent available.",
+  "baseline": "Monitor7 exit0: existing skill/run/hands-project tests and CLI typecheck at7d4900b. No baseline failure."
+}

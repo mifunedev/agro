@@ -10,11 +10,86 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- `agro hands` manages console VMs. `--operator` selects operator authority with the `agro auth login` credentials. `agro hands` adds `--provider` and the `create` flags `--profile`, `--docker`, `--t3`, `--code-server`, `--ssh-key`, and `--json` ([#1654](https://github.com/mifunedev/agro/issues/1654)).
+- `agro hands check [--ssh-key <uuid>]...` makes no change and exits 0 only without a `fail` line. With brain authority, `check` reads the console and SSH key checks. With operator authority, `check` reads the SSH key, free tier, and credit checks ([#1654](https://github.com/mifunedev/agro/issues/1654)).
+
+### Changed
+
+- `agro self-upgrade` runs `npm i -g @mifune/agro@latest` for an npm install under the global npm prefix, replaces an `install.sh` file in place, and refuses every other executable: an npm install under another prefix, a symbolic link, a file in a directory without write access, and a lower release version ([#1651](https://github.com/mifunedev/agro/issues/1651)).
+- Make `/delegate` run an opt-in code review before Close when prd.json sets `"review": true` (off by default), and mark the PR ready only after the retro ([#1658](https://github.com/mifunedev/agro/issues/1658)).
+
+### Removed
+
+- Remove the one-time star prompt after `agro sandbox install` and its `AGRO_NO_STAR_PROMPT` variable ([#1651](https://github.com/mifunedev/agro/issues/1651)).
+- Remove the experimental OpenShell runtime and `agro sandbox install openshell`. `agro sandbox install openshell` now exits 1 as an unknown runtime. The CLI still reads `runtime: "openshell"` in `agro.json` as a retired value. Each acting verb refuses such an entry with the removal steps. The first step is `openshell sandbox delete <name>`. The second step removes the entry. `agro sandbox list` lists the entry as retired. `.devcontainer/openshell-policy.yaml` becomes `.devcontainer/egress-policy.yaml`, and the Docker egress allowlist proxy reads its hosts from that file. Remove `docs/runtimes/openshell.md` and the `openshell-journey.sh` validation check ([#1652](https://github.com/mifunedev/agro/issues/1652)).
+- Remove `agro node`. Use `agro hands --provider console --operator` for console VMs ([#1654](https://github.com/mifunedev/agro/issues/1654)).
+
+## [0.39.0] - 2026-11-15
+
+### Added
+
+- `agro node create --disposable` and `agro hands create --disposable` request a disposable sandbox node with no data volume. The console refuses `--profile agro --disposable` with HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED`, and `agro node create` prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox`. `--disposable` applies only to console hands. When the console returns HTTP 409 `NODE_DISPOSABLE` to `agro hands pause`, `resume`, or `fork`, the command prints `hand <ref> is disposable and cannot <verb>: delete it with agro hands destroy <ref>` and exits 1. The platform deletes a running disposable node at the end of the credit grace window after the low-balance email, or at the end of the free-tier allowance ([#1646](https://github.com/mifunedev/agro/issues/1646)).
+
+### Changed
+
+- `agro run --isolation microvm` boots `ghcr.io/mifunedev/mifunetu:<version>` by default, so the guest holds no unused agro control plane and no unused `dockerd` (ADR #1635). The `mifunetu` image has no `latest` tag, so a CLI version without a release tag exits 1 before `msb run` and names `--image` as the remedy. An existing `run.microvm.image` pin to an old `-msb` image keeps working at that version. When a guest command needs `agro`, pass `--image` or install `@mifune/agro` in the guest ([#1642](https://github.com/mifunedev/agro/issues/1642)).
+- `agro node create` and `agro hands create` treat HTTP 402 `CREDIT_REQUIRED` and HTTP 403 `PAYMENTS_DISABLED` as credit refusals. After a credit refusal, the command reads the free tier eligibility and creates `n4` in the free tier when the account is eligible or the read fails. When the account is not eligible, or the `n4` request fails, the command prints `top up credit at <console url>/billing` to stderr and exits 1. `agro node check` adds a credit line from `GET /api/billing/balance` that never changes the exit status ([#1644](https://github.com/mifunedev/agro/issues/1644)).
+
+### Removed
+
+- Remove the `agro-msb` stage of `.devcontainer/Dockerfile`, the `<version>-msb` and `sha-<sha>-msb` release tags, and the `msb` validation adapter ([#1642](https://github.com/mifunedev/agro/issues/1642)).
+
+## [0.38.0] - 2026-11-15
+
+### Added
+
+- Publish the base image `ghcr.io/mifunedev/mifunetu` with each release, tagged `<X.Y.Z>` and `sha-<sha>`, with no `latest` tag. The image holds Node 24 on Debian Trixie slim and the general tools, but no agro. It runs as user `sandbox` (uid 1000) in `/home/sandbox`, and `npm i -g @mifune/agro` installs agro without `sudo`. The agro image builds `FROM` the `mifunetu` stage (ADR #1635) ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+
+### Changed
+
+- Route application runs of committed work to a running hand that holds the project by default in the `sandbox` skill. Otherwise, and for uncommitted edits, the run uses `local/docker`. Isolation needs still select the runtime, an explicit location in the request wins, the default never resumes or creates a hand, and the raw host never runs application work ([#1633](https://github.com/mifunedev/agro/issues/1633)).
+- An image rebuild after an agro CLI source change reuses the cached dependency layer. A warm rebuild drops from 9.8 s to 4.3 s on a 2-CPU host. The build context excludes nested `node_modules` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+
+### Removed
+
+- Remove bun from the image. No repository script calls bun, and the vendored langfuse skill defaults to `npx`. Released images installed bun under `/root/.bun`, out of reach of user `sandbox` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+
+### Fixed
+
+- The pnpm 10.33.0 corepack pin now holds for user `sandbox` outside a project in a new image home, with no download. The image build fills the corepack cache of user `sandbox` with the pinned version. A persisted home that already has `~/.cache` keeps its current behavior, because the entrypoint seeds only missing top-level entries. The image sets no shared `COREPACK_HOME`, and user `sandbox` owns no path under `/usr/local` ([#1636](https://github.com/mifunedev/agro/issues/1636)).
+
+## [0.37.0] - 2026-11-14
+
+### Changed
+
+- **BREAKING:** Move `hands.provider` from `agro.json` to the host config `${AGRO_HOME:-~/.agro}/config.json`, because git tracks `agro.json` and the provider is a per-machine setting. `agro config set hands.provider` writes the host config, and `agro config show` reports the value. `agro hands` ignores a `hands` section in `agro.json` and prints a notice. Migrate with `agro config set hands.provider <console|exedev>` ([#1629](https://github.com/mifunedev/agro/issues/1629)).
+
+## [0.36.0] - 2026-11-14
+
+### Added
+
+- Add the exe.dev hand provider to `agro hands`: the `agro.json` field `hands.provider` (`console` or `exedev`) selects the provider, an exe.dev hand is a VM with the tag `agro-hand`, and the verbs refuse untagged VMs and the brain; the sandbox skill route `mifune-console` becomes `hands` ([#1623](https://github.com/mifunedev/agro/issues/1623)).
+
+### Removed
+
+- **BREAKING:** Remove `--free-tier` from `agro node create` and `agro node check`, and remove the validation variable `CONSOLE_FREE_TIER`. `agro node create` defaults to `n4`, and a console create falls back to `n4` with a notice when the free tier does not offer the requested spec ([#1623](https://github.com/mifunedev/agro/issues/1623)).
+
+## [0.35.0] - 2026-11-14
+
+### Added
+
+- Add pinned Pi `ask_user_question` support for structured choices and custom answers ([#1616](https://github.com/mifunedev/agro/issues/1616)).
+
+- Add sandbox-only `agro clipboard start/stop` for private image and file uploads with per-file captions, themed previews, and explicit tool-read prompts ([#1612](https://github.com/mifunedev/agro/issues/1612)).
 - Add optional `aws` and `gws` tool installers for AWS CLI v2 and Google Workspace CLI without a sandbox rebuild ([#1610](https://github.com/mifunedev/agro/issues/1610)).
 
 ### Changed
 
-- Make `/delegate` run an opt-in code review before Close when prd.json sets `"review": true` (off by default), and mark the PR ready only after the retro ([#1658](https://github.com/mifunedev/agro/issues/1658)).
+- Consolidate hands and remote validation guidance into the sandbox skill; add content-bound task-decision regression evidence checks ([#1618](https://github.com/mifunedev/agro/issues/1618)).
+
+### Fixed
+
+- Shorten the remote-sandbox skill description so Pi loads the skill ([#1614](https://github.com/mifunedev/agro/issues/1614)).
 
 ## [0.34.0] - 2026-11-11
 

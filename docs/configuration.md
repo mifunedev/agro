@@ -84,7 +84,7 @@ or the CLI consumes the field itself.
 | --- | --- | --- | --- | --- |
 | `version` | number | `1` | — | Schema version. Must be `1`. |
 | `name` | string | directory name | `SANDBOX_NAME` | Container and Compose project name. |
-| `runtime` | `"docker"` \| `"openshell"` | unset | — | The runtime that provisioned the entry. `agro sandbox install <runtime>` writes the field. The lifecycle verbs read the field to select the runtime. An unset field means `docker`. |
+| `runtime` | `"docker"` or `"openshell"` | unset | — | The runtime that provisioned the entry. `agro sandbox install docker` writes the field. An unset field means `docker`. AGRO retired the value `openshell`. An earlier release wrote the value, and the CLI no longer manages that sandbox. `agro sandbox list` shows the entry as `openshell (retired)`. Each lifecycle verb refuses the entry and exits 1. To remove the sandbox, run `openshell sandbox delete <name>`, then remove the entry directory. `agro sandbox install` and `agro config set` reject the value. |
 | `checkout` | string | unset | `AGRO_REPO_DIR` | Absolute **host** path of a checkout to bind-mount at `/home/sandbox/harness`. `agro sandbox install docker --checkout <dir>` sets the field. The CLI selects the build-capable compose base only when that path holds `.devcontainer/Dockerfile`. This field also lets a lifecycle verb resolve this sandbox from inside that directory. Unset means image-only: the entrypoint seeds the workspace volume from the image's `/opt/agro-seed`. The field `repo` and the flag `--repo` remain as deprecated aliases. A file that holds both fields uses `checkout`. |
 | `timezone` | string | `America/Los_Angeles` | `TZ` | Timezone for log timestamps. |
 | `storage.homePath` | string | unset | `AGRO_HOME_MOUNT` | Absolute **host** path for the single `/home/sandbox` mount. Leave unset and Docker manages it as the named volume `<name>_workspace`. Must start with `/`; use a dedicated empty directory, since the sandbox takes ownership of every file in that directory. Set this field at create time with `agro sandbox install docker --home-mount <dir>`. The flag resolves the argument to an absolute path. The flag creates the directory when the directory is absent. The flag accepts a non-empty directory. `agro config set storage.homePath <dir>` refuses the change when the named volume `<name>_workspace` already exists. The next start would swap the mount source and orphan every file in that volume. Pass `--force` to override the refusal. A stale `AGRO_HOME_MOUNT` in `.devcontainer/.env` outranks this value, because the wrapper passes the dotenv last. |
@@ -127,7 +127,7 @@ host outside `egress-allow.txt`.
 
 `materialize()` writes `egress-allow.txt` from one source: the `host` entries
 under `network_policies` in
-[`.devcontainer/openshell-policy.yaml`](../.devcontainer/openshell-policy.yaml),
+[`.devcontainer/egress-policy.yaml`](../.devcontainer/egress-policy.yaml),
 plus `access.egressAllow`. The built-in hosts are `github.com`,
 `api.github.com`, `release-assets.githubusercontent.com`,
 `registry.npmjs.org`, `api.anthropic.com`, and `platform.claude.com`. Add
@@ -138,7 +138,7 @@ another host with `agro config set access.egressAllow "<hosts>" --sandbox
 marks each denied line `DENIED`. `agro egress reload [name]` rewrites
 `egress-allow.txt` and sends the proxy `squid -k reconfigure`; the sandbox
 container keeps running. Both verbs exit 1 on a sandbox whose `access.egress`
-is `open` and on an `openshell` entry.
+is `open`.
 
 Allowlist mode needs Compose 2.23 or later, because the overlay defines the
 proxy configuration with the inline `configs.content` field. The overlay also
@@ -186,6 +186,21 @@ Recipe: [Creating a sandbox](deployment-prebuilt-image.md).
 | --- | --- | --- | --- | --- |
 | `composeOverrides` | string[] | `[]` | — | Extra `-f` overlay paths, applied after the built-in overlays selected by `access` (last `-f` wins). |
 
+## Host config
+
+The host config `${AGRO_HOME:-~/.agro}/config.json` holds per-machine state. Git
+does not track it, and each machine keeps its own copy. `~` is the home directory
+of the user that runs `agro`. `agro config set hands.provider <value>` writes the
+field, and `agro config show` prints its value to stderr.
+
+| Field | Type | Default | What the field does |
+| --- | --- | --- | --- |
+| `hands.provider` | enum: `console`, `exedev` | `console` | Selects the `agro hands` provider. An absent file or field means `console`. Any other value makes `agro hands` exit 1 with an error that names the field. |
+
+`agro.json` no longer holds `hands.provider`. When an `agro.json` keeps a `hands`
+section, `agro hands` and `agro config` ignore it and print a notice that names
+the host config and `agro config set hands.provider <value>`.
+
 ## Secrets
 
 The allow-list in `.agro/cli/src/lib/secrets.ts` is the complete set of keys the
@@ -203,12 +218,6 @@ See [Muse authentication](harnesses/muse-code.md#authentication) for process inj
 
 `TYPESAFE_API_KEY` serves the optional `typesafe-ai` skill.
 See `.agro/skills/typesafe-ai/SKILL.md`.
-
-## Environment variables
-
-| Variable | Default | What the variable does |
-| --- | --- | --- |
-| `AGRO_NO_STAR_PROMPT` | unset | `1` suppresses the one-time line `⭐ If AGRO helps, star https://github.com/mifunedev/agro` that `agro sandbox install` prints after its first successful install. The line also stays off when `CI` holds a non-empty value, or when stdout is not a TTY. The marker `${AGRO_HOME:-~/.agro}/star-prompt-shown` records the first display. |
 
 ## Retired keys
 

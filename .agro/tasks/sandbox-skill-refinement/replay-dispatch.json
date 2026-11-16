@@ -1,0 +1,28 @@
+{
+  "storyId": "US-002",
+  "sourceCommit": "7bbf3209a6af04513b7f7f8881dc9d10415884a6",
+  "instructionSha256": "5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7",
+  "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
+  "readScope": "Immutable SKILL.md and linked references only, via git show at sourceCommit. No tests, plans, cases/oracles, peer outputs, mutable files, private settings, or credentials.",
+  "ownedWritePaths": [],
+  "deliverable": "Actual JSON route/owner decision with optional suggested commands and notes; never execute suggestions.",
+  "verification": "Advisor inspects each final response, tool-call source scope, observed model and unique handle, then records actual outputs and runs deterministic grader with all negative mutations.",
+  "executionDirectory": "/home/exedev/.agro/workspaces/harness",
+  "executionLocation": "host; immutable read-only Git object inspection only",
+  "modelRequested": "provider default; no override",
+  "freshContext": true,
+  "inheritContext": false,
+  "maxTurns": 5,
+  "sourceReadBudget": 3,
+  "reportWords": 120,
+  "cases": [
+    {"id":"R1","agent":"d1b2e294-bb5a-4c7","name":"routing-r1"},
+    {"id":"R2","agent":"f1e42c45-960f-4f4","name":"routing-r2"},
+    {"id":"R3","agent":"c0e18636-5831-4ee","name":"routing-r3"},
+    {"id":"R4","agent":"92b0d237-51f7-410","name":"routing-r4"},
+    {"id":"R5","agent":"925bf16a-9052-4b5","name":"routing-r5"},
+    {"id":"R6","agent":"365aaf22-eb8a-4fb","name":"routing-r6"},
+    {"id":"R7","agent":"823282e1-b18c-49f","name":"routing-r7"},
+    {"id":"R8","agent":"475c55f1-9dce-47a","name":"routing-r8"}
+  ]
+}

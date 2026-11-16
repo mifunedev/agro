@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { runClipboard } from "./commands/clipboard.js";
 import { runUpdate } from "./commands/update.js";
 import { DEFAULT_ARTIFACT_URL, defaultDeps, runSelfUpgrade } from "./commands/self-upgrade.js";
 import {
@@ -37,10 +38,9 @@ import {
 import { isHelpFlag, runSandboxCommand, type ParseResult } from "./controllers/sandbox.js";
 import { EGRESS_LOG_LINES, EGRESS_LOG_PATH, runEgress } from "./commands/egress.js";
 import { runAuth } from "./commands/auth.js";
-import { runNode } from "./commands/node.js";
 import { runHands } from "./commands/hands.js";
-import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
 import { PromptInterruptedError } from "./lib/prompt.js";
+import { RetiredRuntimeError } from "./lib/agro-config.js";
 export { isHelpFlag, parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
 export type { ParseResult, SandboxArgs } from "./controllers/sandbox.js";
 import {
@@ -147,12 +147,12 @@ Usage:
   ${bin} egress <args...>       Read the egress proxy log or reload its allowlist (log|reload)
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} run -- <command...>    Run a command in an ephemeral container at the repository root
-  ${bin} node <args...>         Manage remote agro-console sandbox nodes (create|list|delete)
-  ${bin} hands <args...>        Manage hands from a brain (list|create|exec|fetch|fork|pause|resume|destroy)
+  ${bin} hands <args...>        Manage hands and console VMs (list|create|check|exec|fetch|fork|pause|resume|destroy)
   ${bin} auth <args...>         Sign in to agro-console (login|status|logout|token)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes|openclaw)
+  ${bin} clipboard <args...>    Upload file batches in the sandbox (start|stop)
   ${bin} --version              Print version
   ${bin} --help                 Show this help
 
@@ -243,25 +243,26 @@ Usage:
 Upgrades exactly one thing: the ${bin} executable that is running. It writes no
 project file — no ${stateNames(bin).controlDir}/, no ${stateNames(bin).configFile}, no .env — and it never asks for sudo.
 
-The upgrade follows whichever mechanism installed this executable:
-  npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/: reads the registry
-                 version with \`npm view\`, then runs
-                 \`npm install -g --prefix <owning prefix> ${AGRO_PRODUCT.packageName}@<version>\`.
-  standalone     a plain file (install.sh): downloads AGRO_JS_URL (default
+The upgrade follows the realpath of the running executable:
+  npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/ in the
+                 global npm prefix (\`npm prefix -g\`): runs
+                 \`npm i -g ${AGRO_PRODUCT.packageName}@latest\`. Another prefix,
+                 such as the npx cache or a project node_modules, is refused.
+  standalone     a regular file named ${bin} (install.sh) in a writable
+                 directory: downloads AGRO_JS_URL (default
                  ${DEFAULT_ARTIFACT_URL})
-                 into the same directory, checks its shebang and \`--version\`,
-                 renames it over the executable, and keeps <path>.prev until the
-                 new file verifies.
+                 into the same directory, checks its #! line and SemVer
+                 \`--version\`, then renames it over the executable. A lower
+                 version is refused; an equal version keeps the executable. A
+                 pinned absolute Node shebang stays in place.
 
-It refuses, with the supported procedure, when the executable is shipped by the
-sandbox image (/opt/agro), is a source checkout's dist/, cannot be resolved,
-sits in a read-only directory, is shadowed by another ${bin} earlier on PATH, or
-does not report the running version. Downgrades are refused. When the installed
-version is already current it changes nothing.
+Every other executable, such as /opt/agro in the sandbox image, a checkout's
+dist/${bin}.js, or a symbolic link, is refused: upgrade it with the mechanism
+that installed it.
 
 Flags:
-  --dry-run       Report the installation kind, target, and versions without
-                  changing anything.
+  --dry-run       Print the planned npm command (after the prefix check) or
+                  download URL without changing anything.
 
 Project payload vendoring (${stateNames(bin).controlDir}/) is \`${bin} vendor\`; its --from,
 --from-remote, --ref and --force flags are not accepted here.
@@ -385,7 +386,8 @@ official image for this CLI version.
 With \`--isolation microvm\`, the command runs as the user sandbox in a throwaway
 msb microVM with its own kernel. The run needs msb ${MSB_VERSION} and read and write
 access to ${KVM_DEVICE}. The image is \`--image\`, else \`run.microvm.image\` in
-${stateNames(bin).configFile}, else the official agro-msb image for this CLI version.
+${stateNames(bin).configFile}, else ghcr.io/mifunedev/mifunetu:<version> for this CLI
+version. A CLI version without a release tag needs \`--image\` or \`run.microvm.image\`.
 The microVM mode does not support \`run.services\` or \`access.egress: "allowlist"\` yet.
 
 With \`--sandbox <name>\`, the command runs in an existing sandbox in place of a
@@ -1295,6 +1297,8 @@ async function main(argv: string[]): Promise<number> {
   const fallbackWarning = sandboxFallbackWarning();
   if (fallbackWarning !== undefined) process.stderr.write(fallbackWarning);
 
+  if (first === "clipboard") return await runClipboard(argv.slice(1), stdio());
+
   if (first === "config") {
     const a = parsedArgs(
       parseConfigArgs(argv.slice(1), bin),
@@ -1422,15 +1426,6 @@ async function main(argv: string[]): Promise<number> {
     );
   }
 
-  if (first === "node") {
-    return await runNode(
-      argv.slice(1),
-      stdio(),
-      {},
-      bin,
-    );
-  }
-
   if (first === "hands") {
     return await runHands(
       argv.slice(1),
@@ -1550,7 +1545,7 @@ export async function runCli(argv: string[]): Promise<number> {
   try {
     return await main(argv);
   } catch (err) {
-    if (err instanceof RuntimeUnsupportedError) {
+    if (err instanceof RetiredRuntimeError) {
       process.stderr.write(`${err.message}\n`);
       return 1;
     }

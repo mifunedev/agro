@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "candidateSha": "cfa577addbf33db1fcd3ea0bafa3621194bb9c00",
+  "rubricSha256": "9b0281a76335f6a25431c8ce0f46521b00eb554e7bf7010708387b772f126f66",
+  "reportedScores": [0.895,0.951,0.941,0.923,0.970,0.951,0.951,0.886,0.876,0.893],
+  "recomputedExactScores": ["179/200","761/800","753/800","369/400","97/100","761/800","761/800","709/800","701/800","357/400"],
+  "exactMean": "739/800",
+  "displayedMean": 0.924,
+  "criticalSafetyCapFound": false,
+  "confirmedFailedChecks": [],
+  "allTenReportsRetained": true,
+  "protocol": "Ten fresh non-inherited default-model contexts, full60check frozen rubric, original12turn/8source-call/12additional-file/350word budgets, no target/prior score/peer access. Native scope audit found only authorized brief/rubric reads and immutable Git inspection.",
+  "decision": "Threshold not met. No replacement or upward regrading. Strengthen directly verifiable whole active-caller/CI structural evidence, publish a new evidence-bearing candidate and run a fresh council. Preserve all instruction/case/reply bytes and evaluation rules.",
+  "limits": "Readiness scores are not task-success probabilities; unknowns remain zero and do not prove defects. No live boundary/provider execution occurred."
+}

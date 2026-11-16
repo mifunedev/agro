@@ -12,8 +12,8 @@ import {
   DEFAULT_CONSOLE_URL,
   resolveConsoleConfig,
   type ConsoleConfig,
-  type NodeIO,
-} from "./node.js";
+  type ConsoleIO,
+} from "../lib/console-api.js";
 
 export const ENV_TOKEN_LOGOUT = "token comes from AGRO_CONSOLE_TOKEN; unset it to log out";
 
@@ -137,7 +137,7 @@ function parseLogin(tokens: string[]): { ok: true; url?: string } | { ok: false;
   return { ok: true, url };
 }
 
-async function runLogin(tokens: string[], io: NodeIO, deps: AuthDeps, bin: string): Promise<number> {
+async function runLogin(tokens: string[], io: ConsoleIO, deps: AuthDeps, bin: string): Promise<number> {
   const prefix = `${bin} auth login`;
   const parsed = parseLogin(tokens);
   if (!parsed.ok) {
@@ -201,7 +201,7 @@ async function runLogin(tokens: string[], io: NodeIO, deps: AuthDeps, bin: strin
   return 1;
 }
 
-async function runStatus(io: NodeIO, deps: AuthDeps, config: ConsoleConfig, bin: string): Promise<number> {
+async function runStatus(io: ConsoleIO, deps: AuthDeps, config: ConsoleConfig, bin: string): Promise<number> {
   const me = await callApi(deps, config.url, "GET", "/api/me", { token: config.token });
   if (!me.ok) {
     const hint = me.status === 401 ? `: the token is invalid or revoked; run ${bin} auth login` : "";
@@ -220,7 +220,7 @@ async function runStatus(io: NodeIO, deps: AuthDeps, config: ConsoleConfig, bin:
   return 0;
 }
 
-async function runLogout(io: NodeIO, deps: AuthDeps, config: ConsoleConfig, bin: string): Promise<number> {
+async function runLogout(io: ConsoleIO, deps: AuthDeps, config: ConsoleConfig, bin: string): Promise<number> {
   if (config.source === "env") {
     io.stderr(`${ENV_TOKEN_LOGOUT}\n`);
     return 1;
@@ -242,7 +242,7 @@ async function runLogout(io: NodeIO, deps: AuthDeps, config: ConsoleConfig, bin:
 
 export async function runAuth(
   args: string[],
-  io: NodeIO,
+  io: ConsoleIO,
   overrides: Partial<AuthDeps> = {},
   bin = "agro",
 ): Promise<number> {

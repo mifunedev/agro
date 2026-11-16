@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1d17ba3c262ee1777f261d24b7ddd1be5269cf8e",
+  "reviewKind": "Fresh independent read-only adversarial verification, not a scored council replacement",
+  "sourceInspectionCalls": 6,
+  "criticalCapInstructionFound": false,
+  "concreteBlockerIdentified": false,
+  "findings": [
+    {"status":"confirmed","claim":"Public hand application example requires capability/runtime inspection, authority, recorded task-owned identity and agro run; SSH transport supplies no isolation.","sources":["docs/lifecycle-commands.md:711-725",".agro/skills/sandbox/references/mifune-console.md:26-33,52-67,118-123",".agro/cli/src/commands/hands.ts:444-467",".agro/cli/src/commands/run.ts:309-314"]},
+    {"status":"confirmed","claim":"Public instructions disclose writable external common Git metadata and require mounted-path credential review; local reference also discloses the additional writable mount.","sources":["docs/lifecycle-commands.md:203-211",".agro/skills/sandbox/references/local-docker.md:25-26,38-45",".agro/cli/src/lib/execution/ephemeral-target.ts:102-129"]},
+    {"status":"confirmed","claim":"Readiness states default60attempts with1second failed-attempt spacing plus probe duration, no probe timeout or hard60second deadline, and agent-selected bounded monitoring within approved scope.","sources":[".agro/skills/sandbox/references/local-docker.md:69-72,110-113","docs/lifecycle-commands.md:259-265",".agro/cli/src/commands/run.ts:76-79,91-99",".agro/cli/src/lib/execution/runner.ts:26-35"]},
+    {"status":"confirmed","claim":"Stop/pause absence is adapter-local; cleanup is best effort for recorded resources. No speculative failed-start leak claim remains.","sources":[".agro/skills/sandbox/references/providers.md:36",".agro/skills/sandbox/references/exedev.md:77-94",".agro/skills/sandbox/adapters/exedev.sh:2-7",".agro/cli/src/commands/run.ts:195-206,352-353"]}
+  ],
+  "optionalWordingObservation": "Local reference's credential-review sentence names the checkout rather than all mounted paths. Advisor drops the additional duplicate wording: that reference explicitly discloses the extra writable Git mount, while public documentation already requires review of all mounted paths. No source claims those credentials are absent, so the frozen S2 requirement is met; the critic found no concrete blocker.",
+  "limits": ["Source-backed instruction verification, not live runtime success.","No tests, providers or resources executed by the critic.","Effective monitor termination and uninspected examples remain unknown, not adverse instructions.","Final candidate must preserve all reviewed instruction bytes or receive renewed verification."]
+}

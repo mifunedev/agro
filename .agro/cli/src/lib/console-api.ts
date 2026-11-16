@@ -1,16 +1,24 @@
+import { join } from "node:path";
 import { messageOf } from "./execution/runner.js";
 import type { ConsoleCredentials } from "./console-auth.js";
 
 export const DEFAULT_CONSOLE_URL = "https://console.mifune.dev";
+export const CONSOLE_CONFIG_MISSING = "not logged in to agro-console: run agro auth login";
+
+export const FREE_TIER_SPEC = "n4";
+const CREDIT_REFUSALS: readonly { status: number; code: string }[] = [
+  { status: 403, code: "PAYMENTS_DISABLED" },
+  { status: 402, code: "CREDIT_REQUIRED" },
+];
 
 export const NODE_READY_TIMEOUT_MS = 15 * 60 * 1000;
-export const NODE_FAST_POLL_INTERVAL_MS = 1000;
-export const NODE_FAST_POLL_WINDOW_MS = 30 * 1000;
-export const NODE_POLL_INTERVAL_MS = 5000;
+const NODE_FAST_POLL_INTERVAL_MS = 1000;
+const NODE_FAST_POLL_WINDOW_MS = 30 * 1000;
+const NODE_POLL_INTERVAL_MS = 5000;
 
 const FAILURE_STATUSES = new Set(["failed", "destroy_requested", "destroying", "destroyed", "retired"]);
 
-export type ConsoleTokenSource = "env" | "file";
+type ConsoleTokenSource = "env" | "file";
 
 export interface ConsoleConfig {
   url: string;
@@ -47,20 +55,32 @@ export interface ConsoleNode {
   sshHost: string | null;
 }
 
-export type ApiResult = { ok: true; status: number; body: unknown } | { ok: false; status?: number; message: string };
+export type ApiResult =
+  | { ok: true; status: number; body: unknown }
+  | { ok: false; status?: number; code?: string; message: string };
 
-export type WaitResult =
+type CreatedNodeResult =
+  | { ok: true; status: number; body: unknown; spec: string | undefined }
+  | { ok: false; status?: number; code?: string; message: string };
+
+export type ConsoleAuthority = "brain" | "operator";
+
+type HandsConfigResult =
+  | { ok: true; config: ConsoleConfig; authority: ConsoleAuthority }
+  | { ok: false; error: string };
+
+type WaitResult =
   | { ok: true; node: ConsoleNode }
   | { ok: false; reason: "timeout"; node: ConsoleNode; appeared: boolean }
   | { ok: false; reason: "failed"; node: ConsoleNode }
   | { ok: false; reason: "request"; node: ConsoleNode; message: string };
 
-export function present(value: string | undefined): string | undefined {
+function present(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed === undefined || trimmed === "" ? undefined : trimmed;
 }
 
-export function trimConsoleUrl(url: string): string {
+function trimConsoleUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
@@ -75,6 +95,47 @@ export function resolveConsoleConfig(
   const fileToken = present(file?.token);
   if (fileToken === undefined) return undefined;
   return { url: urlOrDefault(present(file?.url)), token: fileToken, source: "file" };
+}
+
+export function brainTokenPath(home: string): string {
+  return join(home, ".agro", "brain-token");
+}
+
+export function brainConsoleUrlPath(home: string): string {
+  return join(home, ".agro", "brain-console-url");
+}
+
+export function resolveHandsConsoleConfig(
+  env: Record<string, string | undefined>,
+  homeDir: () => string,
+  readFile: (path: string) => string | undefined,
+  readCredentials: () => ConsoleCredentials | undefined,
+  operator: boolean,
+): HandsConfigResult {
+  const asOperator = (): HandsConfigResult | undefined => {
+    const config = resolveConsoleConfig(env, readCredentials);
+    return config === undefined ? undefined : { ok: true, config, authority: "operator" };
+  };
+  if (operator) return asOperator() ?? { ok: false, error: CONSOLE_CONFIG_MISSING };
+  const tokenPath = brainTokenPath(homeDir());
+  const envToken = present(env.AGRO_CONSOLE_TOKEN);
+  const token = envToken ?? present(readFile(tokenPath));
+  if (token === undefined) {
+    return asOperator() ?? {
+      ok: false,
+      error: `no console token: ${tokenPath} not found and no agro auth login credentials; run agro auth login`,
+    };
+  }
+  const urlPath = brainConsoleUrlPath(homeDir());
+  const url = present(env.AGRO_CONSOLE_URL) ?? present(readFile(urlPath));
+  if (url === undefined) {
+    return { ok: false, error: `no brain console URL: ${urlPath} not found and AGRO_CONSOLE_URL is unset` };
+  }
+  return {
+    ok: true,
+    config: { url: trimConsoleUrl(url), token, source: envToken === undefined ? "file" : "env" },
+    authority: "brain",
+  };
 }
 
 export function nodePollDelayMs(elapsedMs: number): number {
@@ -119,10 +180,15 @@ export function toNodeList(body: unknown): ConsoleNode[] {
   return items.flatMap((item) => toNode(item) ?? []);
 }
 
+function errorCode(body: unknown): string | null {
+  const record = asRecord(body);
+  return asText(record?.code) ?? asText(asRecord(record?.error)?.code);
+}
+
 function errorDetail(status: number, body: unknown): string {
   const record = asRecord(body);
   const nested = asRecord(record?.error);
-  const code = asText(record?.code) ?? asText(nested?.code) ?? "no code";
+  const code = errorCode(body) ?? "no code";
   const message = asText(record?.error) ?? asText(nested?.message) ?? asText(record?.message);
   return `HTTP ${status} ${code}${message === null ? "" : `: ${message}`}`;
 }
@@ -156,9 +222,52 @@ export async function callApi(
     body = null;
   }
   if (response.status >= 400) {
-    return { ok: false, status: response.status, message: errorDetail(response.status, body) };
+    const code = errorCode(body);
+    return {
+      ok: false,
+      status: response.status,
+      ...(code === null ? {} : { code }),
+      message: errorDetail(response.status, body),
+    };
   }
   return { ok: true, status: response.status, body };
+}
+
+function keyIdentity(publicKey: string): string {
+  return publicKey.trim().split(/\s+/).slice(0, 2).join(" ");
+}
+
+export function toKeyList(body: unknown): Record<string, unknown>[] {
+  const record = asRecord(body);
+  const items = Array.isArray(body) ? body : record?.sshKeys;
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item: unknown): Record<string, unknown>[] => {
+    const key = asRecord(item);
+    return key === undefined ? [] : [key];
+  });
+}
+
+export function findKeyIdByIdentity(keys: Record<string, unknown>[], publicKey: string): string | null {
+  const identity = keyIdentity(publicKey);
+  const match = keys.find((key) => typeof key.publicKey === "string" && keyIdentity(key.publicKey) === identity);
+  return asText(match?.id);
+}
+
+export async function findOrRegisterSshKey(
+  deps: ConsoleFetchDeps,
+  config: ConsoleConfig,
+  publicKey: string,
+  name: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const listed = await callApi(deps, config, "GET", "/api/ssh-keys");
+  if (!listed.ok) return { ok: false, error: listed.message };
+  const matchId = findKeyIdByIdentity(toKeyList(listed.body), publicKey);
+  if (matchId !== null) return { ok: true, id: matchId };
+  const registered = await callApi(deps, config, "POST", "/api/ssh-keys", { name, publicKey });
+  if (!registered.ok) return { ok: false, error: registered.message };
+  const outer = asRecord(registered.body);
+  const id = asText((asRecord(outer?.sshKey) ?? outer)?.id);
+  return id === null ? { ok: false, error: "the console response has no SSH key id" } : { ok: true, id };
 }
 
 export async function waitForRunning(
@@ -185,4 +294,48 @@ export async function waitForRunning(
     if (node.status !== previous) onStatus(node);
   }
   return node.status === "running" ? { ok: true, node } : { ok: false, reason: "failed", node };
+}
+
+export async function createConsoleNode(
+  deps: ConsoleFetchDeps,
+  config: ConsoleConfig,
+  body: Record<string, unknown> & { spec?: string },
+  notice: (message: string) => void,
+): Promise<CreatedNodeResult> {
+  const created = await callApi(deps, config, "POST", "/api/nodes", body);
+  if (created.ok) return { ...created, spec: body.spec };
+  if (!CREDIT_REFUSALS.some(({ status, code }) => created.status === status && created.code === code)) return created;
+  const topUp = () => notice(`top up credit at ${config.url}/billing`);
+  const eligibility = await callApi(deps, config, "GET", "/api/free-tier");
+  if (eligibility.ok && asRecord(eligibility.body)?.eligible === false) {
+    topUp();
+    return created;
+  }
+  if (body.spec !== FREE_TIER_SPEC) {
+    notice(
+      body.spec === undefined
+        ? `the default spec is not in the free tier; creating ${FREE_TIER_SPEC}`
+        : `spec ${body.spec} is not in the free tier; creating ${FREE_TIER_SPEC}`,
+    );
+  }
+  const retried = await callApi(deps, config, "POST", "/api/nodes", { ...body, spec: FREE_TIER_SPEC, freeTier: true });
+  if (retried.ok) return { ...retried, spec: FREE_TIER_SPEC };
+  topUp();
+  return retried;
+}
+
+export function formatTable(header: string[], rows: string[][]): string {
+  const table = [header, ...rows];
+  const widths = header.map((_, column) => Math.max(...table.map((cells) => cells[column].length)));
+  return table.map((cells) => `${cells.map((cell, column) => cell.padEnd(widths[column])).join("  ").trimEnd()}\n`).join("");
+}
+
+export async function confirmDestroy(
+  io: ConsoleIO,
+  confirm: (question: string) => Promise<boolean>,
+  request: { prefix: string; yes: boolean; question: string; subject: string },
+): Promise<boolean> {
+  if (request.yes || (await confirm(request.question))) return true;
+  io.stderr(`${request.prefix}: aborted — ${request.subject} unchanged\n`);
+  return false;
 }

@@ -6,6 +6,16 @@ import {
   agroConfigPath,
   readAgroConfig,
 } from "../lib/agro-config.js";
+import { homedir } from "node:os";
+import { brainHarnessRoot, resolveHandProviderId, retiredHandsNotice } from "../lib/hands/provider.js";
+import {
+  handProviderError,
+  HANDS_PROVIDER_FIELD,
+  hostConfigPath,
+  isHandProviderId,
+  readHostConfig,
+  writeHostConfig,
+} from "../lib/host-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
@@ -23,6 +33,8 @@ export interface ConfigOptions {
   sandbox?: string;
   force?: boolean;
   run?: LifecycleRunner;
+  env?: NodeJS.ProcessEnv;
+  home?: string;
 }
 
 const HOME_PATH_FIELD = "storage.homePath";
@@ -58,8 +70,47 @@ function configRoot(opts: ConfigOptions): string {
     : resolveSandboxRoot({ name: opts.sandbox });
 }
 
+function hostScope(opts: ConfigOptions): { env: NodeJS.ProcessEnv; home: string } {
+  return { env: opts.env ?? process.env, home: opts.home ?? homedir() };
+}
+
+function reportRetiredHands(root: string, opts: ConfigOptions, io: ConfigIO): void {
+  const { env, home } = hostScope(opts);
+  const notice = retiredHandsNotice(root, env, home, opts.bin);
+  if (notice !== undefined) io.stderr(`${opts.bin} config: ${notice}\n`);
+}
+
+function reportHandProvider(opts: ConfigOptions, io: ConfigIO): void {
+  const { env, home } = hostScope(opts);
+  try {
+    io.stderr(`${hostConfigPath(env, home)}: ${HANDS_PROVIDER_FIELD} ${resolveHandProviderId(env, home)}\n`);
+  } catch (error) {
+    io.stderr(`${opts.bin} config show: ${messageOf(error)}\n`);
+  }
+}
+
+function setHandProvider(value: string, opts: ConfigOptions, io: ConfigIO): number {
+  const { env, home } = hostScope(opts);
+  reportRetiredHands(brainHarnessRoot(env, home), opts, io);
+  const path = hostConfigPath(env, home);
+  try {
+    if (!isHandProviderId(value)) throw handProviderError(path);
+    const config = readHostConfig(env, home);
+    if (config.hands?.provider === value) {
+      io.stdout(`${path}: ${HANDS_PROVIDER_FIELD} already ${value}\n`);
+      return 0;
+    }
+    writeHostConfig({ ...config, hands: { ...config.hands, provider: value } }, env, home);
+  } catch (error) {
+    io.stderr(`${opts.bin} config set: ${messageOf(error)}\n`);
+    return 1;
+  }
+  io.stdout(`${path}: set ${HANDS_PROVIDER_FIELD}=${value}\n`);
+  return 0;
+}
+
 export function configFieldList(): string {
-  return agroConfigFieldPaths()
+  return [...agroConfigFieldPaths(), `${HANDS_PROVIDER_FIELD} (host config)`]
     .map((path) => `  ${path}`)
     .join("\n");
 }
@@ -68,6 +119,8 @@ export async function runConfigShow(opts: ConfigOptions, io: ConfigIO): Promise<
   const root = configRoot(opts);
   const config = readAgroConfig(agroConfigPath(root));
   io.stdout(`${JSON.stringify(config, null, 2)}\n`);
+  reportRetiredHands(root, opts, io);
+  reportHandProvider(opts, io);
   return 0;
 }
 
@@ -86,12 +139,15 @@ export async function runConfigSet(
     return 1;
   }
 
+  if (key === HANDS_PROVIDER_FIELD) return setHandProvider(value, opts, io);
+
   if (!findAgroConfigField(key)) {
     io.stderr(`${opts.bin} config set: unknown field "${key}"\n\nFields:\n${configFieldList()}\n`);
     return 1;
   }
 
   const root = configRoot(opts);
+  reportRetiredHands(root, opts, io);
 
   if (key === HOME_PATH_FIELD && opts.force !== true && currentHomePath(root) !== value) {
     const volume = existingNamedVolume(root, opts.run ?? spawnRunner);

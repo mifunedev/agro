@@ -108,7 +108,7 @@ has_numeric_dotted_version() {
 }
 
 for tool in "gh --version" "docker --version" "docker compose version" \
-            "bun --version" "uv --version" "hadolint --version"; do
+            "uv --version" "hadolint --version"; do
   if out=$(run "$tool" 2>&1); then
     line=$(first_real_line <<<"$out")
     if has_numeric_dotted_version <<<"$line"; then

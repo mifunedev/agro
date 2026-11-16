@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "project": "Sandbox skill readiness refinement",
+  "branchName": "feat/1618-sandbox-skill",
+  "description": "Refine existing PR #1619 under the active goal: fresh ten-member council mean at least 0.930, then undraft on exact-head green CI.",
+  "issue": 1618,
+  "pr": 1619,
+  "rubricSha256": "9b0281a76335f6a25431c8ce0f46521b00eb554e7bf7010708387b772f126f66",
+  "minimumCouncilMean": 0.93,
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Clarify workflows and add a routing-decision grader",
+      "description": "As an operator, I want accurate execution guidance and a strict decision grader so that review checks task decisions rather than prose presence.",
+      "acceptanceCriteria": [
+        "Clone-result retrieval names the required brain checkout and hand remote before fetch.",
+        "Public documentation matches allowlist-only run.env behavior.",
+        "MicroVM permission guidance distinguishes historical observations from fresh runtime evidence.",
+        "Eight routing cases cover the frozen R1 through R8 tasks without changing the rubric.",
+        "Grader tests reject wrong routes, missing or duplicate cases, invalid owners, stale instruction hashes, and invented execution claims.",
+        "The existing changelog entry describes the added routing evidence and links issue #1618.",
+        "Public hand application examples require capability-checked sandbox execution; SSH alone is not an application runtime.",
+        "Public mount scope discloses writable external Git metadata; readiness states attempts plus probe duration, cleanup remains best effort, and provider stop limits are adapter scoped."
+      ],
+      "priority": 1,
+      "commit": "1d17ba3c262ee1777f261d24b7ddd1be5269cf8e",
+      "passes": true,
+      "rounds": 2,
+      "repairHistory": "Reopened for council-confirmed public SSH isolation instruction and four bounded truthfulness clarifications. Revised existing guide ownership before sequential dispatch; no runtime changes. Prior repair: resolved input-closure gap through bounded worker61ed1915-7a0d-479. All ten actual/public instruction inputs are hashed, including two linked R8 documents. Tests mutate either document in isolated fixtures and reject stale provenance. Monitor12 passed all3348 tests with the final helper.",
+      "notes": "Advisor inspected and accepted source1d17ba3c after the bounded replacement worker's red-to-green guards and final prose corrections. Executed: monitor15 exit0 inside agro run;10skill guards plus32grader unit tests passed, three complete changed documents passed STE, links and diff checks passed. The one observed replay test was not selected at this preliminary unit stage because its old source bytes are intentionally stale; US-002 remains false until a genuinely new batch. Reasoned: public application examples require capability-checked agro run, authority and owned index; writable common Git metadata is disclosed; readiness states60attempts plus unbounded probe duration; cleanup is best effort; provider stop scope is adapter-local. Manual STE checks confirm conditions precede actions and named actors/antecedents. Historical acceptance before these new findings: Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The final unfiltered observed replay test passes with genuine US-002 records; no synthetic observation or skip can satisfy it.",
+      "files": [
+        ".agro/skills/sandbox/references/local-docker.md",
+        ".agro/skills/sandbox/references/providers.md",
+        ".agro/skills/sandbox/references/mifune-console.md",
+        ".agro/skills/sandbox/references/local-msb.md",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/sandbox-routing.test.ts",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Execute fresh routing decisions and bind their evidence",
+      "description": "As an advisor, I want eight fresh decision-only runs so that regression evidence records actual model decisions against the current skill.",
+      "acceptanceCriteria": [
+        "Each case uses a fresh context without answer keys, peer outputs, or inherited advisor preferences.",
+        "Actual responses satisfy the expected routes and required ownership decisions for all eight cases.",
+        "The evidence identifies its cases, observed model, worker handles, and exact instruction hashes.",
+        "The grader rejects a mutated wrong-route response and stale source evidence.",
+        "No replay runs a provider command, reads credentials, or creates infrastructure."
+      ],
+      "priority": 2,
+      "dependsOn": ["US-001"],
+      "commit": "a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14",
+      "passes": true,
+      "repairHistory": "Closed with a genuinely new eight-context batch at immutable1d17ba3c. Old replies remain in Git history at ddd4889f, not rehashed or relabeled as fresh. Historical batch: verified all ten input files byte-for-byte against immutable7bbf3209 and refreshed only provenance metadata. The original decisions, cases, models, handles and outcomes are unchanged. No replay or oracle substitution.",
+      "notes": "Executed: eight genuinely new fresh contexts at immutable1d17ba3c produced all frozen routes/required owners on first attempts; native replies preserved exactly in commita213be5c. Advisor audited20git-show-only tool calls, actual gpt-6.1-sol model fields, unique handles, complete prompt hashes and all10input bytes against source. Current instruction digestd92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee; unchanged cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab. Independent monitor16 exit0: all43skill/routing tests passed unfiltered, including actual-record gate and stale/missing/wrong-route/provenance mutations, no skips. Reasoned: suggested command wording remains unexecuted/ungraded and allowed extra owners unpenalized; no provider or resource operation occurred. Fresh safety critic found no cap instruction/concrete blocker in inspected repaired scope. Historical batch: Executed: eight unique fresh contexts at immutable7bbf3209 produced the expected R1-R8 routes and required owners on their first attempts; actual JSON responses, observed gpt-6.1-sol model names, handles and prompt hashes were captured, not synthesized. Advisor audited every tool call as git-show-only source inspection, with no oracle/plan access or provider execution. Complete instruction digestfd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233 and cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab match the verified original inputs. Monitor12 exit0: all3348 tests passed, including the observed-record gate and negative wrong-route/stale/missing/schema/provenance/public-document-byte mutations; no skips. Suggested command wording remains ungraded and unexecuted, explicitly disclosed.",
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+        ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Verify the candidate and prepare review evidence",
+      "description": "As a reviewer, I want reproducible verification and a complete PR body so that the scored revision has an auditable acceptance path.",
+      "acceptanceCriteria": [
+        "Full tests, typecheck, and build pass inside agro run.",
+        "Skill structure, provider links, shell syntax, and changed prose pass relevant checks.",
+        "All sixteen moved machinery files retain their original blobs and modes.",
+        "Manual review evidence includes a real positive command and an invalid-provider failure from fresh temporary state.",
+        "The final commit excludes agro.json, runtime code, dependency changes, and unrelated main-checkout edits.",
+        "Manual review evidence records reproducible commands, outputs, and limits for pinned PR links.",
+        "Machine-checked whole-file comparisons prove which active driver/adapter/suite test bodies changed only by canonical path retargeting.",
+        "Observed checks prove canonical CI targets, provider links, payload inclusion, retired entrypoints and test-target binding without assigning rubric grades.",
+        "Default-loader introspection records actual provider IDs and required function names with no provider operation; optional-hook and phase limits remain explicit.",
+        "Supplemental routing evidence exposes actual frozen prompt/route/required-owner comparisons and full guard outcomes without changing the recorded replies or command-grading scope."
+      ],
+      "priority": 3,
+      "dependsOn": ["US-001", "US-002"],
+      "commit": "c950dd42cab79c8375b31ff2de59417d55ed3709",
+      "passes": true,
+      "rounds": 1,
+      "repairHistory": "First verification-artifact repair: fresh round3mean739/800 missed the unchanged threshold because whole-check evidence was uninspected. No source F or safety-cap finding; accepted US001/US002 remain unchanged. Add actual whole-file retarget and CI/discovery structural proofs, not score adjustments or bundled source to evade budget.",
+      "notes": "Advisor reaccepted US003 after actual whole-contract evidence refinement. Executed: complete structural verifier in agro run exited0, then fresh skeptic independently reproduced rawJSON/hashes and all caller/CI/payload/link facts without a blocker. Only exact root literals differ in three entire test modules/workflow; otherbytes and7fixtures preserved. Actual default-loader probe returned4IDs/5functions, no provider operations; scope excludes untestedhooks/phasebehavior. Actual realgrader produced8frozen prompt/route/required-owner comparisons; inputs/cases/replies byte-identical to originalA/B, no newmodel contexts. Monitor21 JSONreporter:43passed/0failed/0skipped with allindividual outcomes captured. Monitor22 exit0 on snapshotc950dd42:3352tests/125files, zero skips, typecheck/build; rootlint no-op. Provider/prose/syntax/preservation/exclusion facts remain source-identical and source-check commands passed. Historical CI logs independently authenticated:3345pass/7conditional skips outside changed43, both jobsSUCCESS forF; later-head CI still mandatory. Reasoned: evidence is directly reproducible structural/execution data, not bundled production source, assigned rubric grades, or live deletion/availability claims. Final pinned publication/fresh10council/exact-head greenCI still gate undrafting; no merge permission. Prior source acceptance remains historical: Executed: monitor18 exit0 inside agro run with600s hard limit:3352tests/125files, zero skips, typecheck/build; root lint only prints a message. Monitor19 exit0:270focused contracts/8files; monitor16 exit0:43unfiltered routing/skill checks. Six complete changed docs and revised manual/plan passed STE; conditions/actors reviewed manually. Links, all16literal shell syntax checks and diff check passed. Exact Git comparisons preserve all16machinery blobs/modes, provider targets, payload and retired entrypoints; all excluded runtime/dependency/agro.json paths unchanged. Fresh literal invalid-provider test verified absent output before invocation, actual driver2, wrapper0, no state files/provider operations. Manual evidence records exact commands, outputs and limits for final pinned publication. Reasoned: source/evidence acceptance does not bypass fresh council, exact-head CI, pinned PR-body gates or no-merge boundary. Failed POSIX launcher was not counted; safety refusal followed literal-command remedy, never alternate-tool bypass. Historical verification: Executed: monitor12 exit0 for lint command/typecheck/build and3348 tests in125 files. Monitor11 exit0 for270 focused execution-contract tests. Provider links, bash syntax, changed-reference/plan STE, and diff checks passed. Exact Git comparisons preserve all16 machinery blobs/modes and exclude runtime, dependencies and agro.json changes. Manual evidence records the fresh absent-output-path invalid-provider exit2, successful wrapper exit0 and container-scoped cleanup. Reasoned: source-story acceptance prepares reproducible evidence; task-level gates separately require actual final-head pinned PR links, unchanged-rubric council mean and green CI before undrafting. No live provider/microVM success is claimed.",
+      "files": [".agro/tasks/sandbox-skill-refinement/evidence/manual-review.md", ".agro/tasks/sandbox-skill-refinement/evidence/preservation.json", ".agro/tasks/sandbox-skill-refinement/evidence/execution-contracts.json", ".agro/tasks/sandbox-skill-refinement/evidence/verification.json"]
+    }
+  ]
+}

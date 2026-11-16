@@ -19,7 +19,7 @@ interface RecordedCall {
 }
 
 const ROOT = "/home/sandbox/work/.worktrees/feat/x";
-const IMAGE = "ghcr.io/mifunedev/agro:1.2.3-msb";
+const IMAGE = "ghcr.io/mifunedev/mifunetu:1.2.3";
 const NAME = "agro-run-abc123";
 
 function makeRunner(
@@ -135,8 +135,12 @@ describe("MicrovmExecutionTarget", () => {
     expect([...(await t.capabilities())]).toEqual(["exec"]);
   });
 
-  it("derives the default image from the release image", () => {
-    expect(microvmImageRef("1.2.3")).toBe("ghcr.io/mifunedev/agro:1.2.3-msb");
+  it("derives the default image from the mifunetu release tag", () => {
+    expect(microvmImageRef("1.2.3")).toBe("ghcr.io/mifunedev/mifunetu:1.2.3");
+  });
+
+  it.each(["0.0.0-dev", "v1.2.3"])("refuses version %s with the --image remedy", (version) => {
+    expect(() => microvmImageRef(version)).toThrow(/pass --image or set run\.microvm\.image/);
   });
 });
 

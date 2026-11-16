@@ -1,4 +1,4 @@
-import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
+import egressPolicy from "agro-asset:.devcontainer/egress-policy.yaml";
 import type { AgroConfig } from "./agro-config.js";
 
 export const EGRESS_PROXY_IMAGE =
@@ -28,7 +28,7 @@ export function policyHosts(policyText: string): string[] {
 }
 
 export function egressAllowHosts(config: AgroConfig): string[] {
-  const hosts = new Set<string>(policyHosts(openshellPolicy));
+  const hosts = new Set<string>(policyHosts(egressPolicy));
   for (const host of config.access?.egressAllow ?? []) hosts.add(host);
   return [...hosts].sort();
 }

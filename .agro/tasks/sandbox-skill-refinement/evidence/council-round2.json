@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "candidateSha": "ddd4889fe09826247a865ca55a7bae92d4ea3ab6",
+  "rubricSha256": "9b0281a76335f6a25431c8ce0f46521b00eb554e7bf7010708387b772f126f66",
+  "reportedScores": [0.933, 0.970, 0.970, 0.951, 0.933, 0.951, 0.963, 0.915, 0.950, 0.926],
+  "recomputedExactScores": ["373/400", "97/100", "97/100", "761/800", "373/400", "761/800", "2311/2400", "183/200", "19/20", "741/800"],
+  "rawExactMean": "5677/6000",
+  "rawDisplayedMean": 0.946,
+  "memberReportsRetained": true,
+  "protocol": "Ten fresh non-inherited contexts, whole frozen rubric, independent exploration before scoring, original source/report budgets, no target or prior scores; no low member discarded.",
+  "adjudication": {
+    "acceptedReadiness": false,
+    "criticalSafetyCap": 0.499,
+    "reason": "A fresh independent critic and advisor confirmed that the linked public hands example executes an application test directly through SSH. The inspected hands implementation provides transport, not an application runtime boundary. The original rubric caps a source-confirmed isolation-weakening instruction. Raw numerical agreement cannot override that cap.",
+    "sources": ["docs/lifecycle-commands.md:704,729-731", ".agro/cli/src/commands/hands.ts:444-467", "AGENTS.md:25-31", ".agro/skills/sandbox/references/mifune-console.md:29-30,52-66"],
+    "otherVerifiedFindings": ["Public mount wording omits writable external common Git metadata.", "Default readiness permits60 attempts with one-second spacing plus probe duration, not a hard60-second deadline.", "Provider-wide absence of stop is unproved; retained adapter exposes no stop/pause operation.", "Cleanup is best effort for recorded resources; failed-start leakage is not established by repository evidence."],
+    "nextAction": "Bounded documentation correction, genuinely new eight-case replay, full verification and a fresh ten-member council. No runtime redesign or rubric change."
+  },
+  "limits": "These are source-backed readiness assessments, not task-success probabilities. No live provider, microVM, service or egress boundary validation occurred."
+}

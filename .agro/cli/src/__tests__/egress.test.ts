@@ -176,18 +176,6 @@ describe("refusals", () => {
     expect(err.join("")).toContain("access.egress open");
   });
 
-  it.each(["log", "reload"] as const)("refuses %s for an openshell entry with one line naming runtime", (verb) => {
-    const root = makeEntry({ runtime: "openshell", ...ALLOWLIST });
-    const { calls, run } = makeRunner();
-    const { out, err, io } = makeIo();
-    expect(runEgress(verb, { bin: "agro", name: ENTRY_NAME, run }, io)).toBe(1);
-    expect(calls).toHaveLength(0);
-    expect(out).toEqual([]);
-    expect(err).toEqual([
-      `agro egress ${verb}: the sandbox ${ENTRY_NAME} uses runtime openshell; access.egress allowlist applies to the docker runtime\n`,
-    ]);
-    expect(() => readFileSync(join(root, "egress-allow.txt"))).toThrow();
-  });
 });
 
 describe("parseEgressArgs", () => {

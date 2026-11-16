@@ -261,6 +261,10 @@ Review each `STALE` line. Remove manually if safe (see REMOVE above).
 
 Independent repo — not a harness branch. Has its own `.git`.
 
+On a brain, `agro hands` reads projects at `<harness-root>/projects/<owner>/<repo>`.
+`agro hands --help` states how the CLI resolves `<harness-root>`. Run DETECT BASE
+from that harness root so `$PROJECTS_ROOT` matches the path that `agro hands` uses.
+
 ```bash
 # Clone
 OWNER=ryaneggz

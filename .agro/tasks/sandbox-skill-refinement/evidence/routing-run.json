@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1d17ba3c262ee1777f261d24b7ddd1be5269cf8e",
+  "capturedAt": "2026-11-14T02:06:56.864412+00:00",
+  "scope": "Genuinely new eight-context decision-only replay after documentation correction. Suggested commands and notes are preserved exactly, but are unexecuted and not wording-graded.",
+  "instructionFiles": [
+    ".agro/skills/sandbox/SKILL.md",
+    ".agro/skills/sandbox/references/exedev.md",
+    ".agro/skills/sandbox/references/local-docker.md",
+    ".agro/skills/sandbox/references/local-msb.md",
+    ".agro/skills/sandbox/references/mifune-console.md",
+    ".agro/skills/sandbox/references/providers.md",
+    ".agro/skills/sandbox/references/rationale.md",
+    ".agro/skills/sandbox/references/validation.md",
+    "docs/lifecycle-commands.md",
+    "docs/runtimes/openshell.md"
+  ],
+  "instructionSha256": "d92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee",
+  "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
+  "fixturePath": ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+  "fixtureSha256": "5ed2ebff0a7e7f1063abe4f1380735b8b8eb28bb7db78c4db70b190c038b3b81",
+  "attemptsPerCase": 1,
+  "freshContexts": 8,
+  "caseDecisions": [
+    {
+      "caseId": "R1",
+      "agentHandle": "c77993c3-9ef9-4a7",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "4f1848df4219440c6f04dba098c382d0658daafed7e98f1ceee1fd89a1105c5f",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/local-docker.md"
+      ],
+      "toolCalls": 2,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 67
+    },
+    {
+      "caseId": "R2",
+      "agentHandle": "eea87026-119e-4e2",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "204147dd7b751cefd85d35d52328760a9fc836d190569b5b07eb069f52cdc827",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/local-msb.md"
+      ],
+      "toolCalls": 2,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 68
+    },
+    {
+      "caseId": "R3",
+      "agentHandle": "56c27993-e5eb-444",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "088abb3cef41b0c66d80b0574f737520eebb8a471d19542694678fa8790ce72c",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/local-docker.md"
+      ],
+      "toolCalls": 2,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 77
+    },
+    {
+      "caseId": "R4",
+      "agentHandle": "44096c3d-d226-4be",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "b2a91d9ef6898ad361cc1e3edc10b07cb0b1d3ba8caf6e3e7a369ad7221a4a68",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/local-docker.md"
+      ],
+      "toolCalls": 2,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 79
+    },
+    {
+      "caseId": "R5",
+      "agentHandle": "5e356d11-f283-49e",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "d19af92aab67e17aa0ecfee78a23dad5c3d16d3cbba498a2b709c1ec897543d0",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/mifune-console.md",
+        ".agro/skills/sandbox/references/local-docker.md"
+      ],
+      "toolCalls": 3,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 98
+    },
+    {
+      "caseId": "R6",
+      "agentHandle": "8a12a83a-fdee-490",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "af97224be1018ee549baf3b4b62ae5d75e9fa593c9cf47f13c9883ef65606c34",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/exedev.md",
+        "docs/lifecycle-commands.md"
+      ],
+      "toolCalls": 3,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 65
+    },
+    {
+      "caseId": "R7",
+      "agentHandle": "34b613df-a27e-4f3",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "dc886ddbff0d1f8f60790ece7a37355d50ca2a0e438183a8d61e2cab18e38205",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/validation.md",
+        ".agro/skills/sandbox/references/providers.md"
+      ],
+      "toolCalls": 3,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 71
+    },
+    {
+      "caseId": "R8",
+      "agentHandle": "3e9c7b3f-4a31-4ff",
+      "observedModel": "gpt-6.1-sol",
+      "promptSha256": "9794aed7b3a6d6101bfd07286b60702b35076dba2bb4db1bd43b698c191d881f",
+      "sourcesRead": [
+        ".agro/skills/sandbox/SKILL.md",
+        "docs/lifecycle-commands.md",
+        "docs/runtimes/openshell.md"
+      ],
+      "toolCalls": 3,
+      "sourceOnlyToolAudit": true,
+      "routeMatches": true,
+      "requiredOwnersPresent": true,
+      "reportWhitespaceWords": 95
+    }
+  ],
+  "allInputBytesMatchSourceCommit": true,
+  "previousRunRetainedAt": "ddd4889fe09826247a865ca55a7bae92d4ea3ab6:.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+  "limits": [
+    "Eight-case route/required-owner sample, not general agent reliability.",
+    "Allowed extra owners are retained and not penalized. Suggested command wording is ungraded and can require correction before any execution.",
+    "No provider VM, application workload, live service, egress boundary or microVM operation was executed."
+  ]
+}

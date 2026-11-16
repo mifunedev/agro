@@ -1,0 +1,60 @@
+# shellcheck shell=bash
+console_env() {
+  [ -n "${CONSOLE_SSH_IDENTITY:-}" ] || { echo "console: set CONSOLE_SSH_IDENTITY" >&2; return 1; }
+}
+console_preflight() {
+  local out rc key=()
+  console_env || return 1
+  [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
+  out=$(timeout 60 agro hands check --provider console --operator "${key[@]}" 2>&1); rc=$?
+  printf '%s\n' "$out"
+  return "$rc"
+}
+console_create() {
+  local out state rc key=()
+  [ -z "${IMAGE:-}" ] || { echo "console: IMAGE is not supported, a console hand has no image choice" >&2; exit 2; }
+  console_env || exit 2
+  console_preflight || { echo "console: agro hands check failed, no hand created" >&2; return 1; }
+  [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
+  out=$(timeout 960 agro hands create --provider console --operator --spec "${CONSOLE_SPEC:-n4}" "${key[@]}" --name "$1" --json); rc=$?
+  printf '%s\n' "$out"
+  state=$(printf '%s\n' "$out" | python3 -c "import json,sys; n=json.loads(sys.stdin.read().strip().splitlines()[-1]); s=(n.get('ssh') or '').split(); print(n['id'], s[-1] if s else '')" 2>/dev/null) || return 1
+  printf '%s\n' "$state" >"$STATE_DIR/console-$1"
+  [ "$rc" = 0 ] && [ -n "${state#* }" ]
+}
+console_exec() {
+  local n=$1 id target; shift
+  read -r id target <"$STATE_DIR/console-$n" 2>/dev/null && [ -n "$id" ] && [ -n "$target" ] || return 1
+  timeout 120 ssh "${SSHO[@]}" -o IdentitiesOnly=yes -i "$CONSOLE_SSH_IDENTITY" "$target" "$*"
+}
+console_status() { timeout 60 agro hands list --provider console --operator --json | python3 -c "import json,sys; print(next((n.get('status') or 'unknown' for n in json.load(sys.stdin) if n.get('id') == sys.argv[1]), 'absent'))" "$1"; }
+console_wait_destroyed() {
+  local status waited=0
+  while :; do
+    status=$(console_status "$1") || status=unknown
+    case $status in destroyed|absent) return 0 ;; esac
+    [ "$waited" -lt 180 ] || break
+    sleep 5
+    waited=$((waited + 5))
+  done
+  echo "console: hand $1 is $status after 180 s, not destroyed"
+  return 1
+}
+console_destroy() {
+  local id out _
+  read -r id _ <"$STATE_DIR/console-$1" 2>/dev/null && [ -n "$id" ] || { echo "console: no hand recorded for $1"; return 1; }
+  for _ in $(seq 1 12); do
+    if out=$(timeout 60 agro hands destroy --provider console --operator "$id" --yes 2>&1); then
+      printf '%s\n' "$out" | tail -1
+      console_wait_destroyed "$id" || return 1
+      rm -f "$STATE_DIR/console-$1"
+      return 0
+    fi
+    printf '%s\n' "$out" | grep -q 'HTTP 409' || break
+    sleep 5
+  done
+  printf '%s\n' "$out" | tail -1
+  return 1
+}
+console_list() { timeout 60 agro hands list --provider console --operator --json | python3 -c "import json,sys; print(sum((n.get('name') or '').startswith('agro-mx-') and n.get('status') != 'destroyed' for n in json.load(sys.stdin)))"; }
+console_row_ssh() { local _ target; read -r _ target <"$STATE_DIR/console-$1"; echo "RESULT R10-ssh-inbound PASS ssh $target"; }

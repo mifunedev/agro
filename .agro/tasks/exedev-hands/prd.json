@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1623-exedev-hands",
+  "description": "exe.dev hand provider and free tier fallback. ADR #1622 selects option 3: a provider seam inside `agro hands`, with exe.dev as the second provider. The brain `agro-supervisor` is an exe.dev VM with no console token, so `agro hands` exits 2 there today. The operator also put the removal of `--free-tier` into this scope. When a requested spec is not in the free tier, a console create falls back to `n4`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the exe.dev command API",
+      "description": "As the advisor, I want recorded exe.dev command output so that the provider stories build on measured JSON shapes, not on guesses.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/exedev-hands/evidence/probe.md` records the output of `ssh exe.dev help` for `ls`, `new`, `cp`, `pause`, `resume`, `rm`, and `tag`, run on the brain.",
+        "The fixture file `.agro/cli/src/commands/__tests__/fixtures/exedev-ls.json` holds one `ssh exe.dev ls --json` capture. The capture holds one VM with the tag `agro-hand` and one VM without tags. The capture keeps the fields `vm_name`, `ssh_dest`, `status`, and `tags`, and drops share links and email fields.",
+        "The probe records whether `pause` and `resume` accept `--json`, and records the exit status of `ssh exe.dev ls --json` when the account key is missing, run with `-o IdentitiesOnly=yes -i /dev/null`.",
+        "The probe creates, forks, pauses, and deletes no VM."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: probe.md records help for ls,new,cp,pause,resume,rm,tag (all exit 0; `help run` reports unrecognized). 2 executed: `jq -e '.vms|length==2'` exit 0; fixture holds tagged agro-sbx-dev-001 and untagged agro-supervisor with vm_name,ssh_dest,status,tags only. 3 executed: pause and resume list --json; missing-key ls --json exit 255, Permission denied (publickey). 4 reasoned: probe ran only help, ls --json, whoami --json; no email in either file (grep count 0). Evidence is gitignored by .gitignore:26.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/exedev-hands/evidence/probe.md",
+        ".agro/cli/src/commands/__tests__/fixtures/exedev-ls.json"
+      ],
+      "external": false,
+      "commit": "19a36dea"
+    },
+    {
+      "id": "US-002",
+      "title": "Extract the hand provider seam",
+      "description": "As a CLI maintainer, I want one `HandProvider` interface with the console implementation behind it. Then a second provider adds code beside the console code, not inside it.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/hands/provider.ts` exports `HandProvider`. The interface holds the operations `list`, `resolve`, `create`, `fork`, `pause`, `resume`, and `destroy`. The interface also holds the SSH destination, the host key alias, and the remote name.",
+        "`.agro/cli/src/lib/hands/console-provider.ts` implements `HandProvider` with the current console calls. `runHands` in `.agro/cli/src/commands/hands.ts` calls verbs only through `HandProvider`.",
+        "`.agro/cli/src/commands/__tests__/hands.test.ts` and `.agro/cli/src/commands/__tests__/hands-project.test.ts` pass with no edit to either file.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 reasoned: lib/hands/provider.ts exports HandProvider (list, resolve, create, fork, pause, resume, destroy); Hand carries sshDest, hostKeyAlias, remoteName. 2 reasoned: lib/hands/console-provider.ts holds every console call; hands.ts imports neither callApi nor ConsoleNode. 3 executed: vitest hands.test.ts + hands-project.test.ts exit 0 (64 passed); git diff HEAD~1 --stat on commands/__tests__ empty. 4 executed: corepack pnpm typecheck exit 0; corepack pnpm test:scripts 3330 passed, 7 failed = baseline herdr-default (no zsh).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/commands/hands.ts"
+      ],
+      "external": false,
+      "commit": "a01844e2"
+    },
+    {
+      "id": "US-003",
+      "title": "Add the hands.provider configuration key",
+      "description": "As an operator, I want `hands.provider` in `agro.json` so that I select the hand provider for one brain explicitly.",
+      "acceptanceCriteria": [
+        "`AGRO_CONFIG_FIELDS` in `.agro/cli/src/lib/agro-config.ts` holds `{ path: \"hands.provider\", type: \"enum\", values: [\"console\", \"exedev\"] }`, and `validateAgroConfig` rejects any other value.",
+        "`agro hands` reads `hands.provider` from `~/.agro/workspaces/harness/agro.json`, where `~` is the home directory of the user that runs `agro`. When the file or the key is absent, the provider is `console`.",
+        "`agro config set hands.provider exedev` writes the key, and `agro config set hands.provider other` exits 1.",
+        "`docs/configuration.md` \u00a7 Field reference documents `hands.provider`. `.agro/cli/src/__tests__/docs-reference.test.ts` passes.",
+        "`.agro/cli/src/lib/__tests__/agro-config.test.ts` covers the valid values, the rejected value, and the absent key."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1 reasoned: AGRO_CONFIG_FIELDS has hands.provider enum from HAND_PROVIDER_IDS; validateAgroConfig expectEnum. 2 reasoned: resolveHandProviderId uses readHostConfig().harnessRoot ?? defaultHarnessRoot with userHome dep; exedev exits 2 placeholder; console path unchanged. 3 executed (worker, built CLI): config set exedev exit 0, other exit 1; unit tests via setAgroConfigValue. 4 executed: docs/configuration.md Hands table; docs-reference.test.ts green. 5 reasoned: agro-config.test.ts covers valid, rejected, absent, harnessRoot. 6 executed: typecheck exit 0; test:scripts 3341 passed, 7 baseline herdr-default failures. Follow-up carried to US-005: hands tests read the real home (not hermetic) and the runHands exedev test sits in agro-config.test.ts.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/agro-config.ts",
+        ".agro/cli/src/lib/__tests__/agro-config.test.ts",
+        "docs/configuration.md",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/hands/provider.ts"
+      ],
+      "external": false,
+      "commit": "74146675"
+    },
+    {
+      "id": "US-004",
+      "title": "Remove --free-tier and fall back to n4",
+      "description": "As an operator, I want console creates to pick the free tier without a flag. When I request a spec that the free tier does not offer, the CLI creates `n4` and tells me.",
+      "acceptanceCriteria": [
+        "The worker deletes `CreateArgs.freeTier`, `CheckArgs.freeTier`, and the `--free-tier` parsing in `.agro/cli/src/commands/node.ts`. Then `agro node create` and `agro node check` reject `--free-tier` with `unknown flag \"--free-tier\"` and exit 1.",
+        "Without `--spec`, `agro node create` sends the spec `n4` (`FREE_TIER_SPEC`).",
+        "A shared function in `.agro/cli/src/lib/console-api.ts` sends `POST /api/nodes` with the requested spec. If the console returns HTTP 403 with the code `PAYMENTS_DISABLED`, the function sends one more `POST /api/nodes` with `spec: \"n4\"` and `freeTier: true`. The function sends no third request.",
+        "Before the second request, the CLI prints `spec <spec> is not in the free tier; creating n4` to stderr. When the requested spec is `n4`, the CLI prints no notice.",
+        "Any other error code, `FREE_TIER_INELIGIBLE` included, exits 1 after the first request with no retry.",
+        "`agro node create` and the console provider `create` in `.agro/cli/src/lib/hands/console-provider.ts` both use the shared function.",
+        "`agro node check` always runs the free tier check. A line `warn free-tier: not eligible ...` reports an ineligible account and does not change the exit status.",
+        "`.agro/skills/sandbox/adapters/console.sh` passes no `--free-tier` and reads no `CONSOLE_FREE_TIER`. `.agro/skills/sandbox/references/validation.md` and `.agro/skills/sandbox/references/providers.md` no longer name `--free-tier` or `CONSOLE_FREE_TIER`.",
+        "`nodeHelp` and `docs/lifecycle-commands.md` \u00a7 Remote console nodes no longer name `--free-tier`, and both describe the `n4` fallback.",
+        "`.agro/cli/src/__tests__/node.test.ts` covers the default spec, the fallback with its notice, no notice for `n4`, no retry for other codes, and the rejected flag. `.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` expects `node check --ssh-key key-uuid`.",
+        "`git grep -n -e '--free-tier' -e CONSOLE_FREE_TIER -- .agro docs ':!.agro/tasks'` prints no line.",
+        "`resolveConsoleConfig`, `CONSOLE_CONFIG_MISSING`, and `DEFAULT_CONSOLE_URL` live in `.agro/cli/src/lib/console-api.ts`, and `resolveBrainConsoleConfig` moves from `hands.ts` to the same file. `.agro/cli/src/commands/auth.ts` imports nothing from `./node.js`.",
+        "One shared function renders the node list table, and one shared function asks the delete confirmation. `agro node` and the console hand provider both call each function.",
+        "`nodeHelp` states that a sandbox-profile node from `agro node create` is not a hand unless a brain manages the node.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Criteria 1-14 executed/reasoned per worker report and advisor check: git grep for the flag and CONSOLE_FREE_TIER exit 1 (no lines); auth.ts has no node.js import; createConsoleNode retries once on 403 PAYMENTS_DISABLED with n4+freeTier and notices unless n4; formatTable and confirmDestroy shared; nodeHelp states the not-a-hand rule; ste-check on validation.md and providers.md exit 0; typecheck exit 0. Criterion 15: test:scripts 3351 passed, 8 failed = 7 baseline herdr-default + sandbox-routing.test.ts content-bound provenance hash, because US-004 must edit providers.md, validation.md, and docs/lifecycle-commands.md. decisions.json is owned by US-007, which renames the route and must record a fresh observed routing run; the advisor carries this failure to US-007 (open question 2). Code review repair 1 (9964ebd7): node create --json and text output now report the spec actually created; tests cover fallback and non-fallback; test:scripts 7 baseline failures only.",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/commands/auth.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/skills/sandbox/adapters/console.sh",
+        ".agro/skills/sandbox/references/validation.md",
+        ".agro/skills/sandbox/references/providers.md",
+        "docs/lifecycle-commands.md",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ],
+      "external": false,
+      "commit": "3ea00826,9964ebd7",
+      "rounds": 1
+    },
+    {
+      "id": "US-005",
+      "title": "Read and run on exe.dev hands",
+      "description": "As an agent on an exe.dev brain, I want `agro hands list`, `exec`, and `fetch` to work on tagged exe.dev VMs. Then I offload project work without a console token.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/hands/exedev-provider.ts` implements `list` and `resolve` from `ssh exe.dev ls --json`. The provider returns only VMs whose `tags` holds `agro-hand`. `<hand>` is the VM name.",
+        "With `hands.provider` set to `exedev`, `agro hands` needs no brain token. A failed `ssh exe.dev whoami` preflight exits 2 and prints the remedy to register the brain key with the exe.dev account.",
+        "`exec` runs `ssh <ssh_dest> bash -lc '<command>'` with `HostKeyAlias=<vm_name>`. With `--project`, the command runs in `projects/<owner>/<repo>`. `exec` exits with the remote exit status.",
+        "`fetch` runs `git fetch hand-<vm_name>` in the brain project.",
+        "Both providers resolve the brain project as `<harness-root>/projects/<owner>/<repo>`. `<harness-root>` is `harnessRoot` from `~/.agro/config.json` when set, else `defaultHarnessRoot` (`${AGRO_HOME:-~/.agro}/workspaces/harness`). `hands.ts` no longer holds the literal `\"workspaces\", \"harness\"` or `BRAIN_HOME` for project paths.",
+        "A test sets `AGRO_HOME` to a temp directory and proves that `fetch` runs in `<AGRO_HOME>/workspaces/harness/projects/<owner>/<repo>`.",
+        "An untagged or unknown `<hand>` exits 1 and prints `hand <name> is not tagged agro-hand`.",
+        "`.agro/cli/src/commands/__tests__/hands-exedev.test.ts` runs each verb against a fake runner that returns `fixtures/exedev-ls.json`. The tests pin the SSH argv, the remote name, the project paths, and the exit status.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "1-8 executed: hands-exedev.test.ts (16 tests) pins ls --json tag filter, whoami preflight exit 2 with key remedy, exec argv with HostKeyAlias=<vm> and bash -lc quoting, fetch hand-<vm> with GIT_SSH_COMMAND, AGRO_HOME temp project path, untagged/unknown refusal. Advisor grep: hands.ts has no workspaces/harness literal; BRAIN_HOME only for console token and URL files. 9 executed: hands.test.ts and hands-project.test.ts inject a temp userHome; assertions unchanged; 192 tests in affected files pass. 10: typecheck exit 0; test:scripts 3366 passed, 9 failed = 7 baseline herdr-default + sandbox-routing provenance (carried from US-004) + sandbox-skill.test.ts brain-path test that parses the removed literal. Both test files are owned by US-007; carried there.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/exedev-provider.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ],
+      "external": false,
+      "commit": "677f7ab3"
+    },
+    {
+      "id": "US-006",
+      "title": "Manage the exe.dev hand lifecycle with guards",
+      "description": "As an agent on an exe.dev brain, I want `create`, `fork`, `pause`, `resume`, and `destroy` on exe.dev hands. Guards stop each verb that names the brain or a VM outside the hand set.",
+      "acceptanceCriteria": [
+        "`create` runs `ssh exe.dev new --json --name <name> --tag agro-hand`. `create --project` and `create --clone` prepare the hand and add the remote `hand-<name>` to the brain project.",
+        "With `hands.provider` set to `exedev`, `create --spec` and `fork --spec` exit 1 with `--spec applies only to console hands`.",
+        "`fork` runs `ssh exe.dev cp <source> <name> --copy-tags`. `pause`, `resume`, and `destroy` run `ssh exe.dev pause`, `resume`, and `rm`.",
+        "`fork`, `pause`, `resume`, and `destroy` exit 1 with no `ssh exe.dev` write call when the VM has no `agro-hand` tag.",
+        "Each write verb exits 1 with no `ssh exe.dev` write call when `<hand>` names the brain VM. The provider identifies the brain VM by `os.hostname()`.",
+        "`destroy` asks the operator for confirmation unless the command line holds `--yes`.",
+        "`handsHelp` in `.agro/cli/src/commands/hands.ts` documents both providers, the `agro-hand` tag, the guards, and the `n4` fallback for console hands.",
+        "`hands-exedev.test.ts` covers each write verb, each guard, the `--spec` refusal, and the confirmation prompt.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "1-6, 8 executed: hands-exedev.test.ts pins new --json --name --tag agro-hand with ls wait and fail-closed paths, --project/--clone remote hand-<name>, cp --copy-tags, pause/resume/rm argv, untagged refusal with no write call, brain refusal by hostname label and ssh_dest label, --spec refusal before any ssh call, confirmDestroy yes/no/--yes; hands suites 110/110. Note: the destroy prompt precedes the guard; a refused destroy still asks first (no write occurs). 7 reasoned: handsHelp has Providers, Console hands (n4 fallback), exe.dev hands (tag enrollment), Guards, Projects sections. 9: typecheck exit 0; test:scripts 3395 passed, 9 failed = 7 baseline + 2 carried to US-007. Code review repair 1 (c45f311d): accept-new on ssh exe.dev, preflight shows real stderr and gives the key remedy only on publickey denial; container brain guard fails closed; lenient hands.provider read; not-found vs untagged messages; exe.dev poll >= 5 s with transient ls tolerance; single --spec check. typecheck exit 0; test:scripts 3422 passed, 7 baseline failures only.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/exedev-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ],
+      "external": false,
+      "commit": "bcf63dd0,c45f311d",
+      "rounds": 1
+    },
+    {
+      "id": "US-007",
+      "title": "Route hand requests across providers in the sandbox skill",
+      "description": "As an agent, I want one hands reference for both providers. Then a request to offload work to a hand routes the same way on a console brain and on an exe.dev brain.",
+      "acceptanceCriteria": [
+        "`git mv` renames `.agro/skills/sandbox/references/mifune-console.md` to `.agro/skills/sandbox/references/hands.md`. The route id changes from `mifune-console` to `hands` in `.agro/skills/sandbox/SKILL.md`.",
+        "`hands.md` covers provider selection, enrollment with `ssh exe.dev tag <vm> agro-hand`, the guards, the `n4` fallback, and the operator request examples from ADR #1622.",
+        "`.agro/skills/sandbox/references/exedev.md` no longer states that exe.dev has no pause. The file points to `hands.md` for the use of an exe.dev VM as a hand.",
+        "`.agro/scripts/__tests__/sandbox-skill.test.ts`, `.agro/scripts/__tests__/helpers/sandbox-routing.ts`, and the files in `.agro/scripts/__tests__/fixtures/sandbox-routing/` use the route `hands`. `cases.json` holds at least two exe.dev hand requests from ADR #1622.",
+        "`docs/lifecycle-commands.md` \u00a7 Hands from a brain documents both providers.",
+        "`CHANGELOG.md` `## [Unreleased]` names the exe.dev hand provider and `hands.provider`. A **BREAKING** entry names the removal of `--free-tier` and the `n4` fallback. Each entry links to the task issue.",
+        "The root `AGENTS.md` \u00a7 A small glossary defines **brain**, **hand**, and **console node**. A hand is a node that a brain creates and manages through `agro hands`.",
+        "`.agro/skills/sandbox/references/hands.md` and `.agro/skills/worktrees/SKILL.md` name the brain harness root through `agro hands --help`, not through a repeated literal path.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/sandbox/references/hands.md` exits 0.",
+        "`bash .agro/scripts/link-providers.sh` in check mode exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Round 1 repair: first fresh replay (11 decision-only contexts at 9e5c7cf5) found R9 missing required owner agro-run and an undocumented existing-hand push; 86d75213 documented run ownership and the existing-hand push procedure; all 11 re-recorded at 86d75213 matched oracles (one earlier R2 dispatch with a placeholder prompt was discarded). 1-8 reasoned/executed per worker reports: git mv to hands.md, route hands, exedev.md pause fix, cases R9-R11, harness-root brain-path test, docs both providers, glossary brain/hand/console node, CHANGELOG Added + BREAKING Removed linked to #1623. 9 executed: ste-check hands.md exit 0. 10 executed: link-providers.sh --check exit 0. 11 executed: test:scripts 3397 passed, 7 baseline herdr-default failures only; routing + skill tests 43/43; typecheck exit 0. decisions.json notes are lightly condensed; route, owners, commands verbatim.",
+      "dependsOn": [
+        "US-004",
+        "US-006"
+      ],
+      "files": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/mifune-console.md",
+        ".agro/skills/sandbox/references/hands.md",
+        ".agro/skills/sandbox/references/exedev.md",
+        ".agro/skills/worktrees/SKILL.md",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        "AGENTS.md"
+      ],
+      "external": false,
+      "rounds": 1,
+      "commit": "9e5c7cf5,86d75213,063bdc44"
+    },
+    {
+      "id": "US-008",
+      "title": "Record a live review on agro-sbx-dev-001",
+      "description": "As the operator, I want one transcript of the built CLI on the real exe.dev hand. The transcript shows the provider working end to end in the PR.",
+      "acceptanceCriteria": [
+        "Before any write, a read-only `agro hands list` on the brain lists `agro-sbx-dev-001`. If the command fails, the story sets `blocked` and runs no other command.",
+        "`.agro/tasks/exedev-hands/evidence/manual-review.md` records the built CLI on the brain `agro-supervisor` with `hands.provider` passed for the run only. The run covers `list`, `exec agro-sbx-dev-001 --project <owner>/<repo> -- git log --oneline -1`, one commit on the hand, `fetch`, `pause`, and `resume`.",
+        "The transcript shows `agro hands destroy agro-supervisor --yes` refused with exit 1 and no exe.dev write.",
+        "The transcript shows `agro node create --free-tier` refused with exit 1 and no console request.",
+        "The run creates, forks, and destroys no VM or console node. A `create`, `fork`, or live `n4` fallback run needs separate operator authority and an `agro auth login` sign-in. `external`",
+        "At the end, `ssh exe.dev ls --json` lists the same VMs and tags as at the start."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "1 executed: read-only hands list (AGRO_HOME temp, provider exedev) listed agro-sbx-dev-001, exit 0, before any write. 2 executed: manual-review.md records built CLI on agro-supervisor: existing-hand push of a fresh scratch project, exec git log exit 0, hand commit a5301f0, fetch dd227c5..a5301f0, pause (ls status paused) and resume (running, SSH after 2 s), all exit 0. 3 executed: destroy agro-supervisor --yes exit 1 'it is this brain'; ssh shim saw only whoami preflight. 4 executed: node create --free-tier exit 1 unknown flag with a console URL set, no request; without console config the login message wins first, still exit 1, no request. 5 external, reasoned: no create, fork, destroy, or tag ran. 6 executed: AFTER ls --json equals BEFORE. Cleanup: scratch dir on the hand and temp AGRO_HOME removed. Evidence file is gitignored by design.",
+      "dependsOn": [
+        "US-005",
+        "US-006",
+        "US-007"
+      ],
+      "files": [
+        ".agro/tasks/exedev-hands/evidence/manual-review.md"
+      ],
+      "external": false,
+      "commit": "evidence-only"
+    }
+  ],
+  "pr": 1624
+}

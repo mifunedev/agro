@@ -1,0 +1,32 @@
+{
+  "storyId": "US-002",
+  "sourceCommit": "1d17ba3c262ee1777f261d24b7ddd1be5269cf8e",
+  "instructionSha256": "d92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee",
+  "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
+  "readScope": "Complete immutable sandbox SKILL.md and relevant linked references/public documentation only, all at sourceCommit. No cases/oracles, tests, task plans, goal, earlier results, mutable files, peers, private settings or credentials.",
+  "ownedWritePaths": [],
+  "deliverable": "Actual route/owner JSON with optional unexecuted suggestions; no preferred route or owner mapping supplied.",
+  "verification": "Advisor audits actual tool calls, prompt hashes, observed models, unique fresh handles and complete input bytes, then grades the frozen cases and runs unfiltered negative mutations/observed-record gate.",
+  "executionDirectory": "/home/exedev/.agro/workspaces/harness",
+  "executionLocation": "host; read-only immutable Git inspection only",
+  "modelRequested": "provider default; no override",
+  "freshContext": true,
+  "inheritContext": false,
+  "maxTurns": 5,
+  "sourceReadBudget": 3,
+  "reportWords": 120,
+  "attemptsPerCase": 1,
+  "caseIds": ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"],
+  "agents": {
+    "R1": "c77993c3-9ef9-4a7",
+    "R2": "eea87026-119e-4e2",
+    "R3": "56c27993-e5eb-444",
+    "R4": "44096c3d-d226-4be",
+    "R5": "5e356d11-f283-49e",
+    "R6": "8a12a83a-fdee-490",
+    "R7": "34b613df-a27e-4f3",
+    "R8": "3e9c7b3f-4a31-4ff"
+  },
+  "verificationCritic": "54b29cb7-4448-426",
+  "previousRun": "Original decisions remain unchanged in the Git history at ddd4889fe09826247a865ca55a7bae92d4ea3ab6. New instruction bytes require a genuinely new batch, not metadata rehashing."
+}

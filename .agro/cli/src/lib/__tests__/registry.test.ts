@@ -219,6 +219,13 @@ describe("materialize", () => {
     expect(walk(allowed)).toContain("egress-allow.txt");
   });
 
+  it("writes no file into an entry with the retired openshell runtime", () => {
+    registry();
+    const root = addEntry("retired", { runtime: "openshell" });
+    materialize(root, { repo: "/srv/checkout" });
+    expect(walk(root)).toEqual(["agro.json"]);
+  });
+
   it("writes nothing outside the entry it was given", () => {
     const registryPath = registry();
     const root = addEntry("box");

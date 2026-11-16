@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1633-hand-default-routing",
+  "description": "Default application runs to a running hand, else local Docker.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the runtimes on the brain and the hand",
+      "description": "As the advisor, I want a recorded runtime inventory of the brain and the hand so that the routing stories build on measured capabilities.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/hand-default-routing/evidence/probe.md` records, for `agro-supervisor` and for `agro-sbx-dev-001`: `systemctl is-active docker`, `docker info --format '{{.ServerVersion}}'` or its error, `ls -l /dev/kvm`, `msb --version`, group membership (`id -nG`), and `agro run --help` lines 1 to 4.",
+        "The probe records `agro hands list --json` on the brain and the set of `status` values that it shows.",
+        "The probe records `agro run --isolation microvm -- true` on the brain and on the hand, with each exit status. The probe records a refusal or a failure as the result and does not retry with weaker isolation.",
+        "The probe changes no service, VM, or file outside the evidence folder. The microVM smoke run creates no persistent guest."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: probe.md records docker state, kvm, msb 0.7.13, groups, agro run --help on brain (docker inactive) and hand (docker 29.1.3 active). 2 executed: agro hands list --json shows status running (the only status present). 3 executed: agro run --isolation microvm -- true exit 0 on brain and on hand; no persistent guest. 4 reasoned: only read-only commands and ephemeral microVM runs; evidence gitignored by design.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/hand-default-routing/evidence/probe.md"
+      ],
+      "external": false,
+      "commit": "evidence-only"
+    },
+    {
+      "id": "US-002",
+      "title": "Start Docker on the brain",
+      "description": "As an operator, I want the Docker engine enabled on `agro-supervisor` so that the local fallback `agro run` works when no hand is running.",
+      "acceptanceCriteria": [
+        "`sudo systemctl enable --now docker` exits 0 on the brain, and `systemctl is-active docker` prints `active`.",
+        "`docker info --format '{{.ServerVersion}}'` exits 0 as user `exedev` without `sudo`.",
+        "From the harness root, `agro run -- true` exits 0, and `agro run -- sh -c 'id -u'` prints the uid of `exedev`.",
+        "After a reboot-equivalent check, `systemctl is-enabled docker` prints `enabled`."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 executed: sudo systemctl enable --now docker exit 0; is-active active. 2 executed: docker info as exedev without sudo prints 29.1.3. 3 executed: agro run -- true exit 0 (pulled ghcr.io/mifunedev/agro:0.37.0); agro run -- sh -c 'id -u' prints 1000 = exedev uid. 4 executed: systemctl is-enabled docker prints enabled. Evidence: evidence/docker-brain.md.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/hand-default-routing/evidence/docker-brain.md"
+      ],
+      "external": false,
+      "commit": "evidence-only"
+    },
+    {
+      "id": "US-003",
+      "title": "Route application runs to a running hand, else local Docker",
+      "description": "As an agent, I want the sandbox skill to default application runs of committed work to a running hand, and otherwise to local Docker. Then heavy work leaves the brain, and the raw host never runs application work.",
+      "acceptanceCriteria": [
+        "`.agro/skills/sandbox/SKILL.md` \u00a7 Select a route states the default in this order. First, an explicit location in the request wins. Second, a hand with status `running` in `agro hands list` takes application runs of committed work through `agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>`. Third, the route is `local/docker` with `agro run -- <command>`.",
+        "The skill states that a hand with status `paused`, `stopped`, or `creating` does not count as a running hand. The skill also states that the default never resumes or creates a hand.",
+        "The skill states that a failed `agro hands exec` stops and reports the error. The agent then offers `local/docker` and switches only after the operator agrees.",
+        "The skill states that a missing Docker engine on the local route stops and reports, with no fallback to the raw host.",
+        "The skill states that an inner loop on uncommitted edits stays on `local/docker`.",
+        "The skill states that one agent at a time uses a project on a hand. Parallel agents on the same project use separate hands, because `agro hands` has no worktree support on a hand.",
+        "`.agro/skills/sandbox/references/hands.md` \u00a7 Choose when replaces \"Keep short, light work on the brain.\" with the running-hand default. The section keeps the authority rule for billable create.",
+        "`.agro/scripts/__tests__/fixtures/sandbox-routing/cases.json` adds four cases. R12 to R14 use the request \"Run the test suite for mifunedev/widget.\" R12 has a running hand and expects route `hands` with owners `agro-hands` and `agro-run`. R13 has only a paused hand and expects `local/docker` with owner `agro-run`. R14 has no hand and expects `local/docker` with owner `agro-run`. R15 has a running hand and the request \"Run the test suite for mifunedev/widget on this host.\", and expects `local/docker` with owner `agro-run`.",
+        "`helpers/sandbox-routing.ts` `caseIds` covers R1 to R15. `sandbox-routing.test.ts` expects R1 to R15 and uses R16 as the unknown case.",
+        "`sandbox-skill.test.ts` asserts the running-hand default, the paused rule, the explicit-location override, the one-agent-per-project rule, and the no-raw-host rule in `SKILL.md` and `hands.md`.",
+        "`decisions.json` holds 15 fresh decision-only records that the advisor collects against the final instruction files. Each record matches its oracle. The worker writes the file with provenance from `sourceProvenance()`.",
+        "`docs/lifecycle-commands.md` \u00a7 Hands from a brain states the default in one bullet.",
+        "`CHANGELOG.md` `## [Unreleased]` names the routing default under Changed, with a link to the task issue.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/sandbox/references/hands.md` exits 0, and `SKILL.md` gains no new finding.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0, `corepack pnpm typecheck` exits 0, and `corepack pnpm test:scripts` passes except the known baseline failures."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1-9, 11-12 reasoned/executed per worker report: SKILL.md default order, status rule, no resume/create, failed-exec stop/offer, no raw host, inner loop local, one agent per project per hand; hands.md Choose when replaced; cases R12-R15; caseIds R1-R15, unknown R16; skill test assertions; docs bullet; CHANGELOG Changed with #1633. 10 executed: 15 fresh decision-only records at afbb9bfc all match oracles; decisions.json a53677f9 with helper provenance. 13 executed: ste-check hands.md and SKILL.md no findings. 14 executed: link-providers --check exit 0; agro run -- pnpm typecheck exit 0; agro run -- vitest sandbox-routing + sandbox-skill 44/44 (advisor rerun); agro run -- pnpm test:scripts 3448 passed, 4 failed = standard-skills-link 5 s timeouts that also fail on origin/development under agro run (evidence/baseline.md). Code review repair round 1: b1d9ae66 orders the default (isolation selects runtime, explicit location, uncommitted edits local, hands list failure local, running hand that holds the project, push to hand-<hand> and HEAD match, else local/docker), adds R16 (separate kernel on hand) and R17 (uncommitted edits local), narrows test assertions, rewords docs as agent policy; 27d9869b names hand-<hand> as the push target after a replay showed R12 pushing to origin. 17 fresh decisions at 27d9869b match oracles (879635c1). agro run -- vitest sandbox-routing + sandbox-skill 44/44 (advisor). agro run -- pnpm test:scripts 3447 passed, 5 failed, all standard-skills-link 5 s timeouts in the file that fails on origin/development under agro run.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/sandbox/SKILL.md",
+        ".agro/skills/sandbox/references/hands.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/sandbox-routing.test.ts",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ],
+      "external": false,
+      "commit": "afbb9bfc,b1d9ae66,27d9869b,879635c1",
+      "rounds": 1
+    },
+    {
+      "id": "US-004",
+      "title": "Record a live review through the routing tree",
+      "description": "As the operator, I want one transcript of a real committed run on the running hand and on local Docker with the hand paused. Then the PR shows both branches of the default.",
+      "acceptanceCriteria": [
+        "Before any write, a read-only `agro hands list --json` shows `agro-sbx-dev-001` with status `running`. If the check fails, the story sets `blocked`. The story then runs no other command.",
+        "`.agro/tasks/hand-default-routing/evidence/manual-review.md` records `agro hands exec agro-sbx-dev-001 --project ryaneggz/microsandbox-ubuntu-dind -- agro run -- sh -c 'for f in *.sh; do bash -n \"$f\" || exit 1; done'` with exit 0.",
+        "The transcript records `agro hands pause agro-sbx-dev-001`. Next, the transcript records `agro hands list --json` with status `paused`. The transcript then records the same check through `agro run` in the brain project with exit 0. Last, the transcript records `agro hands resume agro-sbx-dev-001` with status `running`.",
+        "The transcript records `agro hands exec no-such-vm -- true` with exit 1 and `no exe.dev VM named no-such-vm`, as the failure path.",
+        "The transcript shows that the console tunnel `agro-console-tunnel` reconnects after the resume. `agro auth status` prints `login: dev`.",
+        "The run creates, forks, and destroys no VM. A pause of `agro-sbx-dev-001` needs operator approval of this plan. `external`",
+        "At the end, `ssh exe.dev ls --json` lists the same VMs, status, and tags as at the start."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "1 executed: gate agro hands list --json running before any write. 2 executed: hands exec --project ryaneggz/microsandbox-ubuntu-dind -- agro run -- bash -n check exit 0. 3 executed: pause -> paused; local agro run check in brain project exit 0; resume -> running at +5 s, exec true exit 0 at +6 s. 4 executed: exec no-such-vm exit 1 'no exe.dev VM named no-such-vm'. 5 executed: agro auth status login: dev about 35 s after resume (fetch failed for about 30 s during reconnect). 6 external, reasoned: no create, fork, destroy, or tag; pause/resume approved by the plan. 7 executed: reduced ls --json before and after byte-identical.",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/hand-default-routing/evidence/manual-review.md"
+      ],
+      "external": false,
+      "commit": "evidence-only"
+    }
+  ],
+  "pr": 1634
+}

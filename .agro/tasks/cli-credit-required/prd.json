@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1644-cli-credit-required",
+  "description": "agro CLI credit handling: free n4 fallback on 402 CREDIT_REQUIRED or 403 PAYMENTS_DISABLED when eligible, top-up link otherwise, and the org credit line in agro node check (program epic E2).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fall back to a free n4 on a credit refusal, or print the top-up link",
+      "description": "As a console user, I want `agro node create` and `agro hands create` to handle a credit refusal. I then get a free `n4` when I am eligible and a top-up link otherwise.",
+      "acceptanceCriteria": [
+        "`createConsoleNode` in `.agro/cli/src/lib/console-api.ts` treats HTTP 403 `PAYMENTS_DISABLED` and HTTP 402 `CREDIT_REQUIRED` as credit refusals. One exported constant lists both pairs. `FREE_TIER_FALLBACK_CODE` is gone.",
+        "After a credit refusal, `createConsoleNode` sends `GET /api/free-tier`. When the body holds `eligible: true`, the function prints the existing notice and sends one more `POST /api/nodes` with `spec: \"n4\"` and `freeTier: true`.",
+        "When the body holds `eligible: false`, the function sends no second `POST`. The function prints `top up credit at <console url>/billing` to stderr and returns the first refusal.",
+        "When `GET /api/free-tier` fails, the function sends the free `n4` retry. The console then decides the eligibility. This rule keeps `agro hands create` working, because a brain token cannot read `/api/free-tier`.",
+        "When the free `n4` retry fails, the function prints the top-up line to stderr and returns the retry failure.",
+        "Any other refusal returns after the first request, with no `GET /api/free-tier` and no top-up line. The existing tests for HTTP 403 `FREE_TIER_INELIGIBLE` and HTTP 400 `PAYMENTS_DISABLED` keep their assertions.",
+        "With `--json`, stdout holds only the one JSON line. Each notice and the top-up line go to stderr.",
+        "The `create` help text in `.agro/cli/src/commands/node.ts` names both refusals and the top-up link.",
+        "Tests in `.agro/cli/src/__tests__/node.test.ts` and `.agro/cli/src/commands/__tests__/hands.test.ts` fail before the change and pass after the change. The tests cover 402 eligible, 402 not eligible, 403 eligible, an eligibility read failure, and a failed retry.",
+        "`npm run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted at 9c3e3ef6 (advisor): CREDIT_REFUSALS lists 403 PAYMENTS_DISABLED and 402 CREDIT_REQUIRED; GET /api/free-tier gates the retry; eligible:false prints the top-up line and returns the first refusal; a failed read (brain token) or a body without eligible keeps the free retry; a failed retry prints the top-up line. npx vitest run node.test.ts hands.test.ts: 142 pass, exit 0 (red first: 15 failed). npm run typecheck: exit 0. console-provider.ts unchanged (already passes config and notice).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts"
+      ],
+      "external": false,
+      "commit": "9c3e3ef6"
+    },
+    {
+      "id": "US-002",
+      "title": "Show the org credit state in agro node check",
+      "description": "As a console user, I want `agro node check` to report the credit state of the org. I then know whether a paid spec can start before I create a node.",
+      "acceptanceCriteria": [
+        "`agro node check` sends `GET /api/billing/balance` and still sends only `GET` requests.",
+        "When `paymentsEnabled` is `false`, the command prints `ok credit: payments are off`.",
+        "When `balanceMicros` is above 0, the command prints `ok credit: balance $<amount>`, with the amount in USD to 2 decimals. The line adds `, auto top-up on` when `autoTopup` is not `null`.",
+        "When `balanceMicros` is 0 or less and `autoTopup` is `null`, the command prints `warn credit: no credit (balance $<amount>) — top up at <console url>/billing`.",
+        "When `balanceMicros` is 0 or less and `autoTopup` is not `null`, the command prints `ok credit: balance $<amount>, auto top-up on`.",
+        "When the read fails, the command prints `warn credit: <message>`. A console without the route answers HTTP 404, and the line names that answer.",
+        "No credit line changes the exit status. The command still exits 1 only on a `fail` line.",
+        "The `check` help text in `.agro/cli/src/commands/node.ts` names the credit line.",
+        "Tests in `.agro/cli/src/__tests__/node.test.ts` cover each line above and the GET-only rule.",
+        "`npm run typecheck` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Accepted at e26dd087 (advisor): checkCredit reads GET /api/billing/balance after the free-tier read; payments off -> ok; balance > 0 -> ok with auto top-up suffix; <= 0 without auto top-up -> warn with the top-up link; read failure -> warn with the callApi message (HTTP 404 named); negative balance prints -$0.04; reply without balanceMicros -> warn (not in plan, untested). Exit status unchanged. npx vitest run node.test.ts hands.test.ts: 153 pass (red first: 18 failed). npm run typecheck: exit 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts"
+      ],
+      "external": false,
+      "commit": "e26dd087"
+    },
+    {
+      "id": "US-003",
+      "title": "Document the credit handling",
+      "description": "As a reader, I want the docs and the changelog to state the credit handling. The published behavior then matches the CLI.",
+      "acceptanceCriteria": [
+        "The `agro node` section of `docs/lifecycle-commands.md` states HTTP 402 `CREDIT_REQUIRED`, HTTP 403 `PAYMENTS_DISABLED`, the free `n4` rule, the top-up line, and the credit line of `agro node check`.",
+        "The `agro hands` section of `docs/lifecycle-commands.md` states the credit refusal rule of `agro hands create` and the top-up line.",
+        "`docs/lifecycle-commands.md` states that `agro hands list` shows no credit state, because a brain token cannot read `/api/billing/balance`.",
+        "`CHANGELOG.md` `## [Unreleased]` lists the change under `### Changed`. The entry names `CREDIT_REQUIRED` and the top-up line.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on `docs/lifecycle-commands.md`.",
+        "`AGENTS.md` stays unchanged."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Accepted at 4b572cd5 (advisor): lifecycle-commands.md agro node section names 402 CREDIT_REQUIRED, 403 PAYMENTS_DISABLED, the free n4 rule, the top-up line, and the node check credit line; agro hands create rule and top-up line; agro hands list shows no credit state (brain token). CHANGELOG Unreleased Changed bullet names CREDIT_REQUIRED and the top-up line. ste-check exit 0 on docs/lifecycle-commands.md (2 pre-existing findings fixed). docs.test.ts + compose-verbs.test.ts: 41 pass. AGENTS.md unchanged. Repair round 1 (supervisor decision 2026-11-15, option B): 55b12681 reverts docs/lifecycle-commands.md to origin/development, because the file is a hashed instruction file of the sandbox routing replay and the edit made sandbox-routing.test.ts fail (stale source: instructionSha256); a 17-agent re-record costs more than the doc change. The docs criteria for docs/lifecycle-commands.md are withdrawn by the supervisor; no other docs/ file covers agro node; the CLI help, the error text, and CHANGELOG.md hold CREDIT_REQUIRED and the top-up line. sandbox-routing + docs + compose-verbs tests: 74 pass.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ],
+      "external": false,
+      "commit": "55b12681",
+      "rounds": 1
+    },
+    {
+      "id": "US-004",
+      "title": "Capture the manual review transcript",
+      "description": "As the reviewer, I want a command transcript of each credit path so that the PR shows the behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/cli-credit-required/evidence/manual-review.md` records `node .agro/cli/dist/agro.js node create --spec n8` against a local stub console after `npm --prefix .agro/cli run build`. The transcript shows four cases: 402 then eligible, 402 then not eligible, 403 `PAYMENTS_DISABLED` then eligible, and a failed retry. Each case lists the requests that the stub received.",
+        "The transcript records `node .agro/cli/dist/agro.js node check` against the stub for each credit line of US-002.",
+        "The stub binds a free loopback port. Before the run, the story checks that the port is free. If the port is busy, the story sets `blocked`, names the process, and stops no process.",
+        "The story passes `AGRO_CONSOLE_URL` and `AGRO_CONSOLE_TOKEN` inline. The token is a throwaway value. The story writes no env file and no credentials file. The stub lives under a new temp directory, and the story deletes that directory after the run.",
+        "`external` With operator approval, the story runs `agro node check` once against a live agro-console with an operator token, and records the credit line. That run creates nothing."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Local criteria verified at ae89bd9d (advisor): manual-review.md records node .agro/cli/dist/agro.js node create --spec n8 against the local stub for 402 eligible (exit 0), 402 not eligible (exit 1, top-up line), 403 PAYMENTS_DISABLED eligible (exit 0), failed retry (exit 1, top-up line), each with the stub request log; node check for the six credit lines (exit 0, GET only). Port 3190 checked free; values inline; throwaway token; HOME set to a temp dir that was deleted; ste-check 0. Evidence force-added per git manual-review reference (.gitignore ignores task evidence). External criterion pending: live agro node check after the agro release, with operator approval (supervisor 2026-11-15). | External criterion verified 2026-11-15 (lane P advisor): agro 0.39.0 from npm against the local dev agro-console (payments false). node check prints 'ok credit: payments are off' in the Acme and Admin orgs; node create --spec n8 in Acme gets 403 PAYMENTS_DISABLED, prints the top-up line, exits 1, and node list shows no node. Throwaway tokens revoked and keys deleted. evidence/manual-review.md, section Live run.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/cli-credit-required/evidence/"
+      ],
+      "external": true,
+      "commit": "ae89bd9d"
+    }
+  ],
+  "pr": 1645
+}

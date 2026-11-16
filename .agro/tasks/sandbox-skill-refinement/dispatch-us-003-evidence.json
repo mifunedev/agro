@@ -1,0 +1,16 @@
+{
+  "storyId": "US-003",
+  "dependencies": ["US-001", "US-002"],
+  "readScope": ["Immutable candidate cfa577addbf33db1fcd3ea0bafa3621194bb9c00 and base1a2d35f5940e7b3f316b361557180ce674590c85", ".agro/scripts/__tests__/remote-sandbox*.test.ts", ".github/workflows/ci-harness.yml", ".agro/manifest.json", "tracked provider links and retired skill-tree metadata"],
+  "ownedWritePaths": [],
+  "deliverable": "Read-only structural facts and literal reproducible check recipe; advisor executes checks and records actual evidence, no worker grades or source changes.",
+  "verification": ["Exact whole-file test-body equality after enumerated path-only substitutions, with counts/hashes and no assertion stripping", "Canonical CI filters and shellcheck targets resolve", "Tracked provider targets/modes, skills payload and old-entrypoint retirement match actual objects"],
+  "executionDirectory": "/home/exedev/.agro/workspaces/harness",
+  "executionLocation": "host; immutable read-only Git inspection only",
+  "model": "provider default",
+  "modelReason": "Bounded whole-file/CI structural verification, not another scored council or product redesign.",
+  "agentHandle": "0b8dee42-b972-4cc",
+  "verificationCritic": "72d56399-dcff-43e",
+  "recordTiming": "Written immediately after launch; the native launch prompt preserves the original bounded assignment. No claim of a pre-launch saved record.",
+  "baseline": "Exact candidateF CI green;3352full tests,270focused contracts and43routing/skill tests passed. Round3 has only inspection unknowns, no sourceF/cap finding. Accepted US001/US002 stay unchanged."
+}

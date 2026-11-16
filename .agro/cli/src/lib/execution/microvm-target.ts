@@ -1,5 +1,5 @@
 import { accessSync, constants } from "node:fs";
-import { officialImageRef } from "../version.js";
+import { parseReleaseVersion } from "../version.js";
 import {
   assertSpawned,
   spawnRunner,
@@ -17,8 +17,13 @@ export const MSB_VERSION = "0.7.13";
 export const MICROVM_USER = "sandbox";
 export const KVM_DEVICE = "/dev/kvm";
 
+export const MICROVM_IMAGE = "ghcr.io/mifunedev/mifunetu";
+
 export function microvmImageRef(version: string): string {
-  return `${officialImageRef(version)}-msb`;
+  if (parseReleaseVersion(version) !== version) {
+    throw new Error(`${MICROVM_IMAGE} has no image for CLI version ${version}; pass --image or set run.microvm.image`);
+  }
+  return `${MICROVM_IMAGE}:${version}`;
 }
 
 function checkMsbVersion(run: LifecycleRunner): void {

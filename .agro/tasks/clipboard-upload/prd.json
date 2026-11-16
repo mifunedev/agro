@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/agro",
+  "branchName": "feat/1612-clipboard-upload",
+  "description": "Clipboard image and inert file uploads with per-file captions, dark/light theme, and default ~/.agro storage.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the service execution path",
+      "description": "As an operator, I want a verified runtime path so that uploads run inside the intended boundary.",
+      "acceptanceCriteria": [
+        "Record the sandbox marker, Node version, tmux availability, bundle entry point, and browser access route.",
+        "Check ports before startup. Report an occupied port without stopping its listener.",
+        "Verify browser access to sandbox loopback. Record the absolute-path visibility contract for isolated workers.",
+        "Stop every probe process. Create no cloud resources or unrelated lifecycle changes."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed: inspected sole evidence commit, marker and runtime recheck via built agro run --sandbox from main, exit 0; Node v24.22.1, tmux 3.5a, port3500 free inside sandbox. executed: worker browser preflight/title/heading and relay cleanup recorded in runtime-probe.md. executed: advisor host ss/tmux inspection preserves unrelated 3500/3560 listeners, no probe relay. reasoned: absolute paths work across same-namespace worktrees; isolated targets require transfer. No production source changed.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/clipboard-upload/evidence/runtime-probe.md"
+      ],
+      "commit": "335ff01407c9272bc9cf3d6e63a5cf92ed4508af"
+    },
+    {
+      "id": "US-002",
+      "title": "Persist ordered file and caption batches",
+      "description": "As a headless agent, I want file attachments paired with captions so that I can inspect each attachment in context.",
+      "acceptanceCriteria": [
+        "Accept `POST /api/batches` JSON with an ordered `files` array containing name, MIME type, canonical base64 data, and caption.",
+        "Save arbitrary file bytes as inert attachments. Never render, serve, extract, or execute uploaded files.",
+        "Validate PNG, JPEG, and WebP signatures when clients declare those MIME types. Treat other formats as generic files.",
+        "Allow empty generic files. Reject empty or invalid declared raster images.",
+        "Enforce 1 to 10 files, 10 MiB per file, 50 MiB per raw request, and 2000 characters per caption.",
+        "Generate filenames on the server. Preserve only a bounded safe extension for generic files; never use a client path.",
+        "Write a schema-version-1 manifest with ordered `files` entries: stable ID, absolute path, MIME type, byte length, caption, original name, and image/file kind.",
+        "Return the manifest path, ordered files, and a prompt that requires file-reading tools and image-capable reads for raster images.",
+        "Preserve authentication, loopback Host/Origin checks, private permissions, symlink refusal, atomic publication, and failed-batch cleanup.",
+        "Test mixed images/text/PDF/binary bytes, inert HTML/SVG/script files, caption order, validation, concurrency, and prior-batch preservation.",
+        "Add a standalone-bundle regression for default `HOME/.agro/clipboard/` storage with `AGRO_HOME` unset and no sibling `.clipboard` tree.",
+        "Update public command help to describe file batches, not image-only batches."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed: advisor read all four changed files, checked sole owned-path commit. Independent monitor4 task verification exit0 (34 tests,typecheck,build,build typecheck). Clean main checkout detached at exact bd297d41: monitor6 exit0, CI=true frozen install,34 server tests,typecheck,build through agro run. All HTTP/storage criteria exercised by tests: ordered captions/signatures,limits/auth/origins,symlinks/permissions,atomic cleanup/concurrency,prompt. reasoned: storage root supplied by lifecycle caller; no publication/agent dispatch code. Main development branch and operator agro.json restored byte-identically (cmp exit0). Reopened for operator-requested generic file attachments and AGRO-colocated review. Existing shipping approval applies to this requested refinement. File refinement accepted: advisor inspected full server/storage and test/help diffs. Clean-main monitor1 exit0:97targetedtests,both typechecks,build,audit;defaultHOMEsmoke proves state/logs/batches under ~/.agro with AGRO_HOME absent. Mixed bytes/emptygeneric/signatures/inertHTMLSVGscript/safe suffix/auth/permissions/atomicity tested. Config restored byte-identically. Worker disabled commit hooks despite instructions; advisor inspected actual default hooks directory (samples only), so no active hook was skipped; future commits must use normal hooks. UI integration pending US004.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/lib/clipboard/server.ts",
+        ".agro/cli/src/lib/clipboard/storage.ts",
+        ".agro/cli/src/lib/clipboard/__tests__/server.test.ts",
+        ".agro/cli/src/__tests__/bundle-identity.test.ts",
+        ".agro/cli/src/commands/clipboard.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts"
+      ],
+      "commit": "5635ad55995a34eda8199f06728257c7cccb9419"
+    },
+    {
+      "id": "US-003",
+      "title": "Add clipboard lifecycle commands",
+      "description": "As an operator, I want start and stop commands so that uploads remain available after terminal disconnect.",
+      "acceptanceCriteria": [
+        "Provide `agro clipboard start [--port <port>]` and `agro clipboard stop`, with default port 3500 and strict port validation.",
+        "Run the installed CLI bundle in a project-scoped named tmux session. Quote launch arguments and keep tokens in private state.",
+        "Verify service identity and readiness. Require idempotent lifecycle operations. Reject conflicting options and foreign sessions.",
+        "Preserve batches and unrelated processes. Refuse unintended host execution. Bind only to loopback.",
+        "Ship the service and page in the standalone bundle without checkout-relative assets."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed: advisor inspected full lifecycle module, registry/dispatch diff and all changed tests. Clean main at exact6259a24: monitor7 exit0, CI=true frozen install, targeted clipboard/help/bundle/server suites (70 tests),typecheck,build,build typecheck through agro run. Real bundle smoke in sandbox covers default3500,quote-safe detached launch,health/upload,idempotence,port and session collisions,foreign-process preservation,permissions,state/lock errors,startup failure cleanup,batch retention and independent projects. reasoned: tmux survives terminal disconnect, lock serializes commands, bundled source imports need no runtime assets. Main development and operator agro.json restored byte-identically.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/clipboard.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/clipboard.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts",
+        ".agro/cli/src/__tests__/bundle-identity.test.ts"
+      ],
+      "commit": "6259a24fdde512163b42c3df0c12aee5fb61dbb6"
+    },
+    {
+      "id": "US-004",
+      "title": "Add the themed browser upload page",
+      "description": "As an operator, I want one upload page so that I can paste images or attach files with distinct captions.",
+      "acceptanceCriteria": [
+        "Support image clipboard paste and arbitrary file selection/drop, including empty text files.",
+        "Preview PNG, JPEG, and WebP only. Show inert file metadata for other formats; never create active document previews.",
+        "Keep captions associated with stable attachment IDs through additions and removals.",
+        "Enforce the server's count, byte, request, and caption limits before upload.",
+        "Send the `files` contract and show saved paths plus the file-aware agent prompt.",
+        "Preserve captions and attachments after authentication, network, and server failures.",
+        "Render filenames, captions, and errors as text, never HTML.",
+        "Keep accessible labels, keyboard controls, visible focus, live status, progress, copy fallback, and responsive layout.",
+        "Default to browser color preference and persist an explicit light or dark selection.",
+        "Use the verified Studio palette and embedded offline assets without new runtime dependencies.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "executed: advisor read full page source and9 page tests, inspected two-file commit. Monitor8 clean main at exacta7fa684: targeted page/server/lifecycle/bundle tests,install,typecheck,build,build typecheck exit0. Worker named host browser via private loopback relay exercised real PNG clipboard paste,drop,file input,stable captions/removal,upload manifest,copy,401/offline retention,missing token,theme persistence/system default and mobile no overflow; axe0 WCAG2A/AA. Browser source embeds no external assets and uses textContent. reasoned: focus/native keyboard semantics and honest xhr progress visible in source. Sandbox browser install unavailable due missing libraries/passwordless sudo; host browser fallback tested. All temporary worker services/batches removed. Main operator config restored byte-identically. Final published screenshots belong to US005. Reopened for operator-requested generic file attachments and AGRO-colocated review. Existing shipping approval applies to this requested refinement. Mixed-file UI accepted: advisor inspected full two-file diff. Clean-main monitor2 exit0:75tests,both typechecks,build,audit,exact config restoration. Browser actualPNGclipboard/mixedPNG+emptyTXT,filedrop,stablecaptions/removal,genericHTMLSVGmetadata/noactivecontent/noobjectURLs,realupload/copy,default ~/.agro manifest and0600files,lightdark/persistence/mobile414nooverflow,axe0violations/errors[] executed by worker. Retry/security/limits covered byVMtests;nativekeyboard/offlineassets reasonedfromsource. Service/browser/relay/ownedstores cleaned; token-free relay retainedforUS005. Normalhooks commit.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/lib/clipboard/page.ts",
+        ".agro/cli/src/lib/clipboard/__tests__/page.test.ts"
+      ],
+      "commit": "5d40ae2418dc27973cc4d93b834db716847e0cd4"
+    },
+    {
+      "id": "US-005",
+      "title": "Document and prove the complete journey",
+      "description": "As a reviewer, I want reproducible evidence so that I can verify mixed attachments and lifecycle behavior before merge.",
+      "acceptanceCriteria": [
+        "Update CLI guidance, lifecycle, connection, security, and Unreleased changelog documentation for images and generic files.",
+        "Document formats, limits, default private storage, retention, explicit tool reads, and isolated-worker transfer requirements.",
+        "Run a fresh-state journey with `AGRO_HOME` unset. Verify state, logs, manifests, and files under `~/.agro/clipboard/`.",
+        "Keep review-owned project/input state under `~/.agro/reviews/clipboard-1612/`; create no sibling home `.clipboard-*` directory.",
+        "Record start, repeated start, mixed image/file upload with distinct captions, manifest bytes, prompt copy, stop, repeated stop, and an occupied-port failure.",
+        "Capture annotated screenshots of light mode, dark mode with mixed captions, and handoff paths under `~/.agro/`.",
+        "Replace evidence only after a real rerun. Label retained historical probe results as historical rather than rewriting observations.",
+        "Commit sanitized screenshots and embed full-head-SHA links with exact callouts in the PR description.",
+        "Verify in browser using agent-browser skill.",
+        "Stop all owned processes. After preservation checks, delete only review-owned resources.",
+        "Apply the operator's explicit refinement request and prior shipping approval; keep the PR draft until new exact-head CI passes."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "executed: advisor inspected all5 doc diffs,full transcript/verification,all3 annotated PNGs and sole owned-path commit. Monitor9 clean main at exact9eeeeb: frozen install,full Vitest suite,typecheck,build,build typecheck,security audit exit0; main operator config restored byte-identically. Screenshot images sanitized/readable; exact callouts preserved. Browser evidence covers real clipboard,file/drop,multiple captions/removal,themes,upload manifest/copy,mobile414width,WCAG0 violations,no browser errors,public start/repeat/stop/repeat,occupied-port refusal preserving fixture. Advisor rechecked sandbox ports/tmux/input/home cleanup and unchanged original host Python PIDs. Full-SHA PR screenshot embeds prepared for current task head and final refresh before shipping. Advisor asked operator for final changes/shipping confirmation before final push; response pending in blocked field. reasoned: image paths require explicit transfer for isolated targets; no downstream model dispatched. Operator final shipping confirmation received: ship. Reopened for target-branch catch-up conflicts in CLI README and changelog; same worker assigned bounded repair. Catch-up repair accepted: inspected same-worker resolution preserving upstream tool docs and all0.34shipped sections; advisor completed merge7fd4a665. Monitor10 clean-main merged full verification exit0:123testfiles/3281tests,both typechecks,build,security audit(no known vulnerabilities);operator config restored byte-identically. Clipboard source byte-identical to screenshot-tested a7fa684. PRdiff whitespace check exit0 against origin/development;provider link check via agro run exit0. Final shipping approved by operator: ship. Operator requested colocating review artifacts under ~/.agro instead of sibling ~/.clipboard paths. Reopened for a default-storage regression and truthful refreshed review/screenshots, not a production storage migration. Reopened for operator-requested generic file attachments and AGRO-colocated review. Existing shipping approval applies to this requested refinement. Mixed-file evidence accepted: advisor inspected all5docs,fulltranscript,verification,3sanitizedannotatedscreenshots showing PNG+TXT captions and default ~/.agro/clipboard paths. Realjourney AGRO_HOMEunset,freshreviewunder~/.agro/reviews,bytehashes/kinds/private modes,clipboardcopy,inertHTMLSVG,lightdark,mobile414,axe0/errors[],lifecyclepreservation/occupiedfixture and cleanup verified. First cleanmain fullrun3306pass/3unchangedprovider-linktimeouts; exactunchanged retry withoriginal5stimeouts passed3309tests/123files,both typechecks,build,audit. Providerlinks/PRdiff whitespace checks pass. Main config byte-identical. Operator continuation/requested refinements authorize finalpush/ready after exactheadCI.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/cli/README.md",
+        "docs/lifecycle-commands.md",
+        "docs/connecting.md",
+        "docs/security-considerations.md",
+        "CHANGELOG.md",
+        ".agro/tasks/clipboard-upload/evidence/"
+      ],
+      "commit": "518dae77caa07bc4dc83250260b405c8ae9bbce1",
+      "rounds": 1
+    }
+  ],
+  "pr": 1613
+}

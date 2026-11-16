@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
-const SOURCE = join(ROOT, ".agro/skills/remote-sandbox/scripts");
+const SOURCE = join(ROOT, ".agro/skills/sandbox/scripts");
 const FIXTURES = join(import.meta.dirname, "fixtures/remote-sandbox");
 const FAKE_DIR = join(FIXTURES, "adapters");
 const EXTRA_DIR = join(FIXTURES, "extra");

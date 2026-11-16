@@ -95,7 +95,7 @@ with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 | `agro logs [name]` | Tail the sandbox compose logs. |
 | `agro ps [name]` | Show sandbox service status. |
 | `agro destroy [name] [--yes]` | Remove the sandbox, wipe its named volumes (`docker compose down -v`), then delete the registry entry. Names the volumes, then requires you to type the sandbox name; refuses without a TTY unless `--yes` is passed. |
-| `agro update [--dry-run]` | Upgrade the installed `agro` executable and nothing else, through the mechanism that installed it: npm-managed (`npm view` + `npm install -g --prefix <owning prefix> @mifune/agro@<version>`) or standalone (download `AGRO_JS_URL`, falling back to `AGRO_JS_URL` and defaulting to the latest `agro.js` release asset; verify its shebang and `--version`; rename it over the file; keep `<path>.prev` until the new file verifies). Refuses image-shipped, source-checkout, legacy-package, unresolvable, read-only, PATH-shadowed, and downgrade cases with the supported procedure; never uses `sudo`; a no-op when current. Project payload vendoring is `agro vendor` — see the compatibility note below. |
+| `agro update [--dry-run]` | Upgrade the installed `agro` executable and nothing else, through the mechanism that installed it. npm-managed: when the owning prefix is the global npm prefix (`npm prefix -g`), run `npm i -g @mifune/agro@latest`; refuse any other prefix. Standalone (a regular `agro` file from `install.sh`): download `AGRO_JS_URL` (default: the latest `agro.js` release asset), verify its shebang and SemVer `--version`, and rename it over the file. Refuses image-shipped, source-checkout, symbolic-link, unresolvable, unwritable-directory, and downgrade cases; never uses `sudo`; a no-op when current. Project payload vendoring is `agro vendor` — see the compatibility note below. |
 | `agro config show [--sandbox <name>]` | Print the resolved `agro.json` — every non-secret setting. |
 | `agro config set <field> <value> [--sandbox <name>]` | Set one dotted `agro.json` field (`access.sshPort 2200`), validated against the schema. A secret key is refused with a pointer at `agro secret set`. |
 | `agro config repo` | Create a repo on your GitHub account, keep the cloned-from upstream as the `agro` remote, point `origin` at yours, and push. Asks first and defaults to no; never runs without an interactive yes. |
@@ -105,6 +105,7 @@ with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 | `agro compose config` | Print the resolved compose configuration. |
 | `agro harness <list\|install\|status>` | Install and inspect agent CLI harnesses. `install` is the only door: it probes the running sandbox, installs into the persistent home volume, and reports. It reads and writes no `agro.json` field, and needs no rebuild. |
 | `agro tool <list\|install\|status>` | Install and inspect non-agent sandbox tools. Optional tools include `herdr`, `cloudflared`, `agent-browser`, `microsandbox`, `tailscale`, `code-server`, `ffmpeg`, `aws`, and `gws`. The image includes `gh` and the Docker CLI; `agro tool install` refuses both tools. Nothing installs at boot. The installer asks before a large download; `--yes` accepts the prompt. |
+| `agro clipboard start [--port <port>]` · `agro clipboard stop` | Manage the detached file upload service inside the sandbox; default port 3500. |
 | `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`, or the `openclaw` gateway). |
 | `agro --version` | Print the CLI version. |
 | `agro --help` | Show help; every subcommand also accepts `--help`. |
@@ -144,6 +145,40 @@ documentation instead of a path inside the equipped project.
 
 The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration, and no
 `.gitignore` line beyond the `.env` line `agro secret set` adds inside a git checkout.
+
+## Clipboard file handoff
+
+Inside the existing sandbox, run `agro clipboard start` from the project directory.
+Use `--port <port>` to select a port other than 3500.
+The service needs tmux and binds only to loopback. Configure private forwarding
+or an authenticated proxy for browser access. Treat the printed URL fragment as
+a credential; never commit or share the full URL.
+
+Paste images, or drop and select arbitrary files, including empty generic files.
+Add distinct per-file captions, then select **Upload files**.
+Only PNG, JPEG, and WebP receive previews; the server checks their signatures.
+Other formats, including SVG and HTML, show inert metadata.
+Limits are 10 files, 10 MiB per file, and 2000 characters per caption.
+Names permit 1 to 1024 characters; MIME metadata permits at most 255 characters.
+The 50 MiB raw JSON request limit includes base64 overhead.
+Total file bytes can be lower.
+
+Default private state, logs, and batches live under `~/.agro/clipboard/<project-id>/`.
+`AGRO_HOME` optionally overrides the AGRO state home.
+Completed batches use `${AGRO_HOME:-$HOME/.agro}/clipboard/<project-id>/batches/<batch-id>/`.
+Directories use mode `0700`; attachments and manifests use mode `0600`.
+Each schema-version-1 manifest has ordered `files[]` entries with absolute paths, captions, and image/file kinds.
+The server generates filenames with bounded safe suffixes for generic files.
+Copy the prompt to an agent with file-reading tools.
+The agent must read every attachment and use image-capable tools for image entries.
+Isolated workers need explicit file and manifest transfer, or an accessible shared mount with target-valid paths.
+The service never serves, executes, extracts, converts, or scans uploaded content.
+
+Run `agro clipboard stop` before manually deleting unwanted batch directories.
+Repeated start and stop are safe; stop preserves uploaded files.
+The service provides no automatic publication, file history browser, or agent dispatch.
+See the [clipboard command reference](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md#clipboard-files-agro-clipboard)
+and [access setup](https://github.com/mifunedev/agro/blob/main/docs/connecting.md#clipboard-access).
 
 ## Documentation
 

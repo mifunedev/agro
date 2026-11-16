@@ -44,11 +44,13 @@ export const spawnRunner: LifecycleRunner = (cmd, args, opts) => {
 
 export class ExecutionSpawnError extends Error {
   readonly code?: string;
+  readonly binary: string;
 
   constructor(what: string, error?: { code?: string; message?: string }) {
     super(`failed to run ${what}${error?.message ? ` (${error.message})` : ""}`);
     this.name = "ExecutionSpawnError";
     this.code = error?.code;
+    this.binary = what.split(" ", 1)[0];
   }
 }
 

@@ -21,6 +21,10 @@ any directory. See
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
 Host prerequisites and the CLI install are in [Installation](installation.md).
+For execution route selection, hand offload, and remote validation, use the
+[Sandbox skill](https://github.com/mifunedev/agro/blob/main/.agro/skills/sandbox/SKILL.md).
+The routes are `local/docker`, `local/msb`, `hands`, and `exedev`.
+Here, `local` means the host running `agro`, even on a remote VM.
 
 ## The verbs
 
@@ -46,13 +50,13 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
 | `agro config langfuse` | the interactive Langfuse tracing wizard — see below |
 | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
+| `agro clipboard start [--port <port>]` · `agro clipboard stop` | start or stop the project-scoped file upload service inside the sandbox; default port 3500 |
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--free-tier] [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
-| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` | on a brain, create and manage hands, and move projects to them over SSH — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -82,12 +86,7 @@ agro shell <name>                # attach as the sandbox user
   locally.
   `--repo <dir>` is a deprecated alias. Recipes:
   [Creating a sandbox](deployment-prebuilt-image.md).
-- `docker` and `openshell` are the provisionable runtimes. `openshell` is
-  experimental and interactive-only: `agro sandbox install openshell` never
-  prompts, refuses `--checkout` and `--home-mount`, and needs the host
-  `openshell` CLI. See [NVIDIA OpenShell](runtimes/openshell.md). On an
-  `openshell` entry, `agro stop`, `restart`, `logs`, `ps`, `compose config`,
-  and `sandbox upgrade` exit 1 and print the `openshell` command to run.
+- `docker` is the only provisionable runtime.
 - `agro sandbox install microsandbox` refuses. Inside a sandbox,
   `agro tool install microsandbox` installs the `msb` binary.
 
@@ -148,24 +147,33 @@ Use `agro update` to upgrade the installed CLI without changing a sandbox.
 
 `agro self-upgrade` (alias: `agro update`) upgrades exactly one thing: the running `agro` executable.
 The upgrade writes no project file — no `.agro/`, no `agro.json`, no `.env` — and
-the upgrade never asks for `sudo`. The upgrade follows whichever mechanism installed the
-executable:
+the upgrade never asks for `sudo`. The realpath of the running executable selects
+the upgrade path:
 
 | Installation | Detected as | What `agro self-upgrade` does |
 |---|---|---|
-| `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | reads the registry version with `npm view`, then runs `npm install -g --prefix <owning prefix> @mifune/agro@<version>` |
-| `install.sh` | a plain file | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
+| `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | compares the owning prefix with the realpath of `npm prefix -g`. When the two prefixes are equal, runs `npm i -g @mifune/agro@latest` and prints the version that the executable reports. |
+| `install.sh` | a regular file named `agro`, not a symbolic link | checks that the directory of the file is writable. Then downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into that directory, checks the `#!` line, and runs `--version` on the new file with a 30 second limit. The version must be a SemVer version. When the version is equal to the running version, the upgrade keeps the executable and prints `already current`. When the version is higher, the upgrade renames the new file over the executable. A pinned absolute Node shebang stays. |
 
-`agro self-upgrade` refuses, and prints the supported procedure, in each of these
-cases: the sandbox image ships the executable (`/opt/agro`); the executable is a
-source checkout's `dist/`; the CLI cannot resolve the executable; the executable
-sits in a read-only directory; another `agro` earlier on PATH shadows the
-executable; or the executable does not report the running version. For the
-image-shipped CLI, refresh the image from the host with `agro stop <name>`, then
-`agro sandbox install docker --name <name>`. The upgrade
-refuses a downgrade. When the installed version is already current, the upgrade
-changes nothing. `--dry-run` reports the installation kind, target, and versions
-without a change.
+`agro self-upgrade` refuses these cases:
+
+- An npm install outside the global npm prefix, for example
+  the npx cache, the pnpm global store, or a project `node_modules`. The error
+  names both prefixes.
+- An `npm i -g` failure with `EACCES`. The error tells you to re-run as the
+  user who owns the prefix.
+- An `install.sh` file in a directory without write access. The error tells you
+  to re-run as the user who owns the file.
+- A downloaded version lower than the running version.
+
+`agro self-upgrade` refuses every other executable and tells you to upgrade it
+with the mechanism that installed it. Examples are the sandbox image executable
+(`/opt/agro`), a source checkout's `dist/agro.js`, a symbolic link such as a
+Homebrew or Nix link, and a path that the CLI cannot resolve. For an unresolvable
+path, the error names the cause. For the image executable, refresh the image from
+the host with `agro stop <name>`, then `agro sandbox install docker --name <name>`.
+`--dry-run` prints the planned npm command (after the prefix check) or the
+download URL and changes nothing.
 
 `agro self-upgrade` rejects the payload flags `--from`, `--from-remote`, `--ref`,
 and `--force` and points at `agro vendor`.
@@ -195,8 +203,12 @@ image for the CLI version.
 
 The container gets these limits:
 
-- The container mounts only the git repository root at the same path. Outside a repository,
-  the container mounts only the current directory at the same path.
+- The container mounts the Git repository root writable at the same path.
+  Outside a repository, the container mounts the current directory writable at the same path.
+  For a linked worktree, Docker also mounts the external Git common directory writable.
+  This exception lets Git resolve shared repository metadata.
+  Review mounted paths for credentials before execution.
+  Isolation does not remove image environment variables or credentials already inside the mounted checkout.
 - The container runs the command in the current directory as the host uid and gid, with
   `HOME=/tmp`.
 - The container gets no host environment variables, no home directory, and no Docker socket.
@@ -213,8 +225,9 @@ service has these fields:
 - `ready`: a shell command that `agro run` executes in the service container with
   `sh -c`. Exit code 0 means that the service is ready. This field is optional.
 
-`run.env` holds environment variables for the command container. `run.env` applies
-only when `run.services` declares at least one service.
+`run.env` holds environment variables for the command container.
+It applies when `run.services` declares at least one service or `access.egress` is `allowlist`.
+With neither services nor an allowlist, `run.env` does not apply.
 
 This example starts PostgreSQL for a test command:
 
@@ -241,11 +254,18 @@ When services exist, each `agro run` does these steps:
 2. Start a new container for each service on that network. The container name is
    `agro-run-<id>-<service>`, and the network alias is the service name. The command
    reaches the service at the host name `postgres` in the example.
-3. Execute the `ready` command of each service one time each second, for a maximum of
-   60 s. If a service is not ready after 60 s, `agro run` exits 1 and names the service.
+3. Execute the `ready` command of each service with the readiness limits below.
+   If all attempts fail, `agro run` exits 1 and names the service.
 4. Run the command on the same network with the variables from `run.env`.
-5. Remove the service containers and the network after the command stops. `agro run`
-   also removes them after a failure.
+5. Make best-effort attempts to remove recorded service containers and the network after success or failure.
+
+For services and proxy, readiness defaults to 60 attempts with 1 second between failed attempts.
+Probe execution time adds to the wait. Captured probes have no timeout.
+The attempt limit is not a hard 60-second wall-clock limit.
+Before execution, the executing agent sets and records a finite deadline within the operator-approved run scope.
+The agent uses a background monitor with a completion notice.
+At the deadline, the agent stops the run and inspects cleanup errors and owned resources.
+Remove only resources that belong to the approved run. Do not use shell sleep loops.
 
 ### Egress allowlist: `access.egress: "allowlist"`
 
@@ -261,11 +281,11 @@ route out. This applies with or without services. Each `agro run` does these ste
    them read-only.
 4. Connect the proxy to `agro-run-<id>` with the network alias `proxy`.
 5. Start the services as described above.
-6. Wait for the proxy to accept connections on port 3128, for a maximum of 60 s. If the
-   proxy is not ready after 60 s, `agro run` exits 1. Then wait for the services and run
-   the command on `agro-run-<id>`.
+6. Wait for the proxy to accept connections on port 3128 with the readiness limits above.
+   If all attempts fail, `agro run` exits 1.
+   Then wait for the services and run the command on `agro-run-<id>`.
 
-The proxy permits the OpenShell policy hosts plus the hosts in `access.egressAllow`.
+The proxy permits the hosts in [`.devcontainer/egress-policy.yaml`](../.devcontainer/egress-policy.yaml) plus the hosts in `access.egressAllow`.
 The command gets these environment variables in addition to `run.env`:
 
 - `HTTPS_PROXY`, `HTTP_PROXY`, `https_proxy`, and `http_proxy`: `http://proxy:3128`.
@@ -274,9 +294,8 @@ The command gets these environment variables in addition to `run.env`:
 
 A client that ignores the proxy variables cannot reach the internet.
 
-After the command stops, `agro run` removes the proxy container, the service
-containers, both networks, and the temporary directory. `agro run` also removes them
-after a failure.
+After success or failure, `agro run` makes best-effort attempts to remove recorded proxy and service containers, both networks, and temporary proxy configuration.
+Inspect cleanup errors. Remove only resources that belong to the approved run.
 
 `agro.json` is a tracked file. Do not put secrets in `run.services` or `run.env`.
 
@@ -294,17 +313,23 @@ prints the remedy:
   (`sudo usermod -aG kvm $USER`) and start a new login session.
 
 The image is `--image <ref>`, else `run.microvm.image` in `agro.json`, else
-`ghcr.io/mifunedev/agro:<version>-msb` for the CLI version. Each release builds the
-`agro-msb` target of `.devcontainer/Dockerfile` and publishes the `<version>-msb` and
-`sha-<commit>-msb` tags.
+`ghcr.io/mifunedev/mifunetu:<version>` for the CLI version. The `mifunetu` image has
+Node and the general tools, but no `agro`. The `mifunetu` image has no `latest` tag.
+If the CLI version has no release tag, `agro run` exits 1 before `msb run` and tells
+you to pass `--image`.
 
 ```json
 {
   "run": {
-    "microvm": { "image": "ghcr.io/mifunedev/agro:0.31.0-msb" }
+    "microvm": { "image": "ghcr.io/mifunedev/mifunetu:0.38.0" }
   }
 }
 ```
+
+An existing `run.microvm.image` pin to an old `ghcr.io/mifunedev/agro` image keeps
+working at that version. If a guest command needs `agro`, pass `--image` with an
+image that holds `agro`, or install `@mifune/agro` in the guest with
+`npm i -g @mifune/agro`.
 
 The microVM gets these limits:
 
@@ -336,9 +361,11 @@ With a cached image, the boot-to-exit time on a KVM host is about 1.4 s.
 The microVM mode does not support `run.services` or `access.egress: "allowlist"` yet.
 With either setting, `agro run --isolation microvm` exits 1.
 
-Known caveat: a file that the guest creates in the mount has mode 600 on the host, and
-a directory has mode 700. The host file loses the executable bit. msb keeps the guest
-owner and mode in the extended attribute `user.msb.override_stat`.
+Historical tests with msb 0.7.13 in the tested guest configuration observed host file mode 600 and directory mode 700.
+The host file lost its executable bit.
+Those tests observed guest owner/mode storage in the extended attribute `user.msb.override_stat`.
+These observations are not a new live verification or a guarantee for other configurations.
+Inspect actual host file modes after guest writes; do not infer modes from guest metadata.
 
 The exit code of `agro run` is the exit code of the command. The decision is
 [ADR #1575](https://github.com/mifunedev/agro/issues/1575).
@@ -382,6 +409,76 @@ error and exits 1.
 image. `agro run` prints `agro run: --image cannot be combined with --sandbox` and exits
 1.
 
+## Clipboard files: `agro clipboard`
+
+Run these commands inside the existing sandbox, from the project directory.
+The sandbox needs Node and tmux. The service runs detached in a named tmux
+session scoped to the canonical project path.
+
+```bash
+agro clipboard start
+agro clipboard start --port 3501
+agro clipboard stop
+```
+
+Use either start command, not both. The default port is 3500.
+`--port` accepts integers from 1 to 65535. Repeated start returns the same
+credential URL. Stop the service before changing its port.
+An occupied port causes an error; the command leaves its listener running.
+Repeated stop is safe. These commands never provision or restart a sandbox.
+Host execution refuses with an instruction to enter the sandbox.
+
+The service binds only to `127.0.0.1`. The operator must configure private
+forwarding or an authenticated proxy before remote browser access.
+`agro shell` forwards no ports. See [Clipboard access](connecting.md#clipboard-access).
+Treat the printed URL fragment as a credential. Keep the full URL out of logs,
+screenshots, chat, and commits. The page removes the fragment after loading.
+
+Paste images, drop files, or select files in the browser.
+Add a caption to each file, then select **Upload files**.
+The page supports light and dark themes.
+Only PNG, JPEG, and WebP receive image previews.
+Other formats, including SVG and HTML, show inert metadata.
+
+| Limit | Value |
+|---|---|
+| File formats | Arbitrary inert bytes; PNG, JPEG, and WebP require matching signatures |
+| Empty files | Generic files allowed; declared raster images rejected |
+| Files per batch | 1 to 10 |
+| Bytes per file | 10 MiB |
+| Raw HTTP request body | 50 MiB, including JSON and base64 encoding |
+| Caption length | 2000 characters per file |
+| Original name length | 1 to 1024 characters |
+| MIME type length | At most 255 characters; valid type/subtype metadata |
+
+Base64 and JSON consume request space. Total file bytes can require a smaller batch.
+An empty browser MIME type becomes `application/octet-stream`.
+
+Default state, startup logs, and batches live under `~/.agro/clipboard/<project-id>/`.
+Set `AGRO_HOME` only to override the default AGRO state home.
+Completed batches use `${AGRO_HOME:-$HOME/.agro}/clipboard/<project-id>/batches/<batch-id>/`.
+The project ID hashes the canonical project path.
+Private directories use mode `0700`; files and `manifest.json` use mode `0600`.
+The schema-version-1 manifest contains an ordered `files[]` array.
+Each entry records an ID, absolute path, MIME type, byte length, original name, caption, and `kind`.
+Validated PNG, JPEG, and WebP entries use `kind: "image"`; other entries use `kind: "file"`.
+The server generates basenames and preserves only a bounded alphanumeric suffix for generic files.
+
+Copy the completed prompt to an agent with file-reading tools.
+The agent must read every file in manifest order.
+The agent must use an image-capable tool for each `kind: "image"` entry.
+Paths alone do not provide file content.
+For isolated workers, transfer the manifest and files or provide a shared mount.
+Translate absolute paths for the target environment.
+Copying only the manifest does not transfer attachments.
+The service never serves, executes, extracts, converts, or scans uploaded content.
+
+Stop preserves all batches. No retention job deletes uploads.
+After `agro clipboard stop`, inspect the completed paths and manually delete
+only the batch directories that you no longer need.
+There is no file history browser, automatic publication, or agent dispatch.
+See [Security considerations](security-considerations.md#clipboard-upload-boundary).
+
 ## Where you are standing when you type `agro`
 
 `agro` runs on the host **and** inside the sandbox, and it resolves a different
@@ -406,6 +503,7 @@ Upgrade the sandbox image to remove the warning. Override the detection with
 | `agro harness list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool setup t3-mobile` | acts on the host | acts in the sandbox |
+| `agro clipboard start/stop` | refuses; enter the existing sandbox | manages the detached project upload service |
 | `agro sandbox install` | provisions the sandbox | refuses with a host-only error |
 | `agro sandbox upgrade` | recreates one image-mode sandbox with an explicit release image | refuses with a host-only error |
 | `agro shell` | `docker exec` into the container | opens a local `zsh` |
@@ -509,7 +607,7 @@ refusal lists every workspace that exists and names `agro workspace create`. See
 ## Console sign-in: `agro auth`
 
 `agro auth` signs in to the agro-console API and manages the console token.
-Run `agro auth` on the host that runs `agro node`.
+Run `agro auth` on the host that runs `agro hands`.
 
 ```bash
 agro auth login     # sign in through the browser, store the token
@@ -549,122 +647,183 @@ agro auth token     # print the token
 - When the token comes from `AGRO_CONSOLE_TOKEN`, `agro auth logout` exits 1
   and prints `token comes from AGRO_CONSOLE_TOKEN; unset it to log out`.
 
-## Remote console nodes: `agro node`
-
-`agro node` manages remote VMs through the agro-console API. `agro node` does not manage
-local Docker sandboxes. Use `agro sandbox` for a local sandbox.
-
-```bash
-agro node create --spec <spec>   # create a sandbox node, wait for running
-agro node create --spec n4 --profile agro --t3   # create an agro-profile node with T3
-agro node list                   # every node: id, name, profile, status, IPv4
-agro node delete <id>            # destroy one node after a confirmation
-agro node check --free-tier      # check the SSH key and the free tier, create nothing
-```
-
-- Each verb finds the token and the URL in the same order as `agro auth`. If
-  the environment sets `AGRO_CONSOLE_TOKEN`, the verb uses that token with
-  `AGRO_CONSOLE_URL`. Otherwise the verb uses the token and the URL from the
-  credentials file that `agro auth login` writes.
-- The console URL is `https://console.mifune.dev` by default. If no token
-  resolves, the verb exits 1 and prints
-  `not logged in to agro-console: run agro auth login`.
-- `agro node create` creates a node with the profile `sandbox` by default.
-  `--profile agro` creates a node with the profile `agro`. If `--profile` has
-  another value, the command exits 1 and prints this error:
-
-  ```text
-  --profile must be agro or sandbox
-  ```
-
-  `--spec` is mandatory. `--free-tier` requests the agro-console free tier and
-  sets the default spec to `n4`. `--name` sets the node name.
-- `--docker`, `--t3`, and `--code-server` require `--profile agro`. If the
-  profile is `sandbox`, the command exits 1 before it calls the console and
-  prints `<flag> requires --profile agro`. Each given flag turns on its app.
-  If you do not give an app flag, the console default applies: Docker on, T3
-  off, code-server off.
-- If the console turns off runtime settings, `--code-server` makes the command
-  exit 1 and print
-  `HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled`.
-- `--ssh-key <uuid>` is optional. When you give one or more `--ssh-key` flags,
-  the command uses only those console SSH keys. When you give no `--ssh-key`,
-  the command reads `~/.ssh/id_ed25519.pub`. The command reuses the console SSH
-  key that matches this public key. If no console key matches, the command
-  registers the public key with the name `agro-cli@<hostname>`. If
-  `~/.ssh/id_ed25519.pub` does not exist, the command exits 1 and prints
-  `no --ssh-key given and ~/.ssh/id_ed25519.pub not found`.
-- `agro node create` waits up to 15 minutes for the status `running`, then
-  prints the node id, the status, and the SSH command. If the node fails or does
-  not reach `running` in 15 minutes, the command exits 1 and prints the last
-  status.
-- `agro node list` prints one row for each node. If no node exists, the command
-  prints `no nodes`.
-- `agro node delete <id>` asks for a confirmation. `--yes` skips the
-  confirmation. Destroy needs the admin role in agro-console. If the console
-  returns HTTP 403, the command exits 1 and prints
-  `destroy needs the admin role in agro-console`.
-- `agro node check` sends only `GET` requests and creates nothing. Without
-  `--ssh-key`, the command finds `~/.ssh/id_ed25519.pub` among the console SSH
-  keys by key identity. With `--ssh-key <uuid>`, the command finds each id among
-  the console SSH keys. `--free-tier` also reads the free tier eligibility of
-  the console account. The command prints one line for each check, for example
-  `ok ssh-key <id>` or `fail free-tier: ...`. Each failure line names a remedy.
-  The command exits 0 only when each check passes. Otherwise it exits 1.
-- `--json` on `create` and `list` prints JSON instead of text.
-
 ## Hands from a brain: `agro hands`
 
-`agro hands` runs on a brain. A hand is a sandbox node that the brain creates
-through the console. The brain keeps the project history, and the hand does the
-work. `agro hands` keeps no state. The console lists the hands.
+`agro hands` runs on a brain or on an operator host. A brain is the AGRO node
+that holds the project history. A hand is a node that the brain creates and
+manages through `agro hands`. The hand does the work. On an operator host
+with `agro auth login` credentials, `agro hands` creates and manages console
+VMs with operator authority. `agro hands` keeps no state. The provider API
+lists the hands.
+
+The field `hands.provider` in the host config
+`${AGRO_HOME:-~/.agro}/config.json` selects the provider: `console` (the
+default) or `exedev`. `--provider console|exedev` selects the provider for one
+call and overrides `hands.provider`. Put `--provider` before or after the verb.
+Run `agro config set hands.provider exedev` to select exe.dev hands. See
+[Configuration → Host config](configuration.md#host-config).
+
+Before application build/test/install workloads, inspect the hand's installed capabilities through SSH.
+After remote `agro run --help` and runtime checks confirm support, use the application example below.
+Creation and forks require operator authority.
+Teardown applies only to the recorded task-owned hand within approved scope.
+In the example, `4` means that recorded hand index, not an unrelated resource.
+`agro run` runs on the remote host and refuses nested execution inside a sandbox.
+If a supported runtime is unavailable or refuses execution, stop and report the capability gap or refusal.
+Do not fall back to raw-host application execution.
 
 ```bash
 agro hands create --project <owner>/<repo>   # create a hand, push the current branch
 agro hands list                              # the hands: index, alias, status, spec, SSH host
-agro hands exec 4 --project <owner>/<repo> -- npm test   # run a command in the hand project
+agro hands exec 4 --project <owner>/<repo> -- agro run -- npm test
 agro hands fetch 4 --project <owner>/<repo>  # git fetch hand-4 in the brain project
 agro hands destroy 4                         # destroy one hand after a confirmation
 ```
 
-- Each verb reads the brain token from `/home/sandbox/.agro/brain-token` and the
-  console URL from `/home/sandbox/.agro/brain-console-url`.
-  `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` override them. If no token
-  resolves, the verb exits 2 and prints
-  `not on a brain: /home/sandbox/.agro/brain-token not found`. If no URL
-  resolves, the verb exits 2. No output holds the token.
-- `<hand>` is `#<index>`, `<index>`, an alias, or a uuid. Quote `#<index>` in a
-  shell, or write the index without `#`.
-- `agro hands create` requests a hand with the profile `sandbox`, waits up to
-  15 minutes for the status `running`, then prints the index, the alias, and
-  the SSH host.
+On an exe.dev brain, `<hand>` is the VM name:
+
+```bash
+ssh exe.dev tag agro-sbx-dev-001 agro-hand   # enroll an existing VM as a hand
+agro hands exec agro-sbx-dev-001 --project <owner>/<repo> -- agro run -- npm test
+agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agro-sbx-dev-001
+```
+
+### Shared behavior
+
+- The `sandbox` skill gives agents a routing policy for application runs. An
+  agent sends a run of committed work to a hand with status `running` that
+  holds the project. Otherwise, the agent uses `agro run` on the brain. An
+  explicit location in the request overrides this policy, and the policy never
+  resumes or creates a hand. `agro run` and `agro hands` do not forward runs on
+  their own.
 - `create --project <owner>/<repo>` needs the brain project at
-  `~/.agro/workspaces/harness/projects/<owner>/<repo>`. If the project does not
-  exist, the command exits 1 before it creates a hand. The command prepares
+  `<harness-root>/projects/<owner>/<repo>`. If the project does not exist, the
+  command exits 1 before it creates a hand. The command prepares
   `~/projects/<owner>/<repo>` on the hand with `git init` and
-  `receive.denyCurrentBranch updateInstead`, adds the remote `hand-<index>` to
-  the brain project, and pushes the current branch.
+  `receive.denyCurrentBranch updateInstead`, adds the brain remote to the brain
+  project, and pushes the current branch.
 - `create --clone <owner>/<repo>` clones
   `https://github.com/<owner>/<repo>.git` on the hand with the git credential of
   the hand. The brain pushes nothing.
-- `agro hands exec` runs the command after `--` over SSH and exits with the
-  exit status of the command. `--project` runs the command in the project
-  folder of the hand.
-- `agro hands fetch` runs `git fetch hand-<index>` in the brain project.
-- SSH connects to `sandbox@<sshHost>` with the default brain key. The first
-  contact accepts the host key, and the brain pins the key by the hand uuid. A
-  fork has a new uuid and a new host key.
-- `agro hands fork <hand>` copies the hand with its credentials. The fork
-  takes the spec of the source hand. `--spec` sets another spec, and `--name`
-  sets the fork name. If the console response names the fork, the command
-  waits for the fork as `create` does and prints the same lines. Otherwise, the
-  command prints the job id and tells you to run `agro hands list` to find the
-  fork.
+- `agro hands exec` is SSH transport, not a container or runtime boundary.
+  It runs the command after the first `--` over SSH and exits with the command's exit status.
+  `--project` runs the command in the project folder of the hand.
+  The nested `agro run` in the application example supplies the runtime isolation; `exec` does not.
+- `agro hands fetch` runs `git fetch` for the brain remote in the brain project.
+  Commit the result on the hand before you fetch. A fetch transfers commits only.
+- SSH uses the default brain key. The first contact accepts the host key, and
+  the brain pins the key by the hand identity. A fork has a new identity and a
+  new host key.
+- `agro hands fork <hand>` copies the hand with its credentials. `--name` sets
+  the fork name.
+- `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
+- `agro hands` owns hand selection, SSH transport, and git movement. `agro run`
+  on the hand owns application execution: tests, builds, and installs.
+- `create --project` is the only verb that pushes a branch. To put a project on
+  an existing hand, prepare the hand folder with `agro hands exec <hand> -- git
+  init -q projects/<owner>/<repo>` and `agro hands exec <hand> -- git -C
+  projects/<owner>/<repo> config receive.denyCurrentBranch updateInstead`. Then
+  add the brain remote and run `git push <remote> HEAD` with
+  `GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=<alias>"`.
+  The alias is the VM name for an exe.dev hand and the hand uuid for a console hand.
+
+### Console hands
+
+- A console verb runs with brain authority or operator authority. `--operator`
+  selects operator authority. Put `--operator` before or after the verb. The
+  exe.dev provider refuses `--operator` and exits 1.
+- With `--operator`, each verb reads the token and the URL as `agro auth` does:
+  `AGRO_CONSOLE_TOKEN` with `AGRO_CONSOLE_URL`, else the `agro auth login`
+  credentials with the credentials URL. Without a URL, the verb uses
+  `https://console.mifune.dev`. The verb ignores the brain token. If no token
+  resolves, the verb exits 2.
+- Without `--operator`, `AGRO_CONSOLE_TOKEN` or the brain token
+  `/home/sandbox/.agro/brain-token` gives brain authority. The URL is
+  `AGRO_CONSOLE_URL`, else `/home/sandbox/.agro/brain-console-url`. If neither
+  gives a URL, the verb exits 2 and prints `no brain console URL: ...`. If no
+  brain token resolves, the `agro auth login` credentials give operator
+  authority, with the credentials URL or `https://console.mifune.dev`. If no
+  token resolves, the verb exits 2 and prints
+  `no console token: /home/sandbox/.agro/brain-token not found and no agro auth login credentials; run agro auth login`.
+  No output holds the token.
+- `<hand>` is `#<index>`, `<index>`, an alias, or a uuid. Quote `#<index>` in a
+  shell, or write the index without `#`.
+- The brain remote is `hand-<index>`. SSH connects to `sandbox@<sshHost>`, and
+  the brain pins the host key by the hand uuid.
+- `agro hands create` requests a hand with the profile `sandbox`, waits up to
+  15 minutes for the status `running`, then prints the index, the alias, and
+  the SSH host. If the free tier does not offer the requested `--spec`, the
+  command prints `spec <spec> is not in the free tier; creating n4` and
+  creates `n4`.
+- `create --profile agro|sandbox` sets the profile. `--docker`, `--t3`, and
+  `--code-server` turn on Docker, T3, and code-server. Each of the three flags
+  requires `--profile agro`.
+- `create --ssh-key <uuid>` adds a console SSH key to the hand. Repeat the flag
+  for more keys. Without `--ssh-key` and with operator authority, `create` finds
+  `~/.ssh/id_ed25519.pub` in the console SSH keys, or registers the file as
+  `agro-cli@<host>`, and sends its id. If the file does not exist, `create`
+  exits 1 and creates no hand. With brain authority, `create` sends only the
+  `--ssh-key` ids.
+- `create --json` prints one JSON line with `id`, `index`, `alias`, `name`,
+  `status`, `spec`, `sshHost`, and `ssh`. `ssh` is `ssh sandbox@<sshHost>` only
+  when the status is `running`, else `null`. After the free tier refuses the
+  spec, `spec` is `n4`. If the console returns a hand id and
+  the wait then fails, `create --json` prints the line with the last status and
+  exits 1. `--json` excludes `--project` and `--clone`.
+- `list --json` adds `name` and `profile` to each console row.
+- The fork takes the spec of the source hand. `--spec` sets another spec. If
+  the console response names the fork, the command waits for the fork as
+  `create` does and prints the same lines. Otherwise, the command prints the
+  job id and tells you to run `agro hands list` to find the fork.
 - `pause` and `resume` call the matching console route.
-  `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
-- If the console returns HTTP 403, the command prints the console code
-  (`BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN`), exits 1, and does
-  not retry.
+- If the console returns HTTP 403 to `destroy` without an error code, the
+  command prints `destroy needs the admin role in agro-console`. For other
+  HTTP 403 responses, the command prints the console message and exits 1.
+- `agro hands check [--ssh-key <uuid>]...` sends only GET requests and creates
+  nothing. The command exits 0 only when no line starts with `fail `.
+- With brain authority, `check` reads `/api/nodes` and prints
+  `ok console: <url>` or `fail console: ...`, then one line for each
+  `--ssh-key` id in the console SSH keys.
+- With operator authority, `check` finds each `--ssh-key` id in the console SSH
+  keys. Without `--ssh-key`, `check` finds `~/.ssh/id_ed25519.pub` there. The
+  command prints one line for the SSH key check, the free tier eligibility, and
+  the org credit. The credit line never changes the exit status.
+- `--profile`, `--docker`, `--t3`, `--code-server`, `--disposable`,
+  `--ssh-key`, `--json` on `create`, and the `check` verb apply only to console
+  hands. The exe.dev provider refuses them and exits 1.
+
+### exe.dev hands
+
+- An exe.dev hand is a VM with the tag `agro-hand`. `agro hands list` shows
+  only tagged VMs. Enroll an existing VM with `ssh exe.dev tag <vm> agro-hand`.
+  Enrollment changes no AGRO state.
+- The verbs need no brain token. Each verb first runs `ssh exe.dev whoami`. If
+  the check fails, the verb exits 2 and prints the remedy: register the brain
+  SSH public key with the exe.dev account.
+- `<hand>` is the VM name. The brain remote is `hand-<vm>`. SSH connects to
+  the `ssh_dest` from `ssh exe.dev ls --json`, for example `<vm>.exe.xyz`, and
+  the brain pins the host key by the VM name.
+- Remote commands run in a login shell (`bash -lc`), so `agro` resolves on
+  `PATH`.
+- The verbs map to the exe.dev account API:
+
+  | Verb | exe.dev command |
+  |---|---|
+  | `list` | `ssh exe.dev ls --json`, filtered by the tag `agro-hand` |
+  | `create` | `ssh exe.dev new --json --name <name> --tag agro-hand` |
+  | `fork` | `ssh exe.dev cp <hand> [<name>] --copy-tags` |
+  | `pause` | `ssh exe.dev pause <hand>` |
+  | `resume` | `ssh exe.dev resume <hand>` |
+  | `destroy` | `ssh exe.dev rm <hand>` |
+
+- `create` waits up to 15 minutes for the status `running`. `--spec` applies
+  only to console hands. The exe.dev verbs refuse `--spec`.
+- Guards: `fork`, `pause`, `resume`, and `destroy` exit 1 without a change when
+  the VM lacks the tag `agro-hand`. Each write verb exits 1 without a change
+  when the hand, the fork name, or the create name names the brain. The brain
+  is the VM whose name or SSH host label equals the host name.
+- exe.dev account authority is broader than a brain token. The tag guard and the
+  brain guard are the only fence.
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`
 
@@ -721,7 +880,7 @@ lists `docker-compose.yml` and nothing else. It never runs
 
 - `access.ssh` → no `docker-compose.ssh.yml`, so no sshd and no published SSH port
 - `access.dockerSocket` → no `docker-compose.docker-sock.yml`, so no host Docker socket
-- `composeOverrides[]` → every extra overlay path is ignored
+- `composeOverrides[]` → no extra overlay path applies
 
 Secrets still reach that container: compose auto-loads the `.devcontainer/.env`
 beside the compose file, and that file is a symlink to the root `.env`.

@@ -1,5 +1,6 @@
 import { composeVerbs } from "./commands/lifecycle.js";
 
+export const CLIPBOARD_VERBS = ["start", "stop"] as const;
 export const CONFIG_VERBS = ["show", "set", "repo"] as const;
 export const CONFIG_INTEGRATIONS = ["langfuse"] as const;
 export const SECRET_VERBS = ["set", "get", "list"] as const;
@@ -9,8 +10,7 @@ export const WORKSPACE_SUBCOMMANDS = ["create", "list"] as const;
 export const INSTALLER_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
 export const TOOL_SUBCOMMANDS = [...INSTALLER_SUBCOMMANDS, "setup"] as const;
 export const EGRESS_VERBS = ["log", "reload"] as const;
-export const NODE_VERBS = ["create", "list", "delete", "check"] as const;
-export const HANDS_VERBS = ["list", "create", "fork", "pause", "resume", "destroy", "exec", "fetch"] as const;
+export const HANDS_VERBS = ["list", "create", "fork", "pause", "resume", "destroy", "exec", "fetch", "check"] as const;
 export const AUTH_VERBS = ["login", "status", "logout", "token"] as const;
 
 export type ConfigVerb = (typeof CONFIG_VERBS)[number];
@@ -27,6 +27,7 @@ export function isOneOf<T extends string>(values: readonly T[], value: string | 
 }
 
 export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> = Object.freeze({
+  clipboard: CLIPBOARD_VERBS,
   config: [...CONFIG_VERBS, ...CONFIG_INTEGRATIONS],
   secret: SECRET_VERBS,
   langfuse: LANGFUSE_VERBS,
@@ -42,7 +43,6 @@ export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> =
   gateway: null,
   run: null,
   egress: EGRESS_VERBS,
-  node: NODE_VERBS,
   hands: HANDS_VERBS,
   auth: AUTH_VERBS,
   ...Object.fromEntries(composeVerbs().map((verb) => [verb, null])),

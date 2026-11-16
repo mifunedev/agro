@@ -175,6 +175,7 @@ While the section is empty, `next.sh` prints `close`.
 - Give each story the heading `### US-00N: <title>`, a description in the form "As a <role>, I want <capability> so that <benefit>", and an acceptance-criteria checklist.
 - Size and order the stories by the rules in [`references/tracker.md`](references/tracker.md).
 - When a plan adds a new execution environment or runtime path, make the first story a probe story. The probe story measures the real environment before any design story starts. Each design story depends on the probe story.
+- When a plan adds a remote provider or a new execution environment, each story that talks to the provider names failure-environment criteria. Name a fresh `known_hosts`, a container hostname, a malformed configuration file, and a machine caller that parses `--json` output.
 - For a user-facing change, check `CHANGELOG.md`. When the file has an `## [Unreleased]` section, give `CHANGELOG.md` to one story. Add a changelog criterion to that story.
 - Make the last story capture the manual review evidence. The story depends on the stories that it proves.
   - For a user interface change, the story records an agent-browser journey with annotated screenshots.

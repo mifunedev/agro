@@ -358,13 +358,9 @@ describe("the catalogs stay separate", () => {
     expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
   });
 
-  it("registers openshell as a provisionable runtime and derives SANDBOX_RUNTIMES from the catalog", () => {
-    expect(RUNTIME_CATALOG.find((r) => r.id === "openshell")).toMatchObject({
-      provisionable: true,
-      docsPath: "docs/runtimes/openshell.md",
-    });
-    expect(findTool("openshell")).toBeUndefined();
-    expect(SANDBOX_RUNTIMES).toEqual(["docker", "openshell"]);
+  it("derives SANDBOX_RUNTIMES from the provisionable entries of the runtime catalog", () => {
+    expect(RUNTIME_CATALOG.map((r) => r.id)).toEqual(["docker", "microsandbox"]);
+    expect(SANDBOX_RUNTIMES).toEqual(["docker"]);
     expect(SANDBOX_RUNTIMES).toEqual(RUNTIME_CATALOG.filter((r) => r.provisionable).map((r) => r.id));
   });
 

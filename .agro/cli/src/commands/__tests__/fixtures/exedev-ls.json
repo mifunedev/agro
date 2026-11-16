@@ -1,0 +1,17 @@
+{
+  "vms": [
+    {
+      "vm_name": "agro-sbx-dev-001",
+      "ssh_dest": "agro-sbx-dev-001.exe.xyz",
+      "status": "running",
+      "tags": [
+        "agro-hand"
+      ]
+    },
+    {
+      "vm_name": "agro-supervisor",
+      "ssh_dest": "agro-supervisor.exe.xyz",
+      "status": "running"
+    }
+  ]
+}
