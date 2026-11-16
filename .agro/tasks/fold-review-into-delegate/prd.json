@@ -20,14 +20,15 @@
         "`pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs exit 0 (107 passed) by advisor. AC1-7,9 executed via 24 new cases in describe(\"review opt-in\"); AC6 asserts exact action string. AC8: 12 new-behavior cases failed against old next.sh (worker red run 12 failed/95 passed); 12 regression-guard cases (review false/string/reviewed set) cannot fail before by design - reasoned. fixture.mjs unchanged: default review absent keeps prior states. Worker also ran pnpm test (3252 passed) and pnpm typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/scripts/next.sh",
         ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
         ".agro/skills/delegate/scripts/__tests__/fixture.mjs"
-      ]
+      ],
+      "commit": "6c377054"
     },
     {
       "id": "US-002",
