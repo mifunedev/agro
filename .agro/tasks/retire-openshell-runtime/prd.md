@@ -145,3 +145,8 @@ None
 - [ ] CI is green on the PR.
 
 ## Lessons
+
+- Claim: the plan did not list `.agro/scripts/__tests__/sandbox-skill.test.ts`. That test pins the count of validation scenarios and the count of files in `checks/`. Evidence: after US-002, `pnpm test` failed with "expected length 6, got 5". Outcome: fixed in this PR. The advisor added the file to US-002, and repair round 1 updated both counts in commit `6b0cae68`.
+- Claim: US-001 could not pass its full-suite criterion alone, because `docs/` links named the renamed policy file and `docs/` belonged to US-002. Evidence: `docs-reference.test.ts` failed on `docs/configuration.md:130` and `docs/security-considerations.md:253` after `b9e9100d`. Outcome: fixed in this PR. The advisor moved the link criterion to US-002, and `docs-reference.test.ts` passes at `1ace98ee`.
+- Claim: an agro.json entry with `runtime: "openshell"` now fails validation. Evidence: `SANDBOX_RUNTIMES` equals `["docker"]`. Outcome: dropped. The operator observed no OpenShell entry, and the plan puts a migration out of scope.
+- Claim: an advisor wait loop that used `pgrep -f` matched its own shell and never ended. Evidence: two acceptance runs hung until the advisor stopped them. Outcome: dropped. The finding is tooling friction in the advisor session, not repository behavior.
