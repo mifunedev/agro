@@ -17,17 +17,25 @@
         "The worker deletes each code path that only a non-docker runtime reaches. The paths are the OpenShell branches in `commands/sandbox.ts`, `lib/execution/index.ts`, `lib/registry.ts`, `commands/egress.ts`, and `lib/runtimes/verbs.ts`, plus the OpenShell lines of the `controllers/sandbox.ts` help text.",
         "`git grep -n -i openshell -- .agro/cli .devcontainer` prints nothing.",
         "`agro run -- pnpm run typecheck` exits 0.",
-        "`agro run -- pnpm test` exits 0."
+        "`agro run -- pnpm test` exits 0.",
+        "Repair 1: agro.json `runtime: \"openshell\"` parses as a retired value. `agro sandbox list` lists such an entry and does not throw.",
+        "Repair 1: on an entry with the retired `openshell` runtime, `agro shell`, `stop`, `restart`, `logs`, `ps`, `destroy`, `compose config`, `sandbox upgrade`, and `egress` exit 1 with one line that names `openshell sandbox delete <name>` and the removal of the entry. Each verb spawns nothing and keeps the registry entry.",
+        "Repair 1: `materialize()` writes no file into an entry with the retired `openshell` runtime.",
+        "Repair 1: `lifecycle.test.ts` again covers docker verb routing and docker sandbox naming, as the deleted tests did before `b9e9100d`.",
+        "Repair 1: the missing-binary error of `agro shell` names the binary of the resolved target, not a hard-coded `docker`.",
+        "Repair 1: `docs/configuration.md` describes the retired `openshell` value of `runtime`."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "1 executed: test -e on the 5 paths, none exist. 2 executed: egress-policy.yaml holds version + network_policies; egress-policy.test.ts asserts the 6-host list, passes. 3 executed: defaultImage in lib/execution/index.ts, run.ts:328 uses it; run.test.ts default-image cases pass. 4 executed: tool-catalog and agro-config tests pass with docker-only values. 5 executed: sandbox.test.ts asserts exit 1 and unknown runtime message, passes. 6 reasoned: diff review shows install path, execution-target branch, openshellFiles, egress refusal, verbs.ts, entryRuntime, help lines deleted; docker paths unchanged. 7 executed: git grep -n -i openshell -- .agro/cli .devcontainer exit 1 (no output). 8 executed: agro run -- pnpm run typecheck exit 0. 9 executed: agro run -- pnpm test exit 1; only failures are docs-reference.test.ts (2) for docs/configuration.md:130 and docs/security-considerations.md:253 links to the renamed policy, owned by US-002, added to US-002 criteria; cli-first-help failures were a concurrent-run race and pass alone (27/27).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src",
-        ".devcontainer"
+        ".devcontainer",
+        "docs/configuration.md"
       ],
-      "commit": "b9e9100d"
+      "commit": "b9e9100d",
+      "rounds": 1
     },
     {
       "id": "US-002",
