@@ -2,13 +2,15 @@ import { afterAll, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ConsoleCredentials } from "../../lib/console-auth.js";
+import { CONSOLE_CONFIG_MISSING, resolveConsoleConfig } from "../../lib/console-api.js";
 import { HANDS_VERBS } from "../../command-table.js";
 import {
-  BRAIN_TOKEN_MISSING,
+  CONSOLE_TOKEN_MISSING,
   HAND_MISSING,
   handsHelp,
   normalizeHandRef,
-  resolveBrainConsoleConfig,
+  resolveHandsConsoleConfig,
   runHands,
   type HandsDeps,
 } from "../hands.js";
@@ -66,6 +68,7 @@ function harness(replies: Reply[], overrides: Partial<HandsDeps> = {}) {
     homeDir: () => "/home/sandbox",
     userHome: () => USER_HOME,
     readFile: files.readFile,
+    readCredentials: () => undefined,
     sleep: async (ms) => {
       sleeps.push(ms);
       clock += ms;
@@ -92,40 +95,90 @@ function harness(replies: Reply[], overrides: Partial<HandsDeps> = {}) {
   };
 }
 
-describe("brain console config", () => {
-  it("reads the token and the URL from the brain files", () => {
-    const files = brainFiles({ [TOKEN_PATH]: ` ${TOKEN}\n`, [URL_PATH]: "https://c.example//\n" });
-    expect(resolveBrainConsoleConfig({}, () => "/home/sandbox", files.readFile)).toEqual({
+const HOME = () => "/home/sandbox";
+const BRAIN = { [TOKEN_PATH]: `${TOKEN}\n`, [URL_PATH]: "https://brain.example/\n" };
+const ENV_TOKEN = { AGRO_CONSOLE_TOKEN: "env_token" };
+const ENV_BOTH = { AGRO_CONSOLE_TOKEN: "env_token", AGRO_CONSOLE_URL: "https://env.example/" };
+
+function credentials(token: string, url = "https://login.example/"): () => ConsoleCredentials {
+  return () => ({ url, token, tokenId: "t1", tokenPrefix: "agro_", login: "octo" });
+}
+
+const noCredentials = () => undefined;
+
+describe("hands console config source order", () => {
+  it.each([
+    ["env token and env URL beat every file", ENV_BOTH, BRAIN, credentials("cred"), "env_token", "https://env.example", "env", "brain"],
+    ["env token takes the brain URL file when the brain token file exists", ENV_TOKEN, BRAIN, credentials("cred"), "env_token", "https://brain.example", "env", "brain"],
+    ["env token without a brain token file takes the brain URL file and brain authority", ENV_TOKEN, { [URL_PATH]: "https://brain.example/" }, credentials("cred"), "env_token", "https://brain.example", "env", "brain"],
+    ["brain token takes the brain URL file", {}, BRAIN, credentials("cred"), TOKEN, "https://brain.example", "file", "brain"],
+    ["brain token takes AGRO_CONSOLE_URL over the brain URL file", { AGRO_CONSOLE_URL: "https://env.example" }, BRAIN, noCredentials, TOKEN, "https://env.example", "file", "brain"],
+    ["credentials token takes the credentials URL", {}, {}, credentials("cred"), "cred", "https://login.example", "file", "operator"],
+    ["credentials token keeps the credentials URL over AGRO_CONSOLE_URL", { AGRO_CONSOLE_URL: "https://env.example" }, {}, credentials("cred"), "cred", "https://login.example", "file", "operator"],
+    ["credentials token with an empty URL takes the public console", {}, {}, credentials("cred", " "), "cred", "https://console.mifune.dev", "file", "operator"],
+  ] as const)("%s", (_, env, files, readCredentials, token, url, source, authority) => {
+    expect(resolveHandsConsoleConfig(env, HOME, brainFiles(files).readFile, readCredentials, false)).toEqual({
       ok: true,
-      config: { url: "https://c.example", token: TOKEN, source: "file" },
+      config: { url, token, source },
+      authority,
     });
   });
 
-  it("lets AGRO_CONSOLE_TOKEN and AGRO_CONSOLE_URL override both files", () => {
-    const files = brainFiles({});
-    expect(
-      resolveBrainConsoleConfig(
-        { AGRO_CONSOLE_TOKEN: "env_token", AGRO_CONSOLE_URL: "https://env.example/" },
-        () => "/home/sandbox",
-        files.readFile,
-      ),
-    ).toEqual({ ok: true, config: { url: "https://env.example", token: "env_token", source: "env" } });
-    expect(files.reads).toEqual([]);
+  it("trims the brain token and the brain URL", () => {
+    const files = brainFiles({ [TOKEN_PATH]: ` ${TOKEN}\n`, [URL_PATH]: "https://c.example//\n" });
+    expect(resolveHandsConsoleConfig({}, HOME, files.readFile, noCredentials, false)).toEqual({
+      ok: true,
+      config: { url: "https://c.example", token: TOKEN, source: "file" },
+      authority: "brain",
+    });
   });
 
-  it("fails when the token file is missing", () => {
-    const result = resolveBrainConsoleConfig({}, () => "/home/sandbox", brainFiles({ [URL_PATH]: "https://c" }).readFile);
-    expect(result).toEqual({ ok: false, error: BRAIN_TOKEN_MISSING });
-    expect(BRAIN_TOKEN_MISSING).toBe("not on a brain: /home/sandbox/.agro/brain-token not found");
+  it("fails without any token and names the brain token path and agro auth login", () => {
+    const result = resolveHandsConsoleConfig({}, HOME, brainFiles({ [URL_PATH]: "https://c" }).readFile, noCredentials, false);
+    expect(result).toEqual({ ok: false, error: CONSOLE_TOKEN_MISSING });
+    expect(CONSOLE_TOKEN_MISSING).toContain(TOKEN_PATH);
+    expect(CONSOLE_TOKEN_MISSING).toContain("agro auth login");
   });
 
   it("fails without the URL file and AGRO_CONSOLE_URL instead of using the public console", () => {
-    const result = resolveBrainConsoleConfig({}, () => "/home/sandbox", brainFiles({ [TOKEN_PATH]: TOKEN }).readFile);
+    const result = resolveHandsConsoleConfig({}, HOME, brainFiles({ [TOKEN_PATH]: TOKEN }).readFile, credentials("cred"), false);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toContain(URL_PATH);
       expect(result.error).toContain("AGRO_CONSOLE_URL");
     }
+  });
+
+  it.each([
+    ["the brain token file", { [TOKEN_PATH]: TOKEN }],
+    ["no brain token file", {}],
+  ])("fails with an env token, %s, and no brain URL source", (_, files) => {
+    const result = resolveHandsConsoleConfig(ENV_TOKEN, HOME, brainFiles(files).readFile, credentials("cred"), false);
+    expect(result).toEqual({
+      ok: false,
+      error: `no brain console URL: ${URL_PATH} not found and AGRO_CONSOLE_URL is unset`,
+    });
+  });
+
+  it.each([
+    ["env token and env URL", ENV_BOTH, credentials("cred"), "env_token", "https://env.example", "env"],
+    ["env token without env URL takes the public console", ENV_TOKEN, credentials("cred"), "env_token", "https://console.mifune.dev", "env"],
+    ["credentials token and URL", {}, credentials("cred"), "cred", "https://login.example", "file"],
+    ["credentials token with an empty URL", {}, credentials("cred", " "), "cred", "https://console.mifune.dev", "file"],
+  ] as const)("--operator resolves %s like agro auth and ignores the brain files", (_, env, readCredentials, token, url, source) => {
+    const files = brainFiles(BRAIN);
+    const expected = { ok: true, config: { url, token, source }, authority: "operator" };
+    expect(resolveHandsConsoleConfig(env, HOME, files.readFile, readCredentials, true)).toEqual(expected);
+    expect(resolveConsoleConfig(env, readCredentials)).toEqual(expected.config);
+    expect(files.reads).toEqual([]);
+  });
+
+  it("--operator fails without credentials and names agro auth login", () => {
+    expect(resolveHandsConsoleConfig({}, HOME, brainFiles(BRAIN).readFile, noCredentials, true)).toEqual({
+      ok: false,
+      error: CONSOLE_CONFIG_MISSING,
+    });
+    expect(CONSOLE_CONFIG_MISSING).toContain("agro auth login");
   });
 
   it("strips only a leading # from a hand ref", () => {
@@ -137,10 +190,10 @@ describe("brain console config", () => {
 });
 
 describe("agro hands config errors", () => {
-  it("exits 2 and sends no request when the token file is missing", async () => {
+  it("exits 2 and sends no request without any token", async () => {
     const h = harness([{ status: 200, body: [] }], { readFile: brainFiles({ [URL_PATH]: "https://c" }).readFile });
     expect(await runHands(["list"], h.io, h.deps)).toBe(2);
-    expect(h.stderr()).toBe(`${BRAIN_TOKEN_MISSING}\n`);
+    expect(h.stderr()).toBe(`${CONSOLE_TOKEN_MISSING}\n`);
     expect(h.calls).toEqual([]);
   });
 
@@ -159,6 +212,184 @@ describe("agro hands config errors", () => {
     expect(await runHands(["list"], h.io, h.deps)).toBe(0);
     expect(h.calls[0].url).toBe("https://env.example/api/nodes");
     expect(h.calls[0].headers.Authorization).toBe("Bearer env_token");
+  });
+
+  it("uses the agro auth login credentials without a brain token", async () => {
+    const h = harness([{ status: 200, body: [] }], {
+      readFile: brainFiles({}).readFile,
+      readCredentials: credentials("agro_operator_secret"),
+    });
+    expect(await runHands(["list"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].url).toBe("https://login.example/api/nodes");
+    expect(h.calls[0].headers.Authorization).toBe("Bearer agro_operator_secret");
+  });
+});
+
+describe("agro hands authority", () => {
+  const KEY_PATH = join(USER_HOME, ".ssh", "id_ed25519.pub");
+  const KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal op@laptop\n";
+  const QUEUED_REPLY: Reply = { status: 202, body: { id: "u9", status: "queued" } };
+  const RUNNING_REPLY: Reply = { status: 200, body: { id: "u9", status: "running", orgIndex: 7, sshHost: "h" } };
+  const route = (calls: Recorded[]) => calls.map((c) => `${c.method} ${c.url}`);
+
+  it("gives brain authority to an env token without a brain token file and sends no ssh-keys call on create", async () => {
+    const files = brainFiles({ [KEY_PATH]: KEY });
+    const h = harness([QUEUED_REPLY, RUNNING_REPLY], {
+      env: ENV_BOTH,
+      readFile: files.readFile,
+      readCredentials: credentials("cred"),
+      hostname: () => "laptop",
+    });
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(files.reads).not.toContain(KEY_PATH);
+    expect(route(h.calls)).toEqual(["POST https://env.example/api/nodes", "GET https://env.example/api/nodes/u9"]);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox" });
+    expect(h.calls[0].headers.Authorization).toBe("Bearer env_token");
+  });
+
+  it.each([[["--operator", "create"]], [["create", "--operator"]]])(
+    "uses the credentials and registers the local key with %j on a host with a brain token file",
+    async (args) => {
+      const files = brainFiles({ ...BRAIN, [KEY_PATH]: KEY });
+      const h = harness(
+        [{ status: 200, body: { sshKeys: [] } }, { status: 201, body: { id: "new-key" } }, QUEUED_REPLY, RUNNING_REPLY],
+        { readFile: files.readFile, readCredentials: credentials("agro_operator_secret"), hostname: () => "laptop" },
+      );
+      expect(await runHands(args, h.io, h.deps)).toBe(0);
+      expect(files.reads).not.toContain(TOKEN_PATH);
+      expect(route(h.calls)).toEqual([
+        "GET https://login.example/api/ssh-keys",
+        "POST https://login.example/api/ssh-keys",
+        "POST https://login.example/api/nodes",
+        "GET https://login.example/api/nodes/u9",
+      ]);
+      expect(h.calls.every((c) => c.headers.Authorization === "Bearer agro_operator_secret")).toBe(true);
+      expect(h.calls[2].body).toEqual({ profile: "sandbox", sshKeyIds: ["new-key"] });
+    },
+  );
+
+  it("--operator takes the public console for an env token without an env URL", async () => {
+    const h = harness([{ status: 200, body: [] }], { env: ENV_TOKEN, readCredentials: credentials("cred") });
+    expect(await runHands(["list", "--operator"], h.io, h.deps)).toBe(0);
+    expect(route(h.calls)).toEqual(["GET https://console.mifune.dev/api/nodes"]);
+    expect(h.calls[0].headers.Authorization).toBe("Bearer env_token");
+  });
+
+  it("--operator exits 2 without credentials and sends no request", async () => {
+    const h = harness([{ status: 200, body: [] }]);
+    expect(await runHands(["--operator", "list"], h.io, h.deps)).toBe(2);
+    expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
+    expect(h.calls).toEqual([]);
+  });
+
+  it.each([[["--operator", "--provider", "exedev", "list"]], [["list", "--provider=exedev", "--operator"]]])(
+    "refuses --operator with the exedev provider before any ssh call: %j",
+    async (args) => {
+      const runs: string[] = [];
+      const h = harness([{ status: 200, body: [] }], {
+        run: (command) => {
+          runs.push(command);
+          return { status: 0 };
+        },
+      });
+      expect(await runHands(args, h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands list: --operator applies only to console hands\n");
+      expect(runs).toEqual([]);
+      expect(h.calls).toEqual([]);
+    },
+  );
+
+  it.each([
+    ["--provider", ["create", "--name", "--provider"]],
+    ["--operator", ["create", "--name", "--operator"]],
+    ["--provider", ["create", "--name=x", "--spec", "--provider", "--ssh-key", "k1"]],
+  ])("keeps %s as the value of a verb flag", async (value, args) => {
+    const h = harness([QUEUED_REPLY, RUNNING_REPLY]);
+    expect(await runHands(args, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].url).toBe("https://brain-console.example/api/nodes");
+    expect(Object.values(h.calls[0].body as Record<string, unknown>)).toContain(value);
+  });
+});
+
+describe("agro hands --provider", () => {
+  function exedevHome(): string {
+    const dir = mkdtempSync(join(tmpdir(), "agro-hands-provider-"));
+    mkdirSync(join(dir, ".agro"), { recursive: true });
+    writeFileSync(join(dir, ".agro", "config.json"), JSON.stringify({ version: 1, hands: { provider: "exedev" } }), "utf8");
+    return dir;
+  }
+
+  it.each([
+    [["--provider", "console", "list"]],
+    [["list", "--provider", "console"]],
+    [["--provider=console", "list"]],
+    [["list", "--provider=console"]],
+  ])("overrides a host config that selects exedev: %j", async (args) => {
+    const home = exedevHome();
+    try {
+      const runs: string[] = [];
+      const h = harness([{ status: 200, body: HANDS }], {
+        userHome: () => home,
+        run: (command) => {
+          runs.push(command);
+          return { status: 255 };
+        },
+      });
+      expect(await runHands(args, h.io, h.deps)).toBe(0);
+      expect(runs).toEqual([]);
+      expect(h.calls).toHaveLength(1);
+      expect(h.calls[0].url).toBe("https://brain-console.example/api/nodes");
+      expect(h.stdout()).toContain("quiet-otter");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it.each([[["--provider", "exedev", "list"]], [["list", "--provider=exedev"]]])(
+    "selects exedev over the default console provider: %j",
+    async (args) => {
+      const runs: string[][] = [];
+      const h = harness([{ status: 200, body: HANDS }], {
+        run: (command, commandArgs) => {
+          runs.push([command, ...commandArgs]);
+          return { status: 255, stderr: "no exe.dev\n" };
+        },
+      });
+      expect(await runHands(args, h.io, h.deps)).toBe(2);
+      expect(runs[0][0]).toBe("ssh");
+      expect(runs[0]).toContain("exe.dev");
+      expect(h.calls).toEqual([]);
+    },
+  );
+
+  it("exits 1 and names both providers for an unknown provider", async () => {
+    const h = harness([{ status: 200, body: HANDS }]);
+    expect(await runHands(["list", "--provider", "desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("console");
+    expect(h.stderr()).toContain("exedev");
+    expect(h.calls).toEqual([]);
+  });
+
+  it("exits 1 when --provider has no value", async () => {
+    const h = harness([{ status: 200, body: HANDS }]);
+    expect(await runHands(["list", "--provider"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands: --provider requires a value\n");
+    expect(h.calls).toEqual([]);
+  });
+
+  it("keeps --provider after -- in the exec command", async () => {
+    const runs: string[][] = [];
+    const h = harness([{ status: 200, body: HANDS[0] }], {
+      run: (command, commandArgs) => {
+        runs.push([command, ...commandArgs]);
+        return { status: 0 };
+      },
+    });
+    const status = await runHands(["exec", "4", "--provider", "console", "--", "echo", "--provider", "x"], h.io, h.deps);
+    expect(h.stderr()).toBe("");
+    expect(status).toBe(0);
+    expect(runs).toHaveLength(1);
+    expect(runs[0].at(-1)).toContain("echo --provider x");
   });
 });
 
@@ -182,7 +413,7 @@ describe("agro hands help", () => {
 });
 
 const HANDS = [
-  { id: "u1", orgIndex: 4, alias: "quiet-otter", status: "running", spec: "n4", sshHost: "hand-4.example" },
+  { id: "u1", orgIndex: 4, alias: "quiet-otter", name: "otter-box", profile: "sandbox", status: "running", spec: "n4", sshHost: "hand-4.example" },
   { id: "u2", orgIndex: 12, alias: "bold-heron", status: "paused", spec: "n8", sshHost: null },
 ];
 
@@ -208,8 +439,8 @@ describe("agro hands list", () => {
     const h = harness([{ status: 200, body: { nodes: HANDS } }]);
     expect(await runHands(["list", "--json"], h.io, h.deps)).toBe(0);
     expect(JSON.parse(h.stdout())).toEqual([
-      { id: "u1", index: 4, alias: "quiet-otter", status: "running", spec: "n4", sshHost: "hand-4.example" },
-      { id: "u2", index: 12, alias: "bold-heron", status: "paused", spec: "n8", sshHost: null },
+      { id: "u1", index: 4, alias: "quiet-otter", name: "otter-box", profile: "sandbox", status: "running", spec: "n4", sshHost: "hand-4.example" },
+      { id: "u2", index: 12, alias: "bold-heron", name: null, profile: null, status: "paused", spec: "n8", sshHost: null },
     ]);
   });
 
@@ -314,7 +545,7 @@ describe("agro hands create", () => {
 
   it("rejects an unknown flag before any request", async () => {
     const h = harness([{ status: 202 }]);
-    expect(await runHands(["create", "--profile", "agro"], h.io, h.deps)).toBe(1);
+    expect(await runHands(["create", "--bogus"], h.io, h.deps)).toBe(1);
     expect(await runHands(["create", "--spec"], h.io, h.deps)).toBe(1);
     expect(h.calls).toEqual([]);
   });
@@ -626,7 +857,8 @@ describe("agro hands disposable hands", () => {
 
   it("states the disposable rules in the create help", () => {
     const help = handsHelp("agro");
-    expect(help).toContain("agro hands create [--name <name>] [--spec <spec>] [--disposable]");
+    expect(help).toContain("[--code-server] [--disposable]");
+    expect(help).toContain("HTTP 422 DISPOSABLE_PROFILE_UNSUPPORTED");
     expect(help).toContain("--disposable applies only to console hands");
     expect(help).toContain("HTTP 409 NODE_DISPOSABLE");
     for (const verb of ["`pause`", "`resume`", "`fork`"]) expect(help).toContain(verb);
@@ -646,5 +878,584 @@ describe("agro hands token secrecy", () => {
     expect(await runHands(["list"], h.io, h.deps)).toBe(1);
     expect(h.stderr()).toContain("request failed");
     expect(h.all()).not.toContain(TOKEN);
+  });
+});
+
+const LOCAL_KEY_PATH = join(USER_HOME, ".ssh", "id_ed25519.pub");
+const LOCAL_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal op@laptop\n";
+const QUEUED: Reply = { status: 202, body: { id: "u9", status: "queued" } };
+const RUNNING_HAND = {
+  id: "u9",
+  status: "running",
+  orgIndex: 7,
+  alias: "calm-lynx",
+  name: "worker",
+  profile: "agro",
+  spec: "n4",
+  sshHost: "hand-7.example",
+};
+const RUNNING: Reply = { status: 200, body: RUNNING_HAND };
+const BASE_CREATE = ["create", "--ssh-key", "key-1"];
+const APP_FLAGS = [
+  ["--docker", { docker: true }],
+  ["--t3", { t3: true }],
+  ["--code-server", { runtimeSettings: { codeServerEnabled: true } }],
+] as const;
+const APP_FLAG_NAMES = APP_FLAGS.map(([flag]) => flag);
+
+function operator(replies: Reply[], files: Record<string, string> = { [LOCAL_KEY_PATH]: LOCAL_KEY }) {
+  const read = brainFiles(files);
+  return {
+    ...harness(replies, {
+      env: {},
+      readFile: read.readFile,
+      readCredentials: credentials(TOKEN, "https://console.example/"),
+      hostname: () => "laptop",
+    }),
+    reads: read.reads,
+  };
+}
+
+describe("agro hands create profile and app flags", () => {
+  it("posts the sandbox profile and the keys without a new flag", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(BASE_CREATE, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"] });
+  });
+
+  it.each([[["--profile", "agro"]], [["--profile=agro"]]])("posts the agro profile with %j and no app field", async (flag) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, ...flag], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts the sandbox profile with --profile sandbox", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "sandbox"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts docker, t3, and codeServerEnabled with all app flags", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    const args = [...BASE_CREATE, "--profile", "agro", "--docker", "--t3", "--code-server"];
+    expect(await runHands(args, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({
+      profile: "agro",
+      sshKeyIds: ["key-1"],
+      docker: true,
+      t3: true,
+      runtimeSettings: { codeServerEnabled: true },
+    });
+  });
+
+  it.each(APP_FLAGS)("posts only the field of %s with --profile agro", async (flag, field) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", flag], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], ...field });
+  });
+
+  it("rejects a profile other than agro or sandbox before any request", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --profile must be agro or sandbox\n");
+    expect(h.calls).toEqual([]);
+  });
+
+  it("rejects --profile without a value before any request", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --profile requires a value\n");
+    expect(h.calls).toEqual([]);
+  });
+
+  it.each(APP_FLAG_NAMES)("rejects %s with the default profile before key resolution", async (flag) => {
+    const h = operator([QUEUED, RUNNING]);
+    expect(await runHands(["create", flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands create: ${flag} requires --profile agro\n`);
+    expect(h.reads).not.toContain(LOCAL_KEY_PATH);
+    expect(h.calls).toEqual([]);
+  });
+
+  it.each(APP_FLAG_NAMES)("rejects %s with --profile sandbox before any request", async (flag) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "sandbox", flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands create: ${flag} requires --profile agro\n`);
+    expect(h.calls).toEqual([]);
+  });
+
+  it("prints the HTTP status and code when runtime settings are disabled", async () => {
+    const h = harness([{ status: 422, body: { error: "Runtime settings are disabled", code: "RUNTIME_SETTINGS_DISABLED" } }]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--code-server"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("posts --profile agro --disposable and prints the sandbox-only line on HTTP 422", async () => {
+    const h = harness([{ status: 422, body: { error: "Only sandbox nodes can be disposable", code: "DISPOSABLE_PROFILE_UNSUPPORTED" } }]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--disposable"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], disposable: true });
+    expect(h.stderr()).toBe(
+      "agro hands create: only a sandbox node can be disposable: drop --disposable, or use --profile sandbox\n",
+    );
+    expect(h.stdout()).toBe("");
+  });
+
+  it("shows the new flags in the help", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain(
+      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
+    );
+    for (const flag of ["--profile", "--json", "--ssh-key", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+  });
+});
+
+describe("agro hands create ssh key resolution", () => {
+  it("reuses a console key whose type and body match the local key", async () => {
+    const h = operator([
+      {
+        status: 200,
+        body: {
+          sshKeys: [
+            { id: "other", name: "x", publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIother op@laptop" },
+            { id: "match", name: "y", publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal a-different-comment" },
+          ],
+        },
+      },
+      QUEUED,
+      RUNNING,
+    ]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.reads).toContain(LOCAL_KEY_PATH);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "POST https://console.example/api/nodes",
+      "GET https://console.example/api/nodes/u9",
+    ]);
+    expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(h.calls[1].body).toEqual({ profile: "sandbox", sshKeyIds: ["match"] });
+  });
+
+  it("registers the local key when no console key matches", async () => {
+    const h = operator([
+      { status: 200, body: { sshKeys: [{ id: "other", publicKey: "ssh-rsa AAAAC3NzaC1lZDI1NTE5AAAAIlocal" }] } },
+      { status: 201, body: { sshKey: { id: "new-key", name: "agro-cli@laptop" } } },
+      QUEUED,
+      RUNNING,
+    ]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(0, 3).map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "POST https://console.example/api/ssh-keys",
+      "POST https://console.example/api/nodes",
+    ]);
+    expect(h.calls[1].body).toEqual({ name: "agro-cli@laptop", publicKey: LOCAL_KEY.trim() });
+    expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["new-key"] });
+  });
+
+  it("accepts a top-level id in the register response", async () => {
+    const h = operator([{ status: 200, body: { sshKeys: [] } }, { status: 201, body: { id: "top-key" } }, QUEUED, RUNNING]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["top-key"] });
+  });
+
+  it("exits 1 and creates no hand when the local key file does not exist", async () => {
+    const h = operator([QUEUED, RUNNING], {});
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.reads).toContain(LOCAL_KEY_PATH);
+    expect(h.stderr()).toBe("agro hands create: no --ssh-key given and ~/.ssh/id_ed25519.pub not found\n");
+    expect(h.calls).toEqual([]);
+    expect(h.stdout()).toBe("");
+  });
+
+  it("uses only the given --ssh-key flags and makes no ssh-keys call", async () => {
+    const h = operator([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--ssh-key", "a", "--ssh-key=b"], h.io, h.deps)).toBe(0);
+    expect(h.reads).not.toContain(LOCAL_KEY_PATH);
+    expect(h.calls[0]).toMatchObject({ method: "POST", url: "https://console.example/api/nodes" });
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["a", "b"] });
+  });
+
+  it("exits 1 with the API error when the key list fails", async () => {
+    const h = operator([{ status: 403, body: { error: "forbidden", code: "FORBIDDEN" } }]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("HTTP 403 FORBIDDEN");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("exits 1 when the register response has no key id", async () => {
+    const h = operator([{ status: 200, body: { sshKeys: [] } }, { status: 201, body: {} }]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("the console response has no SSH key id");
+    expect(h.calls).toHaveLength(2);
+  });
+
+  it("sends no key from the local file on a brain", async () => {
+    const files = brainFiles({
+      [TOKEN_PATH]: TOKEN,
+      [URL_PATH]: "https://brain-console.example",
+      [LOCAL_KEY_PATH]: LOCAL_KEY,
+    });
+    const h = harness([QUEUED, RUNNING], { readFile: files.readFile });
+    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
+    expect(files.reads).not.toContain(LOCAL_KEY_PATH);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://brain-console.example/api/nodes",
+      "GET https://brain-console.example/api/nodes/u9",
+    ]);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox" });
+  });
+
+  it("sends --ssh-key ids on a brain", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--ssh-key", "k1"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["k1"] });
+  });
+
+  it("rejects --ssh-key without a value before any request", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--ssh-key"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --ssh-key requires a value\n");
+    expect(h.calls).toEqual([]);
+  });
+});
+
+const CREATED_JSON = {
+  id: "u9",
+  index: 7,
+  alias: "calm-lynx",
+  name: "worker",
+  status: "running",
+  spec: "n4",
+  sshHost: "hand-7.example",
+  ssh: "ssh sandbox@hand-7.example",
+};
+
+describe("agro hands create --json", () => {
+  it("prints one JSON line and keeps the status lines on stderr", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(0);
+    expect(h.stdout().split("\n")).toEqual([JSON.stringify(CREATED_JSON), ""]);
+    expect(h.stderr()).toContain("agro hands create: hand u9 running\n");
+  });
+
+  it("prints ssh null without an SSH host", async () => {
+    const h = harness([QUEUED, { status: 200, body: { ...RUNNING_HAND, sshHost: null } }]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toEqual({ ...CREATED_JSON, sshHost: null, ssh: null });
+  });
+
+  it.each(["failed", "provisioning"])("prints ssh null for a %s hand with an SSH host", async (status) => {
+    const h = harness([QUEUED, { status: 200, body: { ...RUNNING_HAND, status } }], { timeoutMs: 3000 });
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(JSON.parse(h.stdout())).toEqual({ ...CREATED_JSON, status, ssh: null });
+  });
+
+  it("reports the n4 fallback spec when the console node has no spec", async () => {
+    const h = harness([
+      { status: 402, body: { error: "Add credit", code: "CREDIT_REQUIRED" } },
+      { status: 200, body: { eligible: true } },
+      QUEUED,
+      { status: 200, body: { ...RUNNING_HAND, spec: null } },
+    ]);
+    expect(await runHands(["create", "--spec", "n8", "--json"], h.io, h.deps)).toBe(0);
+    expect(h.calls[2].body).toMatchObject({ spec: "n4", freeTier: true });
+    expect(JSON.parse(h.stdout())).toEqual(CREATED_JSON);
+  });
+
+  it("reports the n4 fallback spec on a failed wait", async () => {
+    const h = harness([
+      { status: 402, body: { error: "Add credit", code: "CREDIT_REQUIRED" } },
+      { status: 200, body: { eligible: true } },
+      QUEUED,
+      { status: 200, body: { id: "u9", status: "failed" } },
+    ]);
+    expect(await runHands(["create", "--spec", "n8", "--json"], h.io, h.deps)).toBe(1);
+    expect(JSON.parse(h.stdout())).toMatchObject({ status: "failed", spec: "n4", ssh: null });
+  });
+
+  it("prefers the spec that the console reports", async () => {
+    const h = harness([QUEUED, { status: 200, body: { ...RUNNING_HAND, spec: "n16" } }]);
+    expect(await runHands(["create", "--spec", "n8", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).toMatchObject({ spec: "n16" });
+  });
+
+  it("prints the JSON line with the last status before it exits 1 on a timeout", async () => {
+    const h = harness([QUEUED, { status: 200, body: { ...RUNNING_HAND, status: "provisioning", sshHost: null } }], {
+      timeoutMs: 3000,
+    });
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(JSON.parse(h.stdout())).toEqual({ ...CREATED_JSON, status: "provisioning", sshHost: null, ssh: null });
+    expect(h.stderr()).toContain("not running after 15 minutes");
+  });
+
+  it("prints the JSON line before it exits 1 when the hand fails", async () => {
+    const h = harness([QUEUED, { status: 200, body: { id: "u9", status: "failed" } }]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(JSON.parse(h.stdout())).toEqual({
+      id: "u9",
+      index: null,
+      alias: null,
+      name: null,
+      status: "failed",
+      spec: null,
+      sshHost: null,
+      ssh: null,
+    });
+    expect(h.stderr()).toContain("hand u9 failed");
+  });
+
+  it("prints nothing on stdout when the console returns no node", async () => {
+    const h = harness([{ status: 500, body: { code: "INTERNAL" } }]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toBe("");
+  });
+
+  it.each([[["--project", "acme/widget"]], [["--clone", "acme/widget"]]])("refuses --json with %j", async (flag) => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--json", ...flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --json excludes --project and --clone\n");
+    expect(h.calls).toEqual([]);
+  });
+});
+
+describe("agro hands destroy admin role", () => {
+  it("prints the admin role line on HTTP 403 with no error code", async () => {
+    const h = operator([{ status: 403, body: { error: "forbidden" } }]);
+    expect(await runHands(["destroy", "4", "--yes"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands destroy: destroy needs the admin role in agro-console\n");
+  });
+
+  it.each(["ONBOARDING_REQUIRED", "PAYMENTS_DISABLED", "FORBIDDEN"])("prints the console message on HTTP 403 %s", async (code) => {
+    const h = operator([{ status: 403, body: { error: "not allowed", code } }]);
+    expect(await runHands(["destroy", "4", "--yes"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands destroy: HTTP 403 ${code}: not allowed\n`);
+  });
+});
+
+describe("agro hands check", () => {
+  const LOCAL_KEY = "ssh-ed25519 AAAAlocal op@laptop";
+  const LOCAL_KEY_PATH = join(USER_HOME, ".ssh", "id_ed25519.pub");
+  const KEYS = { status: 200, body: { sshKeys: [{ id: "key-1", publicKey: "ssh-ed25519 AAAAlocal other@host" }, { id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } };
+  const ELIGIBLE = { status: 200, body: { eligible: true } };
+  const balance = (balanceMicros: number, overrides: Record<string, unknown> = {}) => ({
+    status: 200,
+    body: { balanceMicros, hasCard: false, paymentsEnabled: true, canManage: true, autoTopup: null, ...overrides },
+  });
+  const FUNDED = balance(12_345_678);
+  const AUTO_TOPUP = { amountUsd: 20, thresholdUsd: 5 };
+  const RETIRED_FLAG = ["--free", "tier"].join("-");
+  const LOCAL_SSH_KEY_MISSING = "no --ssh-key given and ~/.ssh/id_ed25519.pub not found";
+  const withLocalKey = { readFile: (path: string) => (path === LOCAL_KEY_PATH ? `${LOCAL_KEY}\n` : undefined) };
+  const methods = (calls: Recorded[]) => calls.map((c) => `${c.method} ${c.url}`);
+  const BOTH = [
+    "GET https://console.example/api/ssh-keys",
+    "GET https://console.example/api/free-tier",
+    "GET https://console.example/api/billing/balance",
+  ];
+  const checkHarness = (replies: Reply[], overrides: Partial<HandsDeps> = {}) =>
+    harness(replies, {
+      env: {},
+      readFile: () => undefined,
+      readCredentials: credentials(TOKEN, "https://console.example"),
+      ...overrides,
+    });
+
+  it("finds the local public key by identity and checks the free tier with GET only", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, FUNDED], withLocalKey);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1 ~/.ssh/id_ed25519.pub\nok free-tier\nok credit: balance $12.35\n");
+    expect(methods(h.calls)).toEqual(BOTH);
+    expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("fails without a POST when the local public key is not registered", async () => {
+    const h = checkHarness([{ status: 200, body: { sshKeys: [{ id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } }, ELIGIBLE, FUNDED], withLocalKey);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toMatch(/^fail ssh-key ~\/\.ssh\/id_ed25519\.pub: not registered in agro-console — .*--ssh-key <uuid>\nok free-tier\nok credit: balance \$12\.35\n$/);
+    expect(h.calls.every((c) => c.method === "GET")).toBe(true);
+  });
+
+  it("fails with a remedy when the local public key file is missing and reads only the free tier", async () => {
+    const h = checkHarness([ELIGIBLE, FUNDED]);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain(`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`);
+    expect(methods(h.calls)).toEqual(["GET https://console.example/api/free-tier", "GET https://console.example/api/billing/balance"]);
+  });
+
+  it("finds each --ssh-key id and fails on an unknown id", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-2", "--ssh-key=key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")).toEqual([
+      "ok ssh-key key-2",
+      "fail ssh-key key-9: not found in agro-console — pass the id of an SSH key in agro-console",
+      "ok free-tier",
+      "ok credit: balance $12.35",
+      "",
+    ]);
+    expect(methods(h.calls)).toEqual(BOTH);
+  });
+
+  it("passes the free tier check when eligible", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1\nok free-tier\nok credit: balance $12.35\n");
+    expect(methods(h.calls)).toEqual(BOTH);
+  });
+
+  it("warns with the code and the reason when the account is not eligible and keeps exit 0", async () => {
+    const h = checkHarness([KEYS, { status: 200, body: { eligible: false, code: "FREE_TIER_INELIGIBLE", reason: "a free node is live" } }, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toContain("ok ssh-key key-1\n");
+    expect(h.stdout()).toMatch(/\nwarn free-tier: not eligible \(FREE_TIER_INELIGIBLE: a free node is live\) — .*agro auth login in the personal context\nok credit: balance \$12\.35\n$/);
+  });
+
+  it("keeps exit 1 for a failed key check when the account is not eligible", async () => {
+    const h = checkHarness([KEYS, { status: 200, body: { eligible: false } }, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("warn free-tier: not eligible — ");
+  });
+
+  it("names onboarding and the personal context on a 403 onboarding reply", async () => {
+    const h = checkHarness([KEYS, { status: 403, body: { error: "Onboarding required" } }, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("fail free-tier: HTTP 403 no code: Onboarding required — finish agro-console onboarding, or run agro auth login in the personal context\n");
+  });
+
+  it("never sends a POST or a DELETE across every check outcome", async () => {
+    const h = checkHarness([{ status: 200, body: { sshKeys: [] } }, { status: 200, body: { eligible: false } }, balance(0)], withLocalKey);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.calls.length).toBe(3);
+    expect(h.calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+    expect(h.stdout()).toContain("warn free-tier: not eligible — ");
+  });
+
+  it.each([
+    ["payments are off", balance(0, { paymentsEnabled: false }), "ok credit: payments are off"],
+    ["a positive balance", balance(1_500_000), "ok credit: balance $1.50"],
+    ["a positive balance with auto top-up", balance(1_500_000, { autoTopup: AUTO_TOPUP }), "ok credit: balance $1.50, auto top-up on"],
+    [
+      "a zero balance without auto top-up",
+      balance(0),
+      "warn credit: no credit (balance $0.00) — top up at https://console.example/billing",
+    ],
+    [
+      "a negative balance without auto top-up",
+      balance(-40_000),
+      "warn credit: no credit (balance -$0.04) — top up at https://console.example/billing",
+    ],
+    ["a zero balance with auto top-up", balance(0, { autoTopup: AUTO_TOPUP }), "ok credit: balance $0.00, auto top-up on"],
+    ["a negative balance with auto top-up", balance(-40_000, { autoTopup: AUTO_TOPUP }), "ok credit: balance -$0.04, auto top-up on"],
+    [
+      "a console without the balance route",
+      { status: 404, body: { error: "Not found", code: "NOT_FOUND" } },
+      "warn credit: HTTP 404 NOT_FOUND: Not found",
+    ],
+    ["a failed balance read", { status: 500, body: { error: "boom" } }, "warn credit: HTTP 500 no code: boom"],
+  ])("prints the credit line for %s with GET only and keeps exit 0", async (_, reply, line) => {
+    const h = checkHarness([KEYS, ELIGIBLE, reply]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe(`ok ssh-key key-1\nok free-tier\n${line}\n`);
+    expect(methods(h.calls)).toEqual(BOTH);
+  });
+
+  it("keeps exit 1 on a failed key check whatever the credit line says", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, balance(5_000_000)]);
+    expect(await runHands(["check", "--ssh-key", "key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("ok credit: balance $5.00\n");
+  });
+
+  it("names the credit line in the help", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain("credit line");
+    expect(help).toContain("/api/billing/balance");
+  });
+
+  it("rejects an unknown flag before any request", async () => {
+    const h = checkHarness([KEYS]);
+    expect(await runHands(["check", "--spec", "n4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe('agro hands check: unknown flag "--spec"\n');
+    expect(h.calls).toEqual([]);
+  });
+
+  it("rejects the retired free tier flag before any request", async () => {
+    const h = checkHarness([KEYS]);
+    expect(await runHands(["check", RETIRED_FLAG], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands check: unknown flag "${RETIRED_FLAG}"\n`);
+    expect(h.calls).toEqual([]);
+  });
+
+  it("lists check in the verbs and the help", () => {
+    expect(HANDS_VERBS).toContain("check");
+    expect(handsHelp("agro")).toContain("agro hands check [--ssh-key <uuid>]...");
+  });
+
+  it("reads the nodes and each --ssh-key id with brain authority and skips the operator reads", async () => {
+    const h = harness([{ status: 200, body: [] }, KEYS]);
+    expect(await runHands(["check", "--ssh-key", "key-1", "--ssh-key", "key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toBe(
+      "ok console: https://brain-console.example\nok ssh-key key-1\nfail ssh-key key-9: not found in agro-console — pass the id of an SSH key in agro-console\n",
+    );
+    expect(methods(h.calls)).toEqual([
+      "GET https://brain-console.example/api/nodes",
+      "GET https://brain-console.example/api/ssh-keys",
+    ]);
+  });
+
+  it("reads only the nodes with brain authority and no --ssh-key, without the local key", async () => {
+    const reads: string[] = [];
+    const files = { [TOKEN_PATH]: TOKEN, [URL_PATH]: "https://brain-console.example", [LOCAL_KEY_PATH]: LOCAL_KEY };
+    const h = harness([{ status: 200, body: [] }], {
+      readFile: (path) => {
+        reads.push(path);
+        return files[path];
+      },
+    });
+    expect(await runHands(["check"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok console: https://brain-console.example\n");
+    expect(methods(h.calls)).toEqual(["GET https://brain-console.example/api/nodes"]);
+    expect(reads).not.toContain(LOCAL_KEY_PATH);
+  });
+
+  it("fails the console line with brain authority from an env token when the nodes read fails", async () => {
+    const h = harness([{ status: 403, body: { error: "revoked", code: "BRAIN_TOKEN_REVOKED" } }], {
+      env: { AGRO_CONSOLE_TOKEN: TOKEN, AGRO_CONSOLE_URL: "https://console.example" },
+      readFile: () => undefined,
+      readCredentials: credentials("cred"),
+    });
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toBe("fail console: HTTP 403 BRAIN_TOKEN_REVOKED: revoked\n");
+    expect(methods(h.calls)).toEqual(["GET https://console.example/api/nodes"]);
+  });
+
+  it("sends the three operator reads in parallel and prints them in a fixed order", async () => {
+    const order: string[] = [];
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const replies: Record<string, unknown> = {
+      "/api/ssh-keys": KEYS.body,
+      "/api/free-tier": ELIGIBLE.body,
+      "/api/billing/balance": FUNDED.body,
+    };
+    const fetchStub = (async (input: string | URL | Request) => {
+      const path = new URL(String(input)).pathname;
+      order.push(path);
+      if (order.length === 3) release();
+      await gate;
+      return new Response(JSON.stringify(replies[path]), { status: 200 });
+    }) as typeof fetch;
+    const h = checkHarness([], { fetch: fetchStub });
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(order).toHaveLength(3);
+    expect(h.stdout()).toBe("ok ssh-key key-1\nok free-tier\nok credit: balance $12.35\n");
+  });
+
+  it("never prints the token in a check line", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, { status: 500, body: { error: `bad token ${TOKEN}` } }]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.all()).not.toContain(TOKEN);
+    expect(h.stdout()).toContain("warn credit: HTTP 500 no code: bad token [redacted]\n");
   });
 });

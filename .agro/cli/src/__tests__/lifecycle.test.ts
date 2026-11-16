@@ -58,6 +58,7 @@ const {
   parseSandboxArgs,
   parseShellArgs,
   printSandboxHelp,
+  runCli,
 } = await import("../cli.js");
 
 
@@ -1141,5 +1142,15 @@ describe("docker verb routing", () => {
     vi.stubEnv("SANDBOX_NAME", "");
     expect(resolveSandboxTarget(entry, "agro shell").container).toBe("configured");
     expect(destroyConfirmationPhrase(root)).toBe("configured");
+  });
+});
+
+describe("retired node command", () => {
+  it("routes the retired node command through the unknown-command path with exit 1", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    expect(await runCli(["node", "list"])).toBe(1);
+    expect(stderr.mock.calls.map((c) => String(c[0])).join("")).toContain('agro: unknown command "node"');
   });
 });

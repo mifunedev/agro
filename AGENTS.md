@@ -101,7 +101,7 @@ cross the sandbox boundary or make persistent work depend on an attached termina
   and creates hands.
 - **hand** means a node that a brain creates and manages through `agro hands`.
 - **console node** means an agro-console node created with operator authority
-  through `agro node`.
+  through `agro hands --provider console --operator` or the credentials fallback.
 - **control plane** means only the portable `.agro/` machinery that manages lifecycle,
   agent identity, task procedures, and checks.
 - **coding harness** means Claude Code, Codex, Pi, or another agent interface running

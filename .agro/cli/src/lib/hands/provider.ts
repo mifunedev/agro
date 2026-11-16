@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { agroConfigPath } from "../agro-config.js";
 import {
   defaultHarnessRoot,
+  HAND_PROVIDER_IDS,
   handProviderError,
   HANDS_PROVIDER_FIELD,
   hostConfigPath,
@@ -30,7 +31,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string): HandProviderId {
+export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string, override?: string): HandProviderId {
+  if (override !== undefined) {
+    if (isHandProviderId(override)) return override;
+    throw new Error(`--provider must be one of ${HAND_PROVIDER_IDS.join(", ")}`);
+  }
   const path = hostConfigPath(env, home);
   const config = readJson(path);
   const hands = isRecord(config) ? config.hands : undefined;
@@ -61,6 +66,8 @@ export interface Hand {
   label: string;
   index: string | null;
   alias: string | null;
+  name: string | null;
+  profile: string | null;
   status: string;
   spec: string | null;
   sshHost: string | null;
@@ -71,10 +78,19 @@ export interface Hand {
 
 export type HandOutcome<T> = { ok: true; value: T } | { ok: false; error: string };
 
+export const HAND_PROFILES = ["agro", "sandbox"] as const;
+
+export type HandProfile = (typeof HAND_PROFILES)[number];
+
 export interface HandRequest {
   name?: string;
   spec?: string;
   disposable?: boolean;
+  profile?: HandProfile;
+  docker?: boolean;
+  t3?: boolean;
+  codeServer?: boolean;
+  sshKeyIds?: string[];
 }
 
 export interface ForkOutcome {

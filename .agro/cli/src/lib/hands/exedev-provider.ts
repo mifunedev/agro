@@ -68,6 +68,8 @@ function toHand(vm: ExedevVm): Hand {
     label: vm.vm_name,
     index: null,
     alias: null,
+    name: vm.vm_name,
+    profile: null,
     status: vm.status,
     spec: null,
     sshHost: vm.ssh_dest,

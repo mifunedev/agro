@@ -3,6 +3,7 @@ import {
   asText,
   callApi,
   createConsoleNode,
+  findOrRegisterSshKey,
   toNode,
   toNodeList,
   waitForRunning,
@@ -10,9 +11,18 @@ import {
   type ConsoleNode,
   type ConsolePollDeps,
 } from "../console-api.js";
+import { LOCAL_SSH_KEY_MISSING } from "./console-check.js";
 import type { Hand, HandOutcome, HandProvider, HandStatusReport } from "./provider.js";
 
 const NO_NODE_ID = "the console response has no node id";
+const DISPOSABLE_PROFILE_UNSUPPORTED_LINE =
+  "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox";
+const DESTROY_ADMIN_LINE = "destroy needs the admin role in agro-console";
+
+export interface LocalSshKey {
+  read: () => string | undefined;
+  name: string;
+}
 
 export function normalizeHandRef(ref: string): string {
   return ref.startsWith("#") ? ref.slice(1) : ref;
@@ -32,14 +42,16 @@ function refusalMessage(
     : result.message;
 }
 
-function toHand(node: ConsoleNode): Hand {
+function toHand(node: ConsoleNode, fallbackSpec: string | null = null): Hand {
   return {
     id: node.id,
     label: `#${node.orgIndex}`,
     index: node.orgIndex,
     alias: node.alias,
+    name: node.name,
+    profile: node.profile,
     status: node.status,
-    spec: node.spec,
+    spec: node.spec ?? fallbackSpec,
     sshHost: node.sshHost,
     sshDest: node.sshHost === null ? null : `sandbox@${node.sshHost}`,
     hostKeyAlias: node.id,
@@ -51,7 +63,16 @@ export function createConsoleProvider(
   deps: ConsolePollDeps,
   config: ConsoleConfig,
   notice: (message: string) => void,
+  localKey?: LocalSshKey,
 ): HandProvider {
+  async function defaultSshKeyIds(): Promise<HandOutcome<string[]>> {
+    if (localKey === undefined) return { ok: true, value: [] };
+    const publicKey = localKey.read()?.trim();
+    if (publicKey === undefined || publicKey === "") return { ok: false, error: LOCAL_SSH_KEY_MISSING };
+    const found = await findOrRegisterSshKey(deps, config, publicKey, localKey.name);
+    return found.ok ? { ok: true, value: [found.id] } : found;
+  }
+
   async function readNode(ref: string): Promise<HandOutcome<ConsoleNode>> {
     const read = await callApi(deps, config, "GET", handPath(ref));
     if (!read.ok) return { ok: false, error: read.message };
@@ -64,11 +85,12 @@ export function createConsoleProvider(
     requestedAt: number,
     onStatus: HandStatusReport,
     fork?: { job: string | null },
+    fallbackSpec: string | null = null,
   ): Promise<HandOutcome<Hand>> {
-    const report = (next: ConsoleNode) => onStatus(toHand(next));
+    const report = (next: ConsoleNode) => onStatus(toHand(next, fallbackSpec));
     report(initial);
     const waited = await waitForRunning(deps, config, initial, requestedAt, report, { pendingOn404: fork !== undefined });
-    if (waited.ok) return { ok: true, value: toHand(waited.node) };
+    if (waited.ok) return { ok: true, value: toHand(waited.node, fallbackSpec) };
     const last = waited.node;
     if (waited.reason === "request") return { ok: false, error: `hand ${last.id}: ${waited.message}` };
     if (waited.reason === "timeout" && !waited.appeared) {
@@ -92,7 +114,7 @@ export function createConsoleProvider(
     async list() {
       const listed = await callApi(deps, config, "GET", "/api/nodes");
       if (!listed.ok) return { ok: false, error: listed.message };
-      return { ok: true, value: toNodeList(listed.body).map(toHand) };
+      return { ok: true, value: toNodeList(listed.body).map((node) => toHand(node)) };
     },
 
     async resolve(ref) {
@@ -100,23 +122,35 @@ export function createConsoleProvider(
       return read.ok ? { ok: true, value: toHand(read.value) } : read;
     },
 
-    async create({ name, spec, disposable }, onStatus) {
+    async create(request, onStatus) {
+      const { name, spec, disposable, profile, docker, t3, codeServer } = request;
+      const keys = request.sshKeyIds ?? [];
+      const resolvedKeys = keys.length > 0 ? { ok: true as const, value: keys } : await defaultSshKeyIds();
+      if (!resolvedKeys.ok) return resolvedKeys;
+      const sshKeyIds = resolvedKeys.value;
       const requestedAt = deps.now();
       const created = await createConsoleNode(
         deps,
         config,
         {
-          profile: "sandbox",
+          profile: profile ?? "sandbox",
           ...(name === undefined ? {} : { name }),
           ...(spec === undefined ? {} : { spec }),
+          ...(sshKeyIds.length === 0 ? {} : { sshKeyIds }),
+          ...(docker === true ? { docker: true } : {}),
+          ...(t3 === true ? { t3: true } : {}),
+          ...(codeServer === true ? { runtimeSettings: { codeServerEnabled: true } } : {}),
           ...(disposable === true ? { disposable: true } : {}),
         },
         notice,
       );
-      if (!created.ok) return { ok: false, error: created.message };
+      if (!created.ok) {
+        const disposableRefused = created.status === 422 && created.code === "DISPOSABLE_PROFILE_UNSUPPORTED";
+        return { ok: false, error: disposableRefused ? DISPOSABLE_PROFILE_UNSUPPORTED_LINE : created.message };
+      }
       const node = toNode(created.body);
       if (node === undefined) return { ok: false, error: NO_NODE_ID };
-      return awaitRunning(node, requestedAt, onStatus);
+      return awaitRunning(node, requestedAt, onStatus, undefined, created.spec ?? null);
     },
 
     async fork(ref, { name, spec: requested }, onStatus) {
@@ -147,7 +181,9 @@ export function createConsoleProvider(
     resume: (ref) => act(ref, "resume"),
     async destroy(ref) {
       const result = await callApi(deps, config, "DELETE", handPath(ref));
-      return result.ok ? { ok: true, value: undefined } : { ok: false, error: result.message };
+      if (result.ok) return { ok: true, value: undefined };
+      const adminRefused = result.status === 403 && result.code === undefined;
+      return { ok: false, error: adminRefused ? DESTROY_ADMIN_LINE : result.message };
     },
   };
 }

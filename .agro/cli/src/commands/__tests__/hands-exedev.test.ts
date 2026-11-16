@@ -95,6 +95,7 @@ function harness(run: LifecycleRunner, overrides: Partial<HandsDeps> = {}) {
     userHome: () => home,
     homeDir: () => "/home/sandbox",
     readFile: () => undefined,
+    readCredentials: () => undefined,
     fetch: (async () => {
       throw new Error("exedev hands never call the console");
     }) as typeof fetch,
@@ -331,6 +332,23 @@ describe("agro hands lifecycle on exedev hands", () => {
   });
 
   it.each([
+    ["--profile", ["--profile", "agro"]],
+    ["--profile", ["--profile=sandbox"]],
+    ["--docker", ["--docker"]],
+    ["--t3", ["--t3"]],
+    ["--code-server", ["--code-server"]],
+    ["--ssh-key", ["--ssh-key", "k1"]],
+    ["--ssh-key", ["--ssh-key=k1"]],
+    ["--json", ["--json"]],
+  ])("refuses create %s %j with no ssh exe.dev call", async (flag, tokens) => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "x", ...tokens], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands create: ${flag} applies only to console hands\n`);
+    expect(r.calls).toEqual([]);
+  });
+
+  it.each([
     ["create", "--name", "x", "--spec", "n8"],
     ["create", "--spec=n8"],
     ["fork", HAND, "--spec", "n8"],
@@ -339,6 +357,14 @@ describe("agro hands lifecycle on exedev hands", () => {
     const h = harness(r.run);
     expect(await runHands(args, h.io, h.deps)).toBe(1);
     expect(h.stderr()).toBe(`agro hands ${args[0]}: --spec applies only to console hands\n`);
+    expect(r.calls).toEqual([]);
+  });
+
+  it.each([[["check"]], [["check", "--ssh-key", "k1"]]])("refuses %j with no ssh exe.dev call", async (args) => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(args, h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands check: check applies only to console hands\n");
     expect(r.calls).toEqual([]);
   });
 
@@ -538,7 +564,7 @@ describe("hands provider selection", () => {
     const err: string[] = [];
     const io = { stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) };
     const r = fakeRunner();
-    const deps = { env, userHome: () => dir, readFile: () => undefined, run: r.run };
+    const deps = { env, userHome: () => dir, readFile: () => undefined, readCredentials: () => undefined, run: r.run };
     return { result: runHands(["list"], io, deps), stderr: () => err.join(""), calls: r.calls };
   }
 
@@ -600,7 +626,7 @@ describe("hands provider selection", () => {
   it("keeps console verbs working when agro.json has an unrelated invalid field", async () => {
     const run = runList(home(undefined, { version: 99 }));
     expect(await run.result).toBe(2);
-    expect(run.stderr()).toContain("not on a brain");
+    expect(run.stderr()).toContain("no console token");
     expect(run.calls).toEqual([]);
   });
 });
