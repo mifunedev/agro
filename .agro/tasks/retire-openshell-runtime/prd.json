@@ -83,15 +83,15 @@
         "Repair 1: the replay is recorded again after the rebase onto `980dc6e2`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "1 executed: the advisor ran 17 fresh general-purpose decision-only agents (claude-opus-5-5), one per case, against the instruction files at 47d36875; each read only the 9 instruction files and executed nothing. 2 executed: an advisor-side check found route and required owners match the oracle for R1..R17; the grader in sandbox-routing.test.ts confirms. 3 executed: the worker built provenance by importing sourceProvenance() from the helper; the grader stale-source check passes. 4 reasoned from 5: sandbox-routing.test.ts is part of the full run and passes (the worker also ran it alone, 33/33). 5 executed: agro run -- pnpm test exit 0, 126 files, 3440 tests.",
+      "passes": true,
+      "notes": "1 executed: the advisor ran 17 fresh general-purpose decision-only agents (claude-opus-5-5), one per case, against the instruction files at 47d36875; each read only the 9 instruction files and executed nothing. 2 executed: an advisor-side check found route and required owners match the oracle for R1..R17; the grader in sandbox-routing.test.ts confirms. 3 executed: the worker built provenance by importing sourceProvenance() from the helper; the grader stale-source check passes. 4 reasoned from 5: sandbox-routing.test.ts is part of the full run and passes (the worker also ran it alone, 33/33). 5 executed: agro run -- pnpm test exit 0, 126 files, 3440 tests. Round 1 (rebase onto 980dc6e2, which changed docs/lifecycle-commands.md and decisions.json) at 1a01678b: the advisor ran 17 new fresh decision-only agents (handles replay9-R1..R17, claude-opus-5-5) against the rebased instruction files; 17/17 match their oracles. The worker rebuilt decisions.json with provenance from sourceProvenance(). Executed: agro run -- pnpm exec vitest run sandbox-routing.test.ts exit 0 (33/33, worker); agro run -- pnpm test exit 0, 126 files, 3457 tests (advisor).",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "5be2461c",
+      "commit": "1a01678b",
       "rounds": 1
     },
     {
