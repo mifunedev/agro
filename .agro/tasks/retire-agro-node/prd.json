@@ -187,14 +187,15 @@
         "`agro run -- pnpm test` exits 0."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral.",
       "dependsOn": [
         "US-006"
       ],
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
-      ]
+      ],
+      "commit": "19e449e1"
     },
     {
       "id": "US-008",
