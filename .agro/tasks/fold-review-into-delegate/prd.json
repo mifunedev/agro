@@ -20,15 +20,15 @@
         "`pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Executed: pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs exit 0 (107 passed) by advisor. AC1-7,9 executed via 24 new cases in describe(\"review opt-in\"); AC6 asserts exact action string. AC8: 12 new-behavior cases failed against old next.sh (worker red run 12 failed/95 passed); 12 regression-guard cases (review false/string/reviewed set) cannot fail before by design - reasoned. fixture.mjs unchanged: default review absent keeps prior states. Worker also ran pnpm test (3252 passed) and pnpm typecheck exit 0. Review repair round 1 (1cbb5969): pr_draft and err_file declared top-level, final case reads pr_draft; new reopen-after-review test. Executed: next.test.mjs exit 0 (111 passed). Review repair round 2 (8958dec5): review_is_current requires reviewed to resolve to a commit and git diff --quiet <commit> HEAD -- . :!.agro/tasks. Executed: next.test.mjs exit 0 (121 passed).",
+      "passes": true,
+      "notes": "Executed: pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs exit 0 (107 passed) by advisor. AC1-7,9 executed via 24 new cases in describe(\"review opt-in\"); AC6 asserts exact action string. AC8: 12 new-behavior cases failed against old next.sh (worker red run 12 failed/95 passed); 12 regression-guard cases (review false/string/reviewed set) cannot fail before by design - reasoned. fixture.mjs unchanged: default review absent keeps prior states. Worker also ran pnpm test (3252 passed) and pnpm typecheck exit 0. Review repair round 1 (1cbb5969): pr_draft and err_file declared top-level, final case reads pr_draft; new reopen-after-review test. Executed: next.test.mjs exit 0 (111 passed). Review repair round 2 (8958dec5): review_is_current requires reviewed to resolve to a commit and git diff --quiet <commit> HEAD -- . :!.agro/tasks. Executed: next.test.mjs exit 0 (121 passed). Repair round 3 (8e6ea7b6, operator-approved simplification): reviewed must be a 7-40 hex SHA; stale only when a first-parent non-merge commit since reviewed touches files outside .agro/tasks. Executed: next.test.mjs exit 0 (126 passed).",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/scripts/next.sh",
         ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
         ".agro/skills/delegate/scripts/__tests__/fixture.mjs"
       ],
-      "commit": "8958dec5",
+      "commit": "8e6ea7b6",
       "rounds": 2
     },
     {
