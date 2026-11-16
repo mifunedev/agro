@@ -119,14 +119,15 @@
         "The transcript creates no container and no live resource, and it deletes the temp directory at the end."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Reasoned from the committed transcript (advisor read it): fresh build agro run -- pnpm run build exit 0 at e9fa4aa8; new mktemp AGRO_HOME passed inline; seeded mr-healthy and mr-old (runtime openshell); sandbox list and --json print one `skipped mr-old: agro.json: runtime must be one of docker` line and only mr-healthy, exit 0; destroy mr-old --yes and ps mr-old exit 1 with the error and the `fix <path>/agro.json, or remove the entry <root>` line; ls -A shows only agro.json and cat shows it unchanged; sandbox install microsandbox --yes exit 1 with unknown runtime, no new entry; no container created (docker ps -a | grep mr- empty before and after); rm -rf of the temp dir shown, exit 0.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/tasks/fold-runtime-catalog/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "bf93405b"
     }
   ],
   "pr": 1661
