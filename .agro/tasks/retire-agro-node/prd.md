@@ -12,7 +12,9 @@ Status: DRAFT
 
 - [ ] `agro hands` accepts `--provider console` and `--provider exedev` (also `--provider=<id>`) before or after the verb, and the flag overrides `hands.provider` in the host config.
 - [ ] `agro hands list --provider desktop` exits 1 with an error that names `console` and `exedev`.
-- [ ] For the console provider, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. The URL order is `AGRO_CONSOLE_URL`, then the brain console URL file when the brain token file exists, then the credentials file URL, then `https://console.mifune.dev`.
+- [ ] For the console provider without `--operator`, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. A token from `AGRO_CONSOLE_TOKEN` or the brain token file gives brain authority, and the URL comes from `AGRO_CONSOLE_URL`, then the brain console URL file. A token from the credentials file gives operator authority, and the URL comes from the credentials file, then `https://console.mifune.dev`.
+- [ ] `--operator` gives operator authority. The verb then resolves the token and URL with `resolveConsoleConfig`, in the same order as `agro auth`, and ignores the brain token file.
+- [ ] A `--provider` token that follows a value flag of the verb stays the value of that flag.
 - [ ] With no token from any source, a console verb exits 2. The message names the brain token path and `agro auth login`.
 - [ ] Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each source order row, the missing-token exit 2, and the `--provider` override of a host config that selects `exedev`.
 - [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
@@ -25,11 +27,11 @@ Status: DRAFT
 
 - [ ] `agro hands create` accepts `--profile agro|sandbox` (default `sandbox`), `--docker`, `--t3`, `--code-server`, repeatable `--ssh-key <uuid>`, and `--json`. Each app flag without `--profile agro` exits 1 with `<flag> requires --profile agro`.
 - [ ] The create request body sends `profile`, `docker: true`, `t3: true`, `runtimeSettings: { codeServerEnabled: true }`, and `sshKeyIds` exactly as `agro node create` sent them on `ef52a983`.
-- [ ] Without `--ssh-key` and without a brain token file, `create` finds `~/.ssh/id_ed25519.pub` in `GET /api/ssh-keys` or registers it with `POST /api/ssh-keys`. Then `create` sends the key id. On a brain, `create` sends `sshKeyIds` only for `--ssh-key`.
+- [ ] Without `--ssh-key` and with operator authority, `create` finds `~/.ssh/id_ed25519.pub` in `GET /api/ssh-keys` or registers it with `POST /api/ssh-keys`. Then `create` sends the key id. With brain authority, `create` sends `sshKeyIds` only for `--ssh-key`.
 - [ ] HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED` prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox`.
-- [ ] `create --json` prints one JSON line with `id`, `index`, `alias`, `name`, `status`, `spec`, `sshHost`, and `ssh`. The `ssh` field holds `ssh sandbox@<sshHost>` or `null`. When the console returns a node id and the wait then fails or times out, `create --json` prints that line before it exits 1.
+- [ ] `create --json` prints one JSON line with `id`, `index`, `alias`, `name`, `status`, `spec`, `sshHost`, and `ssh`. The `ssh` field holds `ssh <sshDest>` only when the status is `running`, else `null`. After a credit refusal, the `spec` field holds the spec of the fallback request. When the console returns a node id and the wait then fails or times out, `create --json` prints that line before it exits 1.
 - [ ] Console `list --json` rows add `name` and `profile`.
-- [ ] Console `destroy` prints `destroy needs the admin role in agro-console` when the console returns HTTP 403.
+- [ ] Console `destroy` prints `destroy needs the admin role in agro-console` when the console returns HTTP 403 with no error code. For another HTTP 403 code, `destroy` prints the console message.
 - [ ] With the exedev provider, `--profile`, `--docker`, `--t3`, `--code-server`, and `--ssh-key` exit 1 before any `ssh exe.dev` call. The refusal says that the flag applies only to console hands.
 - [ ] Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each row above. The ported cases from `.agro/cli/src/__tests__/node.test.ts` for profile flags, SSH key resolution, and `--json` pass against `runHands`.
 - [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
@@ -43,6 +45,7 @@ Status: DRAFT
 - [ ] `HANDS_VERBS` in `.agro/cli/src/command-table.ts` includes `check`.
 - [ ] For the console provider, `agro hands check` sends only `GET` requests. It prints the same `ok`, `warn`, and `fail` lines as `agro node check` on `ef52a983`, with `agro hands check` in place of `agro node check`.
 - [ ] `agro hands check` exits 0 only when no line starts with `fail `.
+- [ ] With brain authority, `check` reads `GET /api/nodes` and finds each `--ssh-key` id. It does not check the local key, the free tier, or the credit. With operator authority, `check` sends its three reads in parallel and prints the lines in a fixed order.
 - [ ] With the exedev provider, `agro hands check` exits 1 with `check applies only to console hands`.
 - [ ] Each `agro node check` case of `.agro/cli/src/__tests__/node.test.ts` passes as a `runHands(["check", ...])` case in `.agro/cli/src/commands/__tests__/hands.test.ts`.
 - [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
@@ -65,6 +68,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
+- [ ] Each `agro hands` call in `.agro/skills/sandbox/adapters/console.sh` passes `--operator`.
 - [ ] `.agro/skills/sandbox/adapters/console.sh` calls `agro hands check --provider console`, `agro hands create --provider console --spec ... --name ... --json`, `agro hands list --provider console --json`, and `agro hands destroy --provider console <id> --yes`, and contains no `agro node`.
 - [ ] `.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` stubs the `hands` verbs and asserts the new call lines. Each existing console case keeps its intent: preflight key flag, stop before create on a failed check, the HTTP 409 destroy retry, and the `agro-mx-` count.
 - [ ] `agro run -- pnpm test` exits 0.
