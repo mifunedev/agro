@@ -28,8 +28,14 @@ Status: DRAFT
 - [ ] For each other target, the command exits 1 and writes nothing. Examples are `/opt/agro/dist/agro.js` and a checkout `dist/agro.js`. The command prints one line that names the target and tells the operator to upgrade with the mechanism that installed it.
 - [ ] With `--dry-run`, the command prints the planned npm command or the planned download URL, exits 0, and writes nothing.
 - [ ] `agro update` stays an alias of `agro self-upgrade`, and the vendor-flag refusals in `.agro/cli/src/__tests__/cli-first-help.test.ts` and `.agro/cli/src/__tests__/bundle-identity.test.ts` still pass.
-- [ ] `wc -l .agro/cli/src/commands/self-upgrade.ts` prints a number less than or equal to 120.
+- [ ] `wc -l .agro/cli/src/commands/self-upgrade.ts` prints a number less than or equal to 180.
 - [ ] `printSelfUpgradeHelp` in `.agro/cli/src/cli.ts` describes only the behavior in this story.
+- [ ] Repair (review finding 1): the npm path applies only when the owning prefix equals the realpath of `npm prefix -g`. Otherwise the command exits 1 and names both prefixes. The command runs `npm i -g @mifune/agro@latest`, then runs `--version` on the target and prints the reported version. A test covers a non-global prefix.
+- [ ] Repair (review finding 2): the command refuses an artifact when its `--version` output is not a SemVer version. The command also refuses an artifact with a version lower than the running version. When the versions are equal, the command keeps the target. A test covers each case.
+- [ ] Repair (review finding 4): the standalone path refuses a symbolic link at `argv[1]`. The reason is that `install.sh` installs a regular file. A test covers a symbolic link named `agro`.
+- [ ] Repair (review finding 5): when the target directory is not writable, the command exits 1 before the download. The error tells the operator to run as the owner of the target. When npm fails with `EACCES`, the error names the prefix owner. A test covers the directory case.
+- [ ] Repair (review findings 6, 7, 10): a download error names the URL. A refusal after a failed realpath includes the cause. The `--version` probe of a new file stops after 30 seconds.
+- [ ] Repair (review finding 9): the refusal test for a sandbox image path uses a real file at a temp `opt/agro/dist/agro.js`. The test then passes through the classification branch.
 - [ ] `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/self-upgrade.test.ts .agro/cli/src/__tests__/cli-first-help.test.ts .agro/cli/src/__tests__/bundle-identity.test.ts` exits 0.
 - [ ] Typecheck passes.
 
@@ -39,9 +45,11 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `docs/lifecycle-commands.md` § Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev`, a downgrade refusal, or a PATH shadow refusal.
+- [ ] `docs/lifecycle-commands.md` § Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev` or a PATH shadow refusal.
 - [ ] `docs/configuration.md` has no `AGRO_NO_STAR_PROMPT` row.
 - [ ] `CHANGELOG.md` `## [Unreleased]` has entries for the simpler self-upgrade and the star prompt removal.
+- [ ] Repair (review finding 3): `.agro/cli/README.md` describes only the behavior of US-002.
+- [ ] Repair: `docs/lifecycle-commands.md`, `docs/installation.md`, `printSelfUpgradeHelp`, and `CHANGELOG.md` describe the repaired refusals of US-002.
 - [ ] `bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/installation.md` reports no new finding compared with `development`.
 
 ### US-004: Record the sandbox routing replay again

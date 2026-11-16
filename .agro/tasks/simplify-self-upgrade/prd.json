@@ -38,14 +38,20 @@
         "For each other target, the command exits 1 and writes nothing. Examples are `/opt/agro/dist/agro.js` and a checkout `dist/agro.js`. The command prints one line that names the target and tells the operator to upgrade with the mechanism that installed it.",
         "With `--dry-run`, the command prints the planned npm command or the planned download URL, exits 0, and writes nothing.",
         "`agro update` stays an alias of `agro self-upgrade`, and the vendor-flag refusals in `.agro/cli/src/__tests__/cli-first-help.test.ts` and `.agro/cli/src/__tests__/bundle-identity.test.ts` still pass.",
-        "`wc -l .agro/cli/src/commands/self-upgrade.ts` prints a number less than or equal to 120.",
+        "`wc -l .agro/cli/src/commands/self-upgrade.ts` prints a number less than or equal to 180.",
         "`printSelfUpgradeHelp` in `.agro/cli/src/cli.ts` describes only the behavior in this story.",
+        "Repair (review finding 1): the npm path applies only when the owning prefix equals the realpath of `npm prefix -g`. Otherwise the command exits 1 and names both prefixes. The command runs `npm i -g @mifune/agro@latest`, then runs `--version` on the target and prints the reported version. A test covers a non-global prefix.",
+        "Repair (review finding 2): the command refuses an artifact when its `--version` output is not a SemVer version. The command also refuses an artifact with a version lower than the running version. When the versions are equal, the command keeps the target. A test covers each case.",
+        "Repair (review finding 4): the standalone path refuses a symbolic link at `argv[1]`. The reason is that `install.sh` installs a regular file. A test covers a symbolic link named `agro`.",
+        "Repair (review finding 5): when the target directory is not writable, the command exits 1 before the download. The error tells the operator to run as the owner of the target. When npm fails with `EACCES`, the error names the prefix owner. A test covers the directory case.",
+        "Repair (review findings 6, 7, 10): a download error names the URL. A refusal after a failed realpath includes the cause. The `--version` probe of a new file stops after 30 seconds.",
+        "Repair (review finding 9): the refusal test for a sandbox image path uses a real file at a temp `opt/agro/dist/agro.js`. The test then passes through the classification branch.",
         "`agro run -- pnpm exec vitest run .agro/cli/src/__tests__/self-upgrade.test.ts .agro/cli/src/__tests__/cli-first-help.test.ts .agro/cli/src/__tests__/bundle-identity.test.ts` exits 0.",
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "executed (advisor, c9987517): criteria 1-6 pinned by 13 tests in self-upgrade.test.ts (npm args both prefix layouts, npm failure, standalone replace content+0755, pinned shebang, no-#! and failing --version leave target and dir unchanged, refusal of /opt/agro and checkout dist/agro.js, dry-run both paths); (7) alias + vendor-flag tests pass; (8) wc -l self-upgrade.ts = 120; (9) reasoned: help text reviewed, no .prev/downgrade/PATH-shadow/version-check text; (10) agro run -- pnpm exec vitest run self-upgrade, cli-first-help, bundle-identity -> exit 0, 46 passed; (11) agro run -- pnpm typecheck -> exit 0. git grep compareSemver|parseSemver|classifyInstallation in .agro/cli/src -> no match.",
+      "passes": false,
+      "notes": "executed (advisor, c9987517): criteria 1-6 pinned by 13 tests in self-upgrade.test.ts (npm args both prefix layouts, npm failure, standalone replace content+0755, pinned shebang, no-#! and failing --version leave target and dir unchanged, refusal of /opt/agro and checkout dist/agro.js, dry-run both paths); (7) alias + vendor-flag tests pass; (8) wc -l self-upgrade.ts = 120; (9) reasoned: help text reviewed, no .prev/downgrade/PATH-shadow/version-check text; (10) agro run -- pnpm exec vitest run self-upgrade, cli-first-help, bundle-identity -> exit 0, 46 passed; (11) agro run -- pnpm typecheck -> exit 0. git grep compareSemver|parseSemver|classifyInstallation in .agro/cli/src -> no match. | reopened round 1 for /code-review findings on PR #1655",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/self-upgrade.ts",
@@ -55,21 +61,24 @@
         ".agro/cli/src/__tests__/bundle-identity.test.ts"
       ],
       "external": false,
-      "commit": "c9987517"
+      "commit": "c9987517",
+      "rounds": 1
     },
     {
       "id": "US-003",
       "title": "Update documentation and changelog",
       "description": "As an operator, I want the documentation to state the new upgrade behavior so that the documentation matches the code.",
       "acceptanceCriteria": [
-        "`docs/lifecycle-commands.md` § Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev`, a downgrade refusal, or a PATH shadow refusal.",
+        "`docs/lifecycle-commands.md` \u00a7 Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev` or a PATH shadow refusal.",
         "`docs/configuration.md` has no `AGRO_NO_STAR_PROMPT` row.",
         "`CHANGELOG.md` `## [Unreleased]` has entries for the simpler self-upgrade and the star prompt removal.",
+        "Repair (review finding 3): `.agro/cli/README.md` describes only the behavior of US-002.",
+        "Repair: `docs/lifecycle-commands.md`, `docs/installation.md`, `printSelfUpgradeHelp`, and `CHANGELOG.md` describe the repaired refusals of US-002.",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/installation.md` reports no new finding compared with `development`."
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "executed (advisor, 46828949): (1) grep .prev|downgrade|earlier on PATH|shadow in lifecycle-commands.md + installation.md -> only lifecycle-commands.md:181 (agro vendor --force, not self-upgrade); (2) git grep star.prompt|STAR_PROMPT in docs and .agro/cli/src -> exit 1, no match; (3) reasoned: CHANGELOG [Unreleased] has ### Changed and ### Removed entries linking #1651; (4) ste-check before/after on HEAD~1 copies: lifecycle-commands.md 2 -> 2, installation.md 0 -> 0, no new finding.",
+      "passes": false,
+      "notes": "executed (advisor, 46828949): (1) grep .prev|downgrade|earlier on PATH|shadow in lifecycle-commands.md + installation.md -> only lifecycle-commands.md:181 (agro vendor --force, not self-upgrade); (2) git grep star.prompt|STAR_PROMPT in docs and .agro/cli/src -> exit 1, no match; (3) reasoned: CHANGELOG [Unreleased] has ### Changed and ### Removed entries linking #1651; (4) ste-check before/after on HEAD~1 copies: lifecycle-commands.md 2 -> 2, installation.md 0 -> 0, no new finding. | reopened round 1 for /code-review findings on PR #1655",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -78,10 +87,13 @@
         "docs/lifecycle-commands.md",
         "docs/installation.md",
         "docs/configuration.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        ".agro/cli/README.md",
+        ".agro/cli/src/cli.ts"
       ],
       "external": false,
-      "commit": "46828949"
+      "commit": "46828949",
+      "rounds": 1
     },
     {
       "id": "US-004",
@@ -94,8 +106,8 @@
         "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0."
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "executed (advisor, 971650cc): 17 fresh decision-only Explore agents (claude-opus-5-5, handles replay8-R1..R17) read only the 10 instruction files at 46828949; advisor extracted each final JSON from its transcript and checked the case prompt; (1) 17 records, freshContext/decisionOnly true, executed false, unique handles; (2) 17/17 match route and include oracle owners; (3) worker computed provenance with sourceProvenance() (instructionSha256 2f11d15d...); decisions array byte-equal to the advisor scratch record; (4) agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts -> exit 0, 33 passed.",
+      "passes": false,
+      "notes": "executed (advisor, 971650cc): 17 fresh decision-only Explore agents (claude-opus-5-5, handles replay8-R1..R17) read only the 10 instruction files at 46828949; advisor extracted each final JSON from its transcript and checked the case prompt; (1) 17 records, freshContext/decisionOnly true, executed false, unique handles; (2) 17/17 match route and include oracle owners; (3) worker computed provenance with sourceProvenance() (instructionSha256 2f11d15d...); decisions array byte-equal to the advisor scratch record; (4) agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts -> exit 0, 33 passed. | reopened round 1 for /code-review findings on PR #1655",
       "dependsOn": [
         "US-003"
       ],
@@ -103,7 +115,8 @@
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
       "external": false,
-      "commit": "971650cc"
+      "commit": "971650cc",
+      "rounds": 1
     },
     {
       "id": "US-005",
@@ -117,8 +130,8 @@
         "The story creates no live resource and deletes each temp directory that it creates."
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "executed (advisor reviewed 4c507e43 evidence/manual-review.md): (1) built branch CLI (build exit 0, 0.39.0) run on copies in new temp dir /tmp/claude-1000/su-review.R6t6; (2) both standalone runs set AGRO_JS_URL inline to http://127.0.0.1:18765/agro.js (port checked free first); (3) npm-shaped --dry-run prints npm i -g --prefix $TMP/npm @mifune/agro@latest exit 0; standalone upgrade exit 0, pinned fnm node shebang kept, mode 755, no temp file; checkout dist/agro.js refused exit 1; (4) star prompt git grep exit 1, no output; (5) server killed and port free, temp dir removed (ls exit 2), no live resource. File force-added per git/references/manual-review.md.",
+      "passes": false,
+      "notes": "executed (advisor reviewed 4c507e43 evidence/manual-review.md): (1) built branch CLI (build exit 0, 0.39.0) run on copies in new temp dir /tmp/claude-1000/su-review.R6t6; (2) both standalone runs set AGRO_JS_URL inline to http://127.0.0.1:18765/agro.js (port checked free first); (3) npm-shaped --dry-run prints npm i -g --prefix $TMP/npm @mifune/agro@latest exit 0; standalone upgrade exit 0, pinned fnm node shebang kept, mode 755, no temp file; checkout dist/agro.js refused exit 1; (4) star prompt git grep exit 1, no output; (5) server killed and port free, temp dir removed (ls exit 2), no live resource. File force-added per git/references/manual-review.md. | reopened round 1 for /code-review findings on PR #1655",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -127,7 +140,8 @@
         ".agro/tasks/simplify-self-upgrade/evidence/manual-review.md"
       ],
       "external": false,
-      "commit": "4c507e43"
+      "commit": "4c507e43",
+      "rounds": 1
     }
   ],
   "pr": 1655
