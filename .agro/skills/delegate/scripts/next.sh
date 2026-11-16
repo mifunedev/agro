@@ -29,6 +29,7 @@ emit() {
     push) action="Run git push." ;;
     ci) action="Run /ci-status and wait for the result." ;;
     ci-red) action="Reopen the story that owns the failing path per /delegate § Acceptance." ;;
+    review) action="Run the code review per /delegate § Review, then write reviewed in prd.json." ;;
     ready) action="Run gh pr ready $pr." ;;
   esac
   printf '%s\n%s\n' "$state" "$action"
@@ -105,47 +106,69 @@ fi
 pr="$(field '.pr // "" | tostring')"
 [ -n "$pr" ] || emit "blocked prd.json has no pr"
 
+err_file=""
+pr_draft=""
+
+green_ci_on_head() {
+  local head_sha upstream_sha pr_state_query pr_state pr_head bucket_list buckets
+  head_sha="$(git rev-parse HEAD)"
+  upstream_sha="$(git rev-parse --verify --quiet '@{upstream}' 2>/dev/null)" || emit push
+  [ "$head_sha" = "$upstream_sha" ] || emit push
+
+  command -v gh >/dev/null 2>&1 || emit "blocked gh unavailable: gh not found"
+
+  err_file="$(mktemp)"
+  trap 'rm -f "$err_file"' EXIT
+
+  pr_state_query='
+    def start_order:
+      (.startedAt // "") | if . == "" or startswith("0001-") then "9" else . end;
+    def bucket:
+      if .__typename == "StatusContext" then
+        if .state == "SUCCESS" then "pass"
+        elif .state == "PENDING" or .state == "EXPECTED" then "pending"
+        else "fail" end
+      elif .status != "COMPLETED" then "pending"
+      elif .conclusion == "SUCCESS" or .conclusion == "NEUTRAL" then "pass"
+      elif .conclusion == "SKIPPED" then "skipping"
+      elif .conclusion == "CANCELLED" then "cancel"
+      else "fail" end;
+    ((.statusCheckRollup // [])
+      | group_by([.workflowName // "", .name // .context // ""])
+      | map(max_by(start_order) | bucket)
+      | join(" ")) as $buckets
+    | "\(.headRefOid) \(.isDraft | tojson) \($buckets)"'
+
+  pr_state="$(gh pr view "$pr" --json headRefOid,isDraft,statusCheckRollup -q "$pr_state_query" 2>"$err_file")" ||
+    gh_blocked "$(cat "$err_file")"
+  read -r pr_head pr_draft bucket_list <<<"$pr_state" || true
+  [ "${pr_head:-}" = "$head_sha" ] || emit ci
+
+  buckets="$(tr ' ' '\n' <<<"${bucket_list:-}")"
+  grep -qxE 'fail|cancel' <<<"$buckets" && emit ci-red
+  grep -qx 'pending' <<<"$buckets" && emit ci
+  [ -z "$buckets" ] && emit ci
+  return 0
+}
+
+review_is_current() {
+  local reviewed reviewed_commit
+  reviewed="$(field 'if (.reviewed | type) == "string" then .reviewed else "" end')"
+  [[ "$reviewed" =~ ^[0-9a-f]{7,40}$ ]] || return 1
+  reviewed_commit="$(git rev-parse --verify --quiet --end-of-options "$reviewed^{commit}" 2>/dev/null)" || return 1
+  [ -z "$(git rev-list --first-parent --no-merges "$reviewed_commit"..HEAD -- . ':!.agro/tasks')" ]
+}
+
+if [ "$(field '.review == true')" = true ] && ! review_is_current; then
+  green_ci_on_head
+  emit review
+fi
+
 awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' "$task_dir/prd.md" 2>/dev/null || emit close
 
-head_sha="$(git rev-parse HEAD)"
-upstream_sha="$(git rev-parse --verify --quiet '@{upstream}' 2>/dev/null)" || emit push
-[ "$head_sha" = "$upstream_sha" ] || emit push
+green_ci_on_head
 
-command -v gh >/dev/null 2>&1 || emit "blocked gh unavailable: gh not found"
-
-err_file="$(mktemp)"
-trap 'rm -f "$err_file"' EXIT
-
-pr_state_query='
-  def start_order:
-    (.startedAt // "") | if . == "" or startswith("0001-") then "9" else . end;
-  def bucket:
-    if .__typename == "StatusContext" then
-      if .state == "SUCCESS" then "pass"
-      elif .state == "PENDING" or .state == "EXPECTED" then "pending"
-      else "fail" end
-    elif .status != "COMPLETED" then "pending"
-    elif .conclusion == "SUCCESS" or .conclusion == "NEUTRAL" then "pass"
-    elif .conclusion == "SKIPPED" then "skipping"
-    elif .conclusion == "CANCELLED" then "cancel"
-    else "fail" end;
-  ((.statusCheckRollup // [])
-    | group_by([.workflowName // "", .name // .context // ""])
-    | map(max_by(start_order) | bucket)
-    | join(" ")) as $buckets
-  | "\(.headRefOid) \(.isDraft | tojson) \($buckets)"'
-
-pr_state="$(gh pr view "$pr" --json headRefOid,isDraft,statusCheckRollup -q "$pr_state_query" 2>"$err_file")" ||
-  gh_blocked "$(cat "$err_file")"
-read -r pr_head draft bucket_list <<<"$pr_state" || true
-[ "${pr_head:-}" = "$head_sha" ] || emit ci
-
-buckets="$(tr ' ' '\n' <<<"${bucket_list:-}")"
-grep -qxE 'fail|cancel' <<<"$buckets" && emit ci-red
-grep -qx 'pending' <<<"$buckets" && emit ci
-[ -z "$buckets" ] && emit ci
-
-case "${draft:-}" in
+case "$pr_draft" in
   true) emit ready ;;
   false) emit "done" ;;
   *) emit "blocked gh unavailable: unexpected isDraft output" ;;
