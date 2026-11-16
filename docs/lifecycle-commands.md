@@ -56,7 +56,6 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro node create [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
 | `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` | on a brain, create and manage hands, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
@@ -608,7 +607,7 @@ refusal lists every workspace that exists and names `agro workspace create`. See
 ## Console sign-in: `agro auth`
 
 `agro auth` signs in to the agro-console API and manages the console token.
-Run `agro auth` on the host that runs `agro node`.
+Run `agro auth` on the host that runs `agro hands`.
 
 ```bash
 agro auth login     # sign in through the browser, store the token
@@ -647,81 +646,6 @@ agro auth token     # print the token
   uses `https://console.mifune.dev`.
 - When the token comes from `AGRO_CONSOLE_TOKEN`, `agro auth logout` exits 1
   and prints `token comes from AGRO_CONSOLE_TOKEN; unset it to log out`.
-
-## Remote console nodes: `agro node`
-
-`agro node` manages remote VMs through the agro-console API. `agro node` does not manage
-local Docker sandboxes. Use `agro sandbox` for a local sandbox.
-
-```bash
-agro node create                 # create an n4 sandbox node, wait for running
-agro node create --spec <spec>   # create a node with another spec
-agro node create --spec n4 --profile agro --t3   # create an agro-profile node with T3
-agro node list                   # every node: id, name, profile, status, IPv4
-agro node delete <id>            # destroy one node after a confirmation
-agro node check                  # check the SSH key and the free tier, create nothing
-```
-
-- Each verb finds the token and the URL in the same order as `agro auth`. If
-  the environment sets `AGRO_CONSOLE_TOKEN`, the verb uses that token with
-  `AGRO_CONSOLE_URL`. Otherwise the verb uses the token and the URL from the
-  credentials file that `agro auth login` writes.
-- The console URL is `https://console.mifune.dev` by default. If no token
-  resolves, the verb exits 1 and prints
-  `not logged in to agro-console: run agro auth login`.
-- `agro node create` creates a node with the profile `sandbox` by default.
-  `--profile agro` creates a node with the profile `agro`. If `--profile` has
-  another value, the command exits 1 and prints this error:
-
-  ```text
-  --profile must be agro or sandbox
-  ```
-
-  `--spec` is optional. The spec is `n4` by default. `--name` sets the node
-  name.
-- If the console refuses the spec with HTTP 403 `PAYMENTS_DISABLED`, the
-  command sends one more request for `n4` in the free tier. Before that
-  request, the command prints
-  `spec <spec> is not in the free tier; creating n4` to stderr. When the
-  requested spec is `n4`, the command prints no notice. Any other error
-  makes the command exit 1 after the first request.
-- A node with the profile `sandbox` from `agro node create` is not a hand. It
-  is a hand only when a brain manages the node.
-- `--docker`, `--t3`, and `--code-server` require `--profile agro`. If the
-  profile is `sandbox`, the command exits 1 before it calls the console and
-  prints `<flag> requires --profile agro`. Each given flag turns on its app.
-  If you do not give an app flag, the console default applies: Docker on, T3
-  off, code-server off.
-- If the console turns off runtime settings, `--code-server` makes the command
-  exit 1 and print
-  `HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled`.
-- `--ssh-key <uuid>` is optional. When you give one or more `--ssh-key` flags,
-  the command uses only those console SSH keys. When you give no `--ssh-key`,
-  the command reads `~/.ssh/id_ed25519.pub`. The command reuses the console SSH
-  key that matches this public key. If no console key matches, the command
-  registers the public key with the name `agro-cli@<hostname>`. If
-  `~/.ssh/id_ed25519.pub` does not exist, the command exits 1 and prints
-  `no --ssh-key given and ~/.ssh/id_ed25519.pub not found`.
-- `agro node create` waits up to 15 minutes for the status `running`, then
-  prints the node id, the status, and the SSH command. If the node fails or does
-  not reach `running` in 15 minutes, the command exits 1 and prints the last
-  status.
-- `agro node list` prints one row for each node. If no node exists, the command
-  prints `no nodes`.
-- `agro node delete <id>` asks for a confirmation. `--yes` skips the
-  confirmation. Destroy needs the admin role in agro-console. If the console
-  returns HTTP 403, the command exits 1 and prints
-  `destroy needs the admin role in agro-console`.
-- `agro node check` sends only `GET` requests and creates nothing. Without
-  `--ssh-key`, the command finds `~/.ssh/id_ed25519.pub` among the console SSH
-  keys by key identity. With `--ssh-key <uuid>`, the command finds each id among
-  the console SSH keys. The command also reads the free tier eligibility of
-  the console account. The command prints one line for each check, for example
-  `ok ssh-key <id>` or `fail ssh-key <id>: ...`. Each failure line names a
-  remedy. When the account is not eligible for the free tier, the command
-  prints a line that starts with `warn free-tier: not eligible`. A warn line does not change the
-  exit status. The command exits 1 when a check fails. Otherwise the command exits 0.
-- `--json` on `create` and `list` prints JSON instead of text.
 
 ## Hands from a brain: `agro hands`
 
