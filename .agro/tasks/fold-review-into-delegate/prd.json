@@ -20,7 +20,7 @@
         "`pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs` exits 0."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Executed: pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs exit 0 (107 passed) by advisor. AC1-7,9 executed via 24 new cases in describe(\"review opt-in\"); AC6 asserts exact action string. AC8: 12 new-behavior cases failed against old next.sh (worker red run 12 failed/95 passed); 12 regression-guard cases (review false/string/reviewed set) cannot fail before by design - reasoned. fixture.mjs unchanged: default review absent keeps prior states. Worker also ran pnpm test (3252 passed) and pnpm typecheck exit 0.",
       "dependsOn": [],
       "files": [
@@ -28,7 +28,8 @@
         ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
         ".agro/skills/delegate/scripts/__tests__/fixture.mjs"
       ],
-      "commit": "6c377054"
+      "commit": "6c377054",
+      "rounds": 1
     },
     {
       "id": "US-002",
@@ -123,7 +124,7 @@
         "`.agro/skills/delegate/scripts/next.sh` has no change in this story."
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": "Advisor diff review of b0f17093: AC1 reasoned tracker.md:11,62 (--no-review writes false, default true); AC2 executed grep finds no --review; AC3 reasoned tracker.md:24 schema has \"review\": true; AC4 reasoned delegate/SKILL.md:29-36; AC5 reasoned CHANGELOG #1658 entry says default on; AC6 executed ste-check exit 0 on both; AC7 executed git diff --quiet next.sh exit 0. Executed: vitest hermes-links, standard-skills-link, next, hooks exit 0 (362 passed).",
       "dependsOn": [
         "US-002",
@@ -132,9 +133,11 @@
       "files": [
         ".agro/skills/prd/references/tracker.md",
         ".agro/skills/delegate/SKILL.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        ".agro/skills/prd/SKILL.md"
       ],
-      "commit": "b0f17093"
+      "commit": "b0f17093",
+      "rounds": 1
     }
   ],
   "pr": 1659,
