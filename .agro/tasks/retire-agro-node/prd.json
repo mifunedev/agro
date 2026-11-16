@@ -17,8 +17,8 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "C1 executed: hands.test.ts --provider before/after verb and = forms over exedev host config, vitest exit 0. C2 executed: unknown provider test exit 1 names console and exedev. C3 executed: source-order table test. C4 executed: runHands exit 2, no request. C5 executed: hands tests 166 pass; worker saw 22 red before change. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3552 tests) by advisor.",
+      "passes": true,
+      "notes": "C1 executed: hands.test.ts --provider before/after verb and = forms over exedev host config, vitest exit 0. C2 executed: unknown provider test exit 1 names console and exedev. C3 executed: source-order table test. C4 executed: runHands exit 2, no request. C5 executed: hands tests 166 pass; worker saw 22 red before change. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3552 tests) by advisor. Round 1 (Close finding): with a brain token file, the URL comes from AGRO_CONSOLE_URL or the brain URL file even when AGRO_CONSOLE_TOKEN supplies the token, matching pre-PR behaviour (e69c5dbf); docs sentence updated; replay re-recorded (98fcb51e, replay9, 17/17). agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3511 tests).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/hands.ts",
@@ -30,7 +30,7 @@
         "docs/lifecycle-commands.md",
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "4607a0ab",
+      "commit": "e69c5dbf",
       "rounds": 1
     },
     {
@@ -191,7 +191,7 @@
       ],
       "priority": 7,
       "passes": true,
-      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral.",
+      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral. Re-recorded at 98fcb51e (replay9-R1..R17, 17/17, instructionSha256 298e739c...) after the US-001 round 1 docs edit.",
       "dependsOn": [
         "US-006"
       ],
