@@ -95,14 +95,15 @@
         "The transcript creates a new temp git project, and the project does not exist before the run. The project agro.json sets `image.ref` to `alpine:3.20`. In the project, `node <worktree>/.agro/cli/dist/agro.js run -- cat /etc/alpine-release` exits 0 and prints the Alpine version. The transcript deletes the temp project at the end."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: manual-review.md holds 11 steps with commands, output, and exit status; ste-check exit 0. 2 executed: step 1 build exit 0 (dist/agro.js 428.6kb). 3 executed: advisor reran node .agro/cli/dist/agro.js sandbox install openshell, exit 1 with unknown runtime \"openshell\"; registry empty before and after. 4 executed: advisor reran install --help | grep -ci openshell = 0. 5 executed: worker transcript shows a new temp git project with image.ref alpine:3.20; agro run -- cat /etc/alpine-release exit 0, printed 3.20.10; temp dir deleted (advisor ls /tmp/agro-us004-* finds nothing); no alpine container left. The public alpine:3.20 image stays in the local cache.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/retire-openshell-runtime/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "fc0ff1a9"
     }
   ],
   "pr": 1653
