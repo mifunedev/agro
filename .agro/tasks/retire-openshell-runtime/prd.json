@@ -49,10 +49,11 @@
         "`CHANGELOG.md` `## [Unreleased]` has a `### Removed` entry for `agro sandbox install openshell` and the OpenShell runtime.",
         "`git grep -n -i openshell -- ':!.agro/tasks' ':!CHANGELOG.md' ':!.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json'` prints nothing.",
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file in `docs/` and `.agro/skills/sandbox/`.",
-        "`docs/configuration.md` and `docs/security-considerations.md` link `.devcontainer/egress-policy.yaml`, and `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
+        "`docs/configuration.md` and `docs/security-considerations.md` link `.devcontainer/egress-policy.yaml`, and `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` exits 0.",
+        "Repair 2: the `CHANGELOG.md` OpenShell entry states that `runtime: \"openshell\"` stays readable as a retired value, that each acting verb refuses such an entry with the removal steps, and that `agro sandbox list` lists it."
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Round 1 extended files with sandbox-skill.test.ts (heading and checks counts); repair commit 6b0cae68. 1 executed: test -e on both paths, neither exists; git grep openshell-journey matches only CHANGELOG. 2 executed: grep -c -i openshell validation.md = 0; worker renumbered Third..Fifth and anchors; sandbox-skill.test.ts passes. 3 executed: R8 prompt says persistent Docker workspace; jq shows oracle unchanged. 4 executed: grep openshell in helper and routing test prints nothing. 5 executed: CHANGELOG Unreleased has ### Removed entry linking #1652. 6 executed: git grep with the three exclusions exit 1. 7 executed: ste-check.sh exit 0 on all 9 changed Markdown files. 8 executed: both docs link ../.devcontainer/egress-policy.yaml; docs-reference.test.ts passes in full run. Full run: agro run -- pnpm test exit 1, 3439/3440 pass; the one failure is the stale observed replay in sandbox-routing.test.ts that US-003 re-records.",
       "dependsOn": [
         "US-001"
@@ -67,7 +68,7 @@
         ".agro/scripts/__tests__/sandbox-skill.test.ts"
       ],
       "commit": "6b0cae68",
-      "rounds": 1
+      "rounds": 2
     },
     {
       "id": "US-003",
@@ -78,10 +79,11 @@
         "Each record in `.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json` matches its oracle.",
         "The provenance in `decisions.json` comes from `sourceProvenance()`.",
         "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0.",
-        "`agro run -- pnpm test` exits 0."
+        "`agro run -- pnpm test` exits 0.",
+        "Repair 1: the replay is recorded again after the rebase onto `980dc6e2`."
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "1 executed: the advisor ran 17 fresh general-purpose decision-only agents (claude-opus-5-5), one per case, against the instruction files at 47d36875; each read only the 9 instruction files and executed nothing. 2 executed: an advisor-side check found route and required owners match the oracle for R1..R17; the grader in sandbox-routing.test.ts confirms. 3 executed: the worker built provenance by importing sourceProvenance() from the helper; the grader stale-source check passes. 4 reasoned from 5: sandbox-routing.test.ts is part of the full run and passes (the worker also ran it alone, 33/33). 5 executed: agro run -- pnpm test exit 0, 126 files, 3440 tests.",
       "dependsOn": [
         "US-002"
@@ -89,7 +91,8 @@
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "5be2461c"
+      "commit": "5be2461c",
+      "rounds": 1
     },
     {
       "id": "US-004",
