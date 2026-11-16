@@ -31,7 +31,7 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | Verb | Runs |
 |---|---|
 | `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--home-mount <dir>] [--yes] [--version <X.Y.Z>] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
-| `agro sandbox list [--json]` | every registry entry: name, runtime, status, checkout |
+| `agro sandbox list [--json]` | every registry entry: name, status, checkout |
 | `agro sandbox upgrade <name> --version <X.Y.Z>` | recreate one image-mode sandbox with the specified official release image; keep its home and named volumes |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
 | `agro stop [name]` | `docker-compose.sh stop` — containers down, volumes kept |
@@ -103,9 +103,6 @@ agro shell <name>                # attach as the sandbox user
 4. otherwise an error listing every registered name.
 
 `agro sandbox list` prints that list, with the container status of each.
-
-![The editor terminal runs agro sandbox list and shows one registry entry.](img/lifecycle-commands-sandbox-list.png)
-Callouts: 1 is the command. 2 is name, runtime, status, and checkout.
 
 `agro sandbox list --json` prints the same entries as JSON. Each entry carries the
 bound directory under the key `checkout`. The JSON output keeps the key `repo` as
