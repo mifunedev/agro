@@ -147,7 +147,7 @@ Usage:
   ${bin} egress <args...>       Read the egress proxy log or reload its allowlist (log|reload)
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} run -- <command...>    Run a command in an ephemeral container at the repository root
-  ${bin} hands <args...>        Manage hands from a brain (list|create|exec|fetch|fork|pause|resume|destroy)
+  ${bin} hands <args...>        Manage hands and console VMs (list|create|check|exec|fetch|fork|pause|resume|destroy)
   ${bin} auth <args...>         Sign in to agro-console (login|status|logout|token)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
