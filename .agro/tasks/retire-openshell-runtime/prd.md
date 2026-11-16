@@ -138,7 +138,8 @@ None
 
 ## Acceptance Criteria
 
-- [ ] `git grep -n -i openshell -- ':!.agro/tasks' ':!CHANGELOG.md'` prints nothing.
+- [ ] `git grep -n -i openshell -- ':!.agro/tasks' ':!CHANGELOG.md' ':!.agro/cli/src' ':!docs/configuration.md'` prints nothing. The CLI source and `docs/configuration.md` name only the retired `openshell` value of `runtime`.
+- [ ] Each acting verb refuses an entry with the retired `openshell` runtime with one line, and `agro sandbox list` lists the entry.
 - [ ] `agro run -- pnpm run typecheck` exits 0.
 - [ ] `agro run -- pnpm test` exits 0.
 - [ ] `agro run` container mode resolves its default image through `defaultImage(config)`.
