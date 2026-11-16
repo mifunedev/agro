@@ -11,8 +11,6 @@ import {
   TOOL_CATALOG,
 } from "../lib/tools/catalog.js";
 import { HARNESS_CATALOG, HARNESS_PREFIX_TOKEN } from "../lib/harnesses/catalog.js";
-import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
-import { SANDBOX_RUNTIMES } from "../lib/agro-config.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
@@ -341,14 +339,6 @@ describe("the catalogs stay separate", () => {
     }
   });
 
-  it("shares only the microsandbox substrate with the runtime catalog", () => {
-    const runtime = new Set(RUNTIME_CATALOG.map((r) => r.id));
-    const shared = toolIds().filter((id) => runtime.has(id));
-    expect(shared).toEqual(["microsandbox"]);
-    expect(RUNTIME_CATALOG.find((r) => r.id === "microsandbox")?.provisionable).toBe(false);
-    expect(findTool("microsandbox")?.kind).toBe("installable");
-  });
-
   it("has unique ids within itself", () => {
     expect(new Set(toolIds()).size).toBe(TOOL_CATALOG.length);
   });
@@ -357,17 +347,6 @@ describe("the catalogs stay separate", () => {
     expect(findTool("docker-cli")?.kind).toBe("baked-in");
     expect(findTool("docker-cli")?.hostCapable).toBe(false);
     expect(findTool("docker-engine")?.hostInstallUser).toBe("root");
-    expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
-  });
-
-  it("registers openshell as a provisionable runtime and derives SANDBOX_RUNTIMES from the catalog", () => {
-    expect(RUNTIME_CATALOG.find((r) => r.id === "openshell")).toMatchObject({
-      provisionable: true,
-      docsPath: "docs/runtimes/openshell.md",
-    });
-    expect(findTool("openshell")).toBeUndefined();
-    expect(SANDBOX_RUNTIMES).toEqual(["docker", "openshell"]);
-    expect(SANDBOX_RUNTIMES).toEqual(RUNTIME_CATALOG.filter((r) => r.provisionable).map((r) => r.id));
   });
 
   it("leaves agent-browser excluded from the harness catalog", () => {

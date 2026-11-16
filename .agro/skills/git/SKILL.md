@@ -357,7 +357,7 @@ After step 3, the advisor pushes the task branch only when
 
 Do these steps in this sequence:
 
-1. Examine the first three conditions below. If one is false, keep the PR in
+1. Examine the first four conditions below. If one is false, keep the PR in
    draft. Do the action that `bash .agro/skills/delegate/scripts/next.sh` prints.
 2. When `next.sh` prints `push`, push the task branch: `git push`.
 3. Run `/ci-status` to examine the last condition.
@@ -367,6 +367,9 @@ Do these steps in this sequence:
 - Every story passes:
   `jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<slug>/prd.json`
   exits 0.
+- When `review` is `true`, `prd.json` has a non-empty `reviewed`, and
+  `bash .agro/skills/delegate/scripts/next.sh` does not print `review`.
+  `next.sh` is the only source of the review rule.
 - `prd.md` ends with a non-empty `## Lessons` section. "None" is a valid body:
   `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
   exits 0.

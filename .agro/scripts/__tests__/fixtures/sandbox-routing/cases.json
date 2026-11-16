@@ -38,7 +38,7 @@
     },
     {
       "id": "R8",
-      "prompt": "Set up a persistent OpenShell workspace, keep an interactive development server available after I disconnect, and give parallel implementation its own checkout. Identify the separate owners of workspace lifecycle, interactive processes, and checkout isolation.",
+      "prompt": "Set up a persistent Docker workspace, keep an interactive development server available after I disconnect, and give parallel implementation its own checkout. Identify the separate owners of workspace lifecycle, interactive processes, and checkout isolation.",
       "oracle": { "route": "lifecycle", "owners": ["lifecycle", "herdr", "worktrees"] }
     },
     {

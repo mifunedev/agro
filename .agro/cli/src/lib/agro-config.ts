@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { basename, dirname, resolve } from "node:path";
 import { assertInRoot } from "./env-file.js";
 import { NAMES, resolveProjectLayout } from "./layout.js";
-import { PROVISIONABLE_RUNTIMES, type ProvisionableRuntimeId } from "./runtimes/catalog.js";
 
 const AGRO_CONFIG_FILE = NAMES.configFile;
 const AGRO_CONFIG_MODE = 0o644;
@@ -90,14 +89,12 @@ export interface RunSettings {
 
 const SERVICE_NAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
-export type SandboxRuntime = ProvisionableRuntimeId;
-
-export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = PROVISIONABLE_RUNTIMES;
+export const SANDBOX_RUNTIME = "docker" as const;
 
 export interface AgroConfig {
   version: 1;
   name?: string;
-  runtime?: SandboxRuntime;
+  runtime?: typeof SANDBOX_RUNTIME;
   repo?: string;
   checkout?: string;
   timezone?: string;
@@ -143,11 +140,21 @@ export function defaultAgroConfig(name: string): AgroConfig {
   };
 }
 
-export function entryRuntime(root: string): SandboxRuntime {
+export class InvalidSandboxEntryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidSandboxEntryError";
+  }
+}
+
+export function assertValidEntry(root: string, command: string): AgroConfig {
+  const path = agroConfigPath(root);
   try {
-    return readAgroConfig(agroConfigPath(root)).runtime ?? "docker";
-  } catch {
-    return "docker";
+    return readAgroConfig(path);
+  } catch (error) {
+    throw new InvalidSandboxEntryError(
+      `${command}: ${messageOf(error)}\n${command}: fix ${path}, or remove the entry ${resolve(root)}`,
+    );
   }
 }
 
@@ -199,7 +206,7 @@ export function validateAgroConfig(value: unknown): AgroConfig {
   }
 
   expectString(record, "name");
-  expectEnum(record, "runtime", "", SANDBOX_RUNTIMES);
+  expectEnum(record, "runtime", "", [SANDBOX_RUNTIME]);
   expectString(record, "repo");
   expectString(record, "checkout");
   expectString(record, "timezone");
@@ -384,7 +391,6 @@ export interface AgroConfigField {
 
 export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "name", type: "string" },
-  { path: "runtime", type: "enum", values: SANDBOX_RUNTIMES },
   { path: "repo", type: "string" },
   { path: "checkout", type: "string" },
   { path: "timezone", type: "string" },

@@ -7,10 +7,9 @@
 3. [Execute](#execute)
    - [Fresh install](#main-scenario-fresh-install)
    - [Hosting matrix](#second-scenario-the-agro-hosting-matrix)
-   - [OpenShell journey](#third-scenario-the-openshell-journey)
-   - [Hermes generated home](#fourth-scenario-the-hermes-generated-home)
-   - [Docker egress](#fifth-scenario-the-docker-egress-allowlist)
-   - [agro run modes](#sixth-scenario-the-agro-run-modes)
+   - [Hermes generated home](#third-scenario-the-hermes-generated-home)
+   - [Docker egress](#fourth-scenario-the-docker-egress-allowlist)
+   - [agro run modes](#fifth-scenario-the-agro-run-modes)
 4. [Verify](#verify)
 5. [Cleanup](#cleanup)
 6. [Failure remedies](#failure-remedies)
@@ -47,7 +46,7 @@ The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destro
    bash "$SKILL/scripts/run.sh" exedev --preflight
    ```
 
-4. For the `console` provider, the preflight runs `agro node check`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
+4. For the `console` provider, the preflight runs `agro hands check --provider console --operator`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
 
 ### Main scenario: fresh install
 
@@ -111,20 +110,7 @@ Run these steps in order. A failed probe makes the later steps on that provider 
 
 Runs on different providers are independent. Start one run at a time on each provider, because a provider plan can cap concurrent VMs. The rationale reference linked from SKILL.md states each row's purpose and the historical baseline.
 
-### Third scenario: the OpenShell journey
-
-`checks/openshell-journey.sh` tests the `agro sandbox install openshell` journey on a new VM. The rows `O01` to `O21` check the AGRO install, the OpenShell install, the gateway, `agro sandbox install openshell`, `agro sandbox list`, and `agro shell`. The rows also check the policy allow and deny rules, the verb refusals, `openshell sandbox stop` and `start`, `agro destroy`, and the hint after a failed create.
-
-The VM must have Docker 28 or later and Landlock. exe.dev qualifies: Ubuntu 24.04, kernel 6.12, and Docker 29. When `AGRO_JS_URL` holds `/releases/download/v<version>/`, row `O01` expects `<version>`. Otherwise row `O01` expects a SemVer string.
-
-To test a release candidate, start the run detached on the driver host. Set `<release>` to the release download URL:
-
-```bash
-INSTALL_URL=<release>/install.sh AGRO_JS_URL=<release>/agro.js setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/openshell-journey.sh > run.out 2>&1 < /dev/null &
-cat run.out
-```
-
-### Fourth scenario: the Hermes generated home
+### Third scenario: the Hermes generated home
 
 `checks/hermes-home.sh` tests that `agro harness install hermes --host` generates `.hermes/config.yaml` in a workspace that tracks no `.hermes/` file. The check uses host mode on a plain VM. The rows run in this order:
 
@@ -148,7 +134,7 @@ Set `AGRO_REF` to the branch under test. Start the run detached on the driver ho
 tmux new-session -d -s rs-hermes "AGRO_REF=<branch> bash $SKILL/scripts/run.sh exedev checks/hermes-home.sh"
 ```
 
-### Fifth scenario: the Docker egress allowlist
+### Fourth scenario: the Docker egress allowlist
 
 `checks/docker-egress.sh` tests `access.egress` `allowlist` on a new VM. The check installs AGRO with the curl installer at `INSTALL_URL`. Then the check clones `AGRO_REF` (default `development`), builds the CLI from the clone, and runs `agro config set access.egress allowlist` in the clone. `agro sandbox install docker --checkout <clone> --yes` reads that setting and builds the sandbox image from the clone.
 
@@ -161,7 +147,7 @@ AGRO_REF=<branch> setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/docker
 cat run.out
 ```
 
-### Sixth scenario: the agro run modes
+### Fifth scenario: the agro run modes
 
 `checks/agro-run-matrix.sh` tests the `agro run` modes on a new `console` node. The check uses host mode. The check installs AGRO with the curl installer at `INSTALL_URL`, runs `sudo usermod -aG kvm "$USER"`, and installs msb `0.7.13` with `agro tool install microsandbox`. When the installed AGRO installs a different msb release, the check uses the pinned upstream installer. Then the check creates a scratch git repository under `mktemp`, writes `agro.json` in it for each row, and deletes it at the end. The new `kvm` group applies only to a new login, so each microVM row runs through `sg kvm`.
 
@@ -176,7 +162,7 @@ cat run.out
 | `X07-refusals` | `--isolation microvm` with `run.services` exits 1, and `--isolation vm` exits 1. |
 | `X08-leftovers` | Cleanup leaves no `agro-run-` Docker container, Docker network, or msb sandbox. |
 
-The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro node check` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` has no value and the host has AGRO `0.32.0` or later, the check skips the install. Start the run detached on the driver host:
+The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro hands check --provider console --operator` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` has no value and the host has AGRO `0.32.0` or later, the check skips the install. Start the run detached on the driver host:
 
 ```bash
 setsid nohup bash "$SKILL/scripts/run.sh" console checks/agro-run-matrix.sh > run.out 2>&1 < /dev/null &
@@ -230,9 +216,9 @@ Do not claim a pass from incomplete output.
 | `VERCEL_SCOPE` | none | The Vercel team slug. The `vercel` adapter needs this variable. |
 | `AGRO_CONSOLE_URL` | CLI default | The console API URL. The `agro` CLI reads this variable. |
 | `AGRO_CONSOLE_TOKEN` | none | The console API token on the driver host. The CLI reads it before the credentials file from `agro auth login`. |
-| `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of the console SSH key. Without this variable, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
+| `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of the console SSH key. Without this variable, `agro hands create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
 | `CONSOLE_SSH_IDENTITY` | none | The private key file for `ssh -i`. The `console` adapter needs this variable. |
-| `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. When the console refuses the spec with `PAYMENTS_DISABLED`, `agro node create` creates `n4` in the free tier. |
+| `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. When the console refuses the spec with `PAYMENTS_DISABLED`, `agro hands create` creates `n4` in the free tier. |
 
 `run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, `SANDBOX_IMAGE`, and `AGRO_REF` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
 

@@ -11,6 +11,21 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - The sandbox image installs the GitLab CLI (`glab`) 1.126.0. When `GITLAB_TOKEN` is set, the entrypoint runs `glab auth login` for `gitlab.com` and registers `glab` as the Git HTTPS credential helper. `agro secret set GITLAB_TOKEN`, `agro tool list`, and the attach banner know `glab`. The git skill's `scripts/forge.sh` selects `gh` or `glab` from the `origin` remote and the authenticated CLI, with `gh` first as the fallback ([docs](docs/integrations/gitlab.md)).
+- `agro hands` manages console VMs. `--operator` selects operator authority with the `agro auth login` credentials. `agro hands` adds `--provider` and the `create` flags `--profile`, `--docker`, `--t3`, `--code-server`, `--ssh-key`, and `--json` ([#1654](https://github.com/mifunedev/agro/issues/1654)).
+- `agro hands check [--ssh-key <uuid>]...` makes no change and exits 0 only without a `fail` line. With brain authority, `check` reads the console and SSH key checks. With operator authority, `check` reads the SSH key, free tier, and credit checks ([#1654](https://github.com/mifunedev/agro/issues/1654)).
+
+### Changed
+
+- `agro self-upgrade` runs `npm i -g @mifune/agro@latest` for an npm install under the global npm prefix, replaces an `install.sh` file in place, and refuses every other executable: an npm install under another prefix, a symbolic link, a file in a directory without write access, and a lower release version ([#1651](https://github.com/mifunedev/agro/issues/1651)).
+- Rename `.devcontainer/openshell-policy.yaml` to `.devcontainer/egress-policy.yaml`; the Docker egress allowlist proxy reads its hosts from that file ([#1652](https://github.com/mifunedev/agro/issues/1652)).
+- Make `/delegate` run a code review before Close for new tasks by default (`--no-review` opts out), and mark the PR ready only after the retro ([#1658](https://github.com/mifunedev/agro/issues/1658)).
+
+### Removed
+
+- Remove the one-time star prompt after `agro sandbox install` and its `AGRO_NO_STAR_PROMPT` variable ([#1651](https://github.com/mifunedev/agro/issues/1651)).
+- Remove the OpenShell runtime and `agro sandbox install openshell`. `agro sandbox list` skips an invalid entry with one warning, and each other verb exits 1 with the error and a remedy ([#1660](https://github.com/mifunedev/agro/issues/1660)).
+- Remove the `runtime` column of `agro sandbox list`, the `runtime` key of `agro sandbox list --json`, and `agro config set runtime` ([#1660](https://github.com/mifunedev/agro/issues/1660)).
+- Remove `agro node`. Use `agro hands --provider console --operator` for console VMs ([#1654](https://github.com/mifunedev/agro/issues/1654)).
 
 ## [0.39.0] - 2026-11-15
 

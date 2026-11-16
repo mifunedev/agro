@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1651-simplify-self-upgrade",
+  "description": "Simplify agro self-upgrade to the smallest correct upgrade per released install kind, and remove the star prompt.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the star prompt",
+      "description": "As an operator, I want `agro sandbox install` to print no star prompt so that the CLI holds no promotional state.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/star-prompt.ts` and `.agro/cli/src/lib/__tests__/star-prompt.test.ts` do not exist.",
+        "`git grep -n -i \"star-prompt\\|StarPrompt\\|STAR_PROMPT\" -- .agro/cli/src docs` prints no line.",
+        "`agro run -- pnpm exec vitest run .agro/cli/src/__tests__/sandbox.test.ts` exits 0.",
+        "Typecheck passes."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed (advisor, 09ac8d53): (1) ls of both files -> not found; (2) git grep star-prompt|StarPrompt|STAR_PROMPT in .agro/cli/src -> exit 1, no match (docs/configuration.md row left to US-003); (3) agro run -- pnpm exec vitest run .agro/cli/src/__tests__/sandbox.test.ts -> exit 0, 76 passed (criterion command corrected from a --dir form that finds no files under the root vitest config); (4) agro run -- pnpm typecheck -> exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/star-prompt.ts",
+        ".agro/cli/src/lib/__tests__/star-prompt.test.ts",
+        ".agro/cli/src/commands/sandbox.ts"
+      ],
+      "external": false,
+      "commit": "09ac8d53"
+    },
+    {
+      "id": "US-002",
+      "title": "Shrink the self-upgrade command",
+      "description": "As an operator, I want one small upgrade path for each released install kind so that the command is easy to verify.",
+      "acceptanceCriteria": [
+        "The npm path applies when the realpath of `argv[1]` contains `/node_modules/@mifune/agro/`. The command runs `npm i -g --prefix <owning prefix> @mifune/agro@latest`. It exits 0 only when npm exits 0. A test asserts the exact npm arguments.",
+        "The standalone path applies when the basename of the realpath of `argv[1]` is `agro` and the path is not under `node_modules/@mifune/agro/`. The command downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) and writes the file in the target directory with mode `0755`. It runs `--version` on the new file, then renames the new file over the target. A test asserts the new target content and mode.",
+        "When the first line of the current target is an absolute Node shebang (`#!/<path>/node`), the replaced target keeps that first line. A test asserts the kept line.",
+        "The command exits 1 when the downloaded file has no `#!` first line, or when its `--version` exits non-zero. Then the target bytes do not change, and no temporary file remains in the target directory. A test asserts each condition.",
+        "For each other target, the command exits 1 and writes nothing. Examples are `/opt/agro/dist/agro.js` and a checkout `dist/agro.js`. The command prints one line that names the target and tells the operator to upgrade with the mechanism that installed it.",
+        "With `--dry-run`, the command prints the planned npm command or the planned download URL, exits 0, and writes nothing.",
+        "`agro update` stays an alias of `agro self-upgrade`, and the vendor-flag refusals in `.agro/cli/src/__tests__/cli-first-help.test.ts` and `.agro/cli/src/__tests__/bundle-identity.test.ts` still pass.",
+        "`wc -l .agro/cli/src/commands/self-upgrade.ts` prints a number less than or equal to 180.",
+        "`printSelfUpgradeHelp` in `.agro/cli/src/cli.ts` describes only the behavior in this story.",
+        "Repair (review finding 1): the npm path applies only when the owning prefix equals the realpath of `npm prefix -g`. Otherwise the command exits 1 and names both prefixes. The command runs `npm i -g @mifune/agro@latest`, then runs `--version` on the target and prints the reported version. A test covers a non-global prefix.",
+        "Repair (review finding 2): the command refuses an artifact when its `--version` output is not a SemVer version. The command also refuses an artifact with a version lower than the running version. When the versions are equal, the command keeps the target. A test covers each case.",
+        "Repair (review finding 4): the standalone path refuses a symbolic link at `argv[1]`. The reason is that `install.sh` installs a regular file. A test covers a symbolic link named `agro`.",
+        "Repair (review finding 5): when the target directory is not writable, the command exits 1 before the download. The error tells the operator to run as the owner of the target. When npm fails with `EACCES`, the error names the prefix owner. A test covers the directory case.",
+        "Repair (review findings 6, 7, 10): a download error names the URL. A refusal after a failed realpath includes the cause. The `--version` probe of a new file stops after 30 seconds.",
+        "Repair (review finding 9): the refusal test for a sandbox image path uses a real file at a temp `opt/agro/dist/agro.js`. The test then passes through the classification branch.",
+        "`agro run -- pnpm exec vitest run .agro/cli/src/__tests__/self-upgrade.test.ts .agro/cli/src/__tests__/cli-first-help.test.ts .agro/cli/src/__tests__/bundle-identity.test.ts` exits 0.",
+        "Typecheck passes."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "round 1 repair executed (advisor, 6b830ec9): findings 1,2,4,5,6,7,8,9,10 pinned by 25 tests in self-upgrade.test.ts (global-prefix check by realpath, npm i -g @mifune/agro@latest without --prefix, post-install --version, EACCES owner hint, SemVer + downgrade refusal + equal keeps target, symlink refusal, not-writable dir, URL in download error, realpath cause, 30 s probe timeout, real opt/agro fixture); advisor confirmed node keeps the symlink path in process.argv[1] (node v24); wc -l = 166 (<= 180); agro run -- pnpm exec vitest run self-upgrade, cli-first-help, bundle-identity -> exit 0, 58 passed; agro run -- pnpm typecheck -> exit 0. Round 0: c9987517 (13 tests, 120 lines).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/self-upgrade.ts",
+        ".agro/cli/src/__tests__/self-upgrade.test.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts",
+        ".agro/cli/src/__tests__/bundle-identity.test.ts"
+      ],
+      "external": false,
+      "commit": "6b830ec9",
+      "rounds": 1
+    },
+    {
+      "id": "US-003",
+      "title": "Update documentation and changelog",
+      "description": "As an operator, I want the documentation to state the new upgrade behavior so that the documentation matches the code.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` § Upgrading the CLI and `docs/installation.md` describe only the behavior of US-002. Neither file mentions `.prev` or a PATH shadow refusal.",
+        "`docs/configuration.md` has no `AGRO_NO_STAR_PROMPT` row.",
+        "`CHANGELOG.md` `## [Unreleased]` has entries for the simpler self-upgrade and the star prompt removal.",
+        "Repair (review finding 3): `.agro/cli/README.md` describes only the behavior of US-002.",
+        "Repair: `docs/lifecycle-commands.md`, `docs/installation.md`, `printSelfUpgradeHelp`, and `CHANGELOG.md` describe the repaired refusals of US-002.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/installation.md` reports no new finding compared with `development`."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "round 1 repair executed (advisor, e375492b): (1) grep npm view|.prev|PATH-shadow|legacy-package in .agro/cli/README.md -> no match; (2) reasoned from diff: lifecycle-commands.md, installation.md, printSelfUpgradeHelp, CHANGELOG #1651 entry describe global-prefix, symlink, writable-dir, downgrade refusals; grep .prev|shadow in both docs -> no match; (3) ste-check before/after: lifecycle-commands.md 2->2, installation.md 0->0, README 11->10; (4) agro run -- pnpm exec vitest run cli-first-help, bundle-identity -> exit 0, 33 passed; typecheck exit 0. Round 0: 46828949.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "docs/installation.md",
+        "docs/configuration.md",
+        "CHANGELOG.md",
+        ".agro/cli/README.md",
+        ".agro/cli/src/cli.ts"
+      ],
+      "external": false,
+      "commit": "e375492b",
+      "rounds": 1
+    },
+    {
+      "id": "US-004",
+      "title": "Record the sandbox routing replay again",
+      "description": "As a maintainer, I want the routing replay fixture to match the changed instruction files so that `sandbox-routing.test.ts` passes.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json` holds 17 decisions, R1 to R17. A fresh decision-only agent produced each decision against the final instruction files.",
+        "Each decision matches its oracle in `cases.json`.",
+        "The provenance equals the output of `sourceProvenance()` on the final tree.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "round 1 repair executed (advisor, a465c00d): 17 fresh decision-only Explore agents (claude-opus-5-5, handles replay9-R1..R17) read only the 10 instruction files at 0e778ff7; advisor extracted each final JSON from its transcript and checked the case prompt; 17/17 match route and include oracle owners; decisions array byte-equal to the advisor scratch record; provenance from sourceProvenance() (instructionSha256 36302f34...); agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts -> exit 0, 33 passed. Round 0: 971650cc (replay8).",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "external": false,
+      "commit": "a465c00d",
+      "rounds": 1
+    },
+    {
+      "id": "US-005",
+      "title": "Capture manual review evidence",
+      "description": "As a reviewer, I want a command transcript of the branch CLI so that I can see each upgrade path work.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/simplify-self-upgrade/evidence/manual-review.md` holds a transcript of the built branch CLI. Each run uses `node .agro/cli/dist/agro.js self-upgrade` on a copy in a new temp directory.",
+        "Each standalone run sets `AGRO_JS_URL` inline to a local HTTP artifact.",
+        "The transcript shows three runs: `--dry-run` for an npm-shaped path, a standalone upgrade with the pinned shebang, and the refusal of a checkout `dist/agro.js`.",
+        "The transcript shows that `agro sandbox install` code has no star prompt line (`git grep` output).",
+        "The story creates no live resource and deletes each temp directory that it creates."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "round 1 repair executed (advisor reviewed ad48ae71 evidence/manual-review.md, tested commit b0009b5b): (1) built branch CLI 0.39.0 on copies in new temp dir /tmp/claude-1000/su-review2.yxvr; (2) standalone runs set AGRO_JS_URL inline to http://127.0.0.1:18766/{same,older,newer}.js (port checked free); (3) npm dry run with inline npm_config_prefix prints npm i -g @mifune/agro@latest exit 0, update alias same; real prefix refused exit 1; same.js already current exit 0 checksum unchanged; older.js downgrade refused exit 1; newer.js stub upgraded to 0.40.0 exit 0 with pinned fnm shebang, 755, no temp; symlink refused exit 1; checkout dist/agro.js refused exit 1; missing path fails in node before the CLI (MODULE_NOT_FOUND), so the unit test covers that refusal; (4) star prompt git grep exit 1; (5) server stopped, temp dir removed, no live resource. Round 0: 4c507e43.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/simplify-self-upgrade/evidence/manual-review.md"
+      ],
+      "external": false,
+      "commit": "ad48ae71",
+      "rounds": 1
+    }
+  ],
+  "pr": 1655
+}

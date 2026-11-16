@@ -1,8 +1,7 @@
 import { resolveExecutionTarget } from "../lib/execution/index.js";
-import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
-import { agroConfigPath, configCheckout, readAgroConfig } from "../lib/agro-config.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { agroConfigPath, configCheckout, readAgroConfig, type AgroConfig } from "../lib/agro-config.js";
 import { entryRoot, listEntries, registryRoot } from "../lib/registry.js";
-import { entrySandboxName } from "../lib/runtimes/verbs.js";
 import type { SandboxIO } from "./sandbox.js";
 
 export interface SandboxListOptions {
@@ -13,7 +12,6 @@ export interface SandboxListOptions {
 
 interface SandboxRow {
   name: string;
-  runtime: string;
   checkout: string;
   repo: string;
   status: string;
@@ -21,7 +19,7 @@ interface SandboxRow {
 
 async function entryStatus(root: string, name: string, run: LifecycleRunner): Promise<string> {
   try {
-    const target = resolveExecutionTarget({ projectRoot: root, container: entrySandboxName(root) ?? name, run });
+    const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
     return await target.status();
   } catch {
     return "unknown";
@@ -33,11 +31,16 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
   const rows: SandboxRow[] = [];
   for (const name of listEntries()) {
     const root = entryRoot(name);
-    const config = readAgroConfig(agroConfigPath(root));
+    let config: AgroConfig;
+    try {
+      config = readAgroConfig(agroConfigPath(root));
+    } catch (error) {
+      io.stderr(`${opts.bin} sandbox list: skipped ${name}: ${messageOf(error)}\n`);
+      continue;
+    }
     const checkout = configCheckout(config) ?? "-";
     rows.push({
       name,
-      runtime: config.runtime ?? "docker",
       checkout,
       repo: checkout,
       status: await entryStatus(root, name, run),
@@ -58,12 +61,10 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
   const width = (pick: (row: SandboxRow) => string): number =>
     Math.max(...rows.map((row) => pick(row).length));
   const nameWidth = width((row) => row.name);
-  const runtimeWidth = width((row) => row.runtime);
   const statusWidth = width((row) => row.status);
   for (const row of rows) {
     io.stdout(
-      `${row.name.padEnd(nameWidth)}  ${row.runtime.padEnd(runtimeWidth)}  ` +
-        `${row.status.padEnd(statusWidth)}  ${row.checkout}\n`,
+      `${row.name.padEnd(nameWidth)}  ${row.status.padEnd(statusWidth)}  ${row.checkout}\n`,
     );
   }
   return 0;

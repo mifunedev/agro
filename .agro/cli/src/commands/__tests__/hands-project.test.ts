@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { spawnRunner, type LifecycleRunner, type RunResult } from "../../lib/execution/runner.js";
 import { parseProjectSlug, runHands, shellQuote, type HandsDeps } from "../hands.js";
+import { brainTokenPath } from "../../lib/console-api.js";
 
 const TOKEN = "brn_project_secret_token_77c1";
 const HAND_ID = "3f1c2d4e-0000-4000-8000-000000000007";
@@ -79,7 +80,8 @@ function harness(home: string, replies: Reply[], run: LifecycleRunner, overrides
     env: { AGRO_CONSOLE_TOKEN: TOKEN, AGRO_CONSOLE_URL: "https://c.example" },
     homeDir: () => home,
     userHome: () => home,
-    readFile: () => undefined,
+    readFile: (path: string) => (path === brainTokenPath(home) ? TOKEN : undefined),
+    readCredentials: () => undefined,
     sleep: async () => {},
     now: () => 0,
     timeoutMs: 60_000,

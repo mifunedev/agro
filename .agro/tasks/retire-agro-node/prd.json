@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1654-retire-agro-node",
+  "description": "Retire agro node into agro hands. `agro node` (`.agro/cli/src/commands/node.ts`) and the console provider of `agro hands` (`.agro/cli/src/lib/hands/console-provider.ts`) both call `POST /api/nodes`, `GET /api/nodes`, and `DELETE /api/nodes/<id>` through `.agro/cli/src/lib/console-api.ts`. This task removes `agro node` and moves each capability that only `agro node` has into `agro hands`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Console hands accept operator authority and a per-call provider",
+      "description": "As an operator on a host without a brain token, I want `agro hands` to use my `agro auth login` credentials and to accept `--provider console|exedev`. Then I can manage console VMs on any host without `agro node`.",
+      "acceptanceCriteria": [
+        "`agro hands` accepts `--provider console` and `--provider exedev` (also `--provider=<id>`) before or after the verb, and the flag overrides `hands.provider` in the host config.",
+        "`agro hands list --provider desktop` exits 1 with an error that names `console` and `exedev`.",
+        "Without `--operator`, the console token order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. A token from `AGRO_CONSOLE_TOKEN` or the brain token file gives brain authority, and the URL comes from `AGRO_CONSOLE_URL`, then the brain console URL file. A token from the credentials file gives operator authority, and the URL comes from the credentials file, then `https://console.mifune.dev`.",
+        "`--operator` gives operator authority. The verb then resolves the token and URL with `resolveConsoleConfig`, in the same order as `agro auth`, and ignores the brain token file.",
+        "A `--provider` token that follows a value flag of the verb stays the value of that flag.",
+        "With no token from any source, a console verb exits 2. The message names the brain token path and `agro auth login`.",
+        "Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each source order row, the missing-token exit 2, and the `--provider` override of a host config that selects `exedev`.",
+        "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "C1 executed: hands.test.ts --provider before/after verb and = forms over exedev host config, vitest exit 0. C2 executed: unknown provider test exit 1 names console and exedev. C3 executed: source-order table test. C4 executed: runHands exit 2, no request. C5 executed: hands tests 166 pass; worker saw 22 red before change. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3552 tests) by advisor. Round 1 (Close finding): with a brain token file, the URL comes from AGRO_CONSOLE_URL or the brain URL file even when AGRO_CONSOLE_TOKEN supplies the token, matching pre-PR behaviour (e69c5dbf); docs sentence updated; replay re-recorded (98fcb51e, replay9, 17/17). agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3511 tests). Review repair (8a3be650): explicit authority, --operator via resolveConsoleConfig, brain-authority env token, value-flag-safe global flag parsing, brain/operator check modes with parallel operator reads, 403 admin line only without a code, --json ssh only when running via sshDest, fallback spec kept. Worker saw 28 red before the fix. Advisor: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3537 tests).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-project.test.ts",
+        "docs/lifecycle-commands.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "commit": "8a3be650",
+      "rounds": 2
+    },
+    {
+      "id": "US-002",
+      "title": "Console hands create, list, and destroy cover the node flags",
+      "description": "As an operator, I want `agro hands create` to take `--profile`, `--docker`, `--t3`, `--code-server`, `--ssh-key`, and `--json` for console hands so that every `agro node create` request has a hands form.",
+      "acceptanceCriteria": [
+        "`agro hands create` accepts `--profile agro|sandbox` (default `sandbox`), `--docker`, `--t3`, `--code-server`, repeatable `--ssh-key <uuid>`, and `--json`. Each app flag without `--profile agro` exits 1 with `<flag> requires --profile agro`.",
+        "The create request body sends `profile`, `docker: true`, `t3: true`, `runtimeSettings: { codeServerEnabled: true }`, and `sshKeyIds` exactly as `agro node create` sent them on `ef52a983`.",
+        "Without `--ssh-key` and with operator authority, `create` finds `~/.ssh/id_ed25519.pub` in `GET /api/ssh-keys` or registers it with `POST /api/ssh-keys`. Then `create` sends the key id. With brain authority, `create` sends `sshKeyIds` only for `--ssh-key`.",
+        "HTTP 422 `DISPOSABLE_PROFILE_UNSUPPORTED` prints `only a sandbox node can be disposable: drop --disposable, or use --profile sandbox`.",
+        "`create --json` prints one JSON line with `id`, `index`, `alias`, `name`, `status`, `spec`, `sshHost`, and `ssh`. The `ssh` field holds `ssh <sshDest>` only when the status is `running`, else `null`. After a credit refusal, the `spec` field holds the spec of the fallback request. When the console returns a node id and the wait then fails or times out, `create --json` prints that line before it exits 1.",
+        "Console `list --json` rows add `name` and `profile`.",
+        "Console `destroy` prints `destroy needs the admin role in agro-console` when the console returns HTTP 403 with no error code. For another HTTP 403 code, `destroy` prints the console message.",
+        "With the exedev provider, `--profile`, `--docker`, `--t3`, `--code-server`, and `--ssh-key` exit 1 before any `ssh exe.dev` call. The refusal says that the flag applies only to console hands.",
+        "Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each row above. The ported cases from `.agro/cli/src/__tests__/node.test.ts` for profile flags, SSH key resolution, and `--json` pass against `runHands`.",
+        "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Round 1 repaired: missing local key now exits 1 with no console call (node parity). C1-C8 executed: hands.test.ts and hands-exedev.test.ts cases for profile/app flags, request body, key find/register and brain no-key, 422 line, --json success and failure line, list name/profile, 403 destroy, exedev console-only refusals; vitest commands/__tests__ exit 0. C9 executed: ported node cases pass under runHands. C10 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3597 tests). Review repair (8a3be650): explicit authority, --operator via resolveConsoleConfig, brain-authority env token, value-flag-safe global flag parsing, brain/operator check modes with parallel operator reads, 403 admin line only without a code, --json ssh only when running via sshDest, fallback spec kept. Worker saw 28 red before the fix. Advisor: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3537 tests).",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/lib/hands/exedev-provider.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-project.test.ts"
+      ],
+      "rounds": 2,
+      "commit": "8a3be650"
+    },
+    {
+      "id": "US-003",
+      "title": "Add agro hands check",
+      "description": "As an operator, I want `agro hands check [--ssh-key <uuid>]...` so that the validation preflight keeps a GET-only check of the SSH key, the free tier, and the credit.",
+      "acceptanceCriteria": [
+        "`HANDS_VERBS` in `.agro/cli/src/command-table.ts` includes `check`.",
+        "For the console provider, `agro hands check` sends only `GET` requests. It prints the same `ok`, `warn`, and `fail` lines as `agro node check` on `ef52a983`, with `agro hands check` in place of `agro node check`.",
+        "`agro hands check` exits 0 only when no line starts with `fail `.",
+        "With brain authority, `check` reads `GET /api/nodes` and finds each `--ssh-key` id. With brain authority, `check` skips the local key, free tier, and credit checks. With operator authority, `check` sends its three reads in parallel and prints the lines in a fixed order.",
+        "With the exedev provider, `agro hands check` exits 1 with `check applies only to console hands`.",
+        "Each `agro node check` case of `.agro/cli/src/__tests__/node.test.ts` passes as a `runHands([\"check\", ...])` case in `.agro/cli/src/commands/__tests__/hands.test.ts`.",
+        "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "C1 executed: HANDS_VERBS has check; test asserts. C2 executed: tests assert GET-only call list and node-identical lines with agro hands check prefix. C3 executed: warn-only exit 0, fail exit 1 tests. C4 executed: hands-exedev.test.ts check refused with no calls; refusal precedes exedevPreflight (hands.ts:801). C5 executed: 15 ported runHands check cases. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3624 tests). Review repair (8a3be650): explicit authority, --operator via resolveConsoleConfig, brain-authority env token, value-flag-safe global flag parsing, brain/operator check modes with parallel operator reads, 403 admin line only without a code, --json ssh only when running via sshDest, fallback spec kept. Worker saw 28 red before the fix. Advisor: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (127 files, 3537 tests).",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/hands/console-check.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
+      ],
+      "commit": "8a3be650",
+      "rounds": 1
+    },
+    {
+      "id": "US-004",
+      "title": "Remove agro node",
+      "description": "As a maintainer, I want `agro node` gone from the CLI so that one command creates, lists, and deletes console VMs.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/commands/node.ts` and `.agro/cli/src/__tests__/node.test.ts` do not exist.",
+        "`NODE_VERBS` and the `node` entry of `AGRO_COMMANDS` do not exist, and `.agro/cli/src/cli.ts` has no `runNode` import, no `node` dispatch, and no `node` help line.",
+        "`agro node list` exits non-zero through the unknown-command path of `.agro/cli/src/cli.ts`.",
+        "`.agro/cli/src/lib/console-api.ts` keeps each export that a remaining module imports, and `git grep -n \"commands/node\" -- .agro/cli` prints nothing.",
+        "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Round 1 added docs/lifecycle-commands.md node removal (docs-reference test). C1 executed: both files deleted in 2cd9d293. C2 executed: git grep NODE_VERBS/runNode in .agro/cli matches only self-upgrade.ts (unrelated dep). C3 executed: lifecycle.test.ts runCli([node,list]) exit 1 'unknown command'. C4 executed: git grep commands/node prints nothing; 12 unused console-api exports made private. C5 executed with deferral: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 1 only on sandbox-routing observed replay (stale instructionSha256 from the docs edit), which US-007 re-records; Close reruns the suite. Round 2: top-level hands help line lists check and drops brain-only wording (60700440); agro run -- pnpm typecheck exit 0, agro run -- pnpm test exit 0 (127 files, 3509 tests). Rebase onto 9ee29fe9: #1653 dropped the runCli import from lifecycle.test.ts; the advisor restored it during conflict resolution (43d390bc); typecheck exit 0, lifecycle.test.ts 113/113.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/__tests__/",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/lib/hands/console-check.ts",
+        "docs/lifecycle-commands.md"
+      ],
+      "rounds": 2,
+      "commit": "60700440"
+    },
+    {
+      "id": "US-005",
+      "title": "Move the validation console adapter to agro hands",
+      "description": "As a validation operator, I want `.agro/skills/sandbox/adapters/console.sh` to call `agro hands --provider console` so that the console matrix runs after `agro node` is gone, on a host whose config selects exedev.",
+      "acceptanceCriteria": [
+        "Each `agro hands` call in `.agro/skills/sandbox/adapters/console.sh` passes `--operator`.",
+        "`.agro/skills/sandbox/adapters/console.sh` calls `agro hands check --provider console`, `agro hands create --provider console --spec ... --name ... --json`, `agro hands list --provider console --json`, and `agro hands destroy --provider console <id> --yes`, and contains no `agro node`.",
+        "`.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` stubs the `hands` verbs and asserts the new call lines. Each existing console case keeps its intent: preflight key flag, stop before create on a failed check, the HTTP 409 destroy retry, and the `agro-mx-` count.",
+        "`agro run -- pnpm test` exits 0."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "C1 executed: console.sh calls hands check/create/list/destroy with --provider console; grep 'agro node' 0 matches; shellcheck -S warning exit 0. C2 executed: remote-sandbox-adapters.test.ts stubs hands verbs, 34/34 pass, intents kept (key flag, stop before create, 409 retry, agro-mx count). C3 executed: agro run -- pnpm test 3508/3509, sole failure stale routing replay owned by US-007. Review repair (8c8c61de): every agro hands call in console.sh passes --operator (5 calls); adapter tests updated; full suite green except the routing replay owned by US-007.",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/skills/sandbox/adapters/console.sh",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ],
+      "commit": "8c8c61de",
+      "rounds": 1
+    },
+    {
+      "id": "US-006",
+      "title": "Update docs, skills, glossary, and changelog",
+      "description": "As a reader, I want the docs, the sandbox skill references, and the `AGENTS.md` glossary to name `agro hands` for console VMs. Then no instruction points at a removed command.",
+      "acceptanceCriteria": [
+        "`git grep -n \"agro node\" -- . ':!CHANGELOG.md' ':!.agro/tasks'` prints nothing.",
+        "The hands section of `docs/lifecycle-commands.md` documents `--provider`, the operator token fallback, the new create flags, `create --json`, and `check`. The file has no `agro node` section or table row.",
+        "The `AGENTS.md` glossary entry **console node** names `agro hands` with the console provider and operator authority.",
+        "`.agro/skills/sandbox/references/hands.md`, `providers.md`, and `validation.md` name the hands equivalents of each removed `agro node` call.",
+        "`CHANGELOG.md` `## [Unreleased]` records the removal of `agro node`. It also records the new `agro hands` flags and the `check` verb.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file, except for findings that exist on `origin/development` in unchanged lines.",
+        "`agro run -- pnpm test` exits 0, except the sandbox routing replay that US-007 records again."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Round 1 reworded lifecycle.test.ts titles and handsHelp first line. C1 executed: git grep 'agro node' (excl CHANGELOG, tasks) prints nothing, exit 1. C2 executed: diff review of docs/lifecycle-commands.md hands section (provider, token order, create flags, --json, check). C3 executed: AGENTS.md console node entry names agro hands --provider console with operator authority. C4 executed: hands.md, providers.md, validation.md name hands check/list/create/destroy. C5 executed: CHANGELOG Unreleased Added + Removed with #1654. C6 executed: ste-check exit 0 on AGENTS.md and three references; lifecycle-commands.md 1 finding pre-existing (2 on origin/development); CHANGELOG 275 = 275 on origin/development. C7 executed: agro run -- pnpm test 3508/3509, sole failure routing replay (US-007); typecheck exit 0. Review repair (cf259685, b95268ef): docs, references, glossary, changelog describe explicit authority, --operator, check modes, 403 rule, --json ssh rule; BRAIN_TOKEN codes kept (sandbox-skill.test.ts 11/11); grep agro node empty; ste-check no new findings. Full suite: only the routing replay fails (US-007).",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "AGENTS.md",
+        ".agro/skills/sandbox/references/hands.md",
+        ".agro/skills/sandbox/references/providers.md",
+        ".agro/skills/sandbox/references/validation.md",
+        "CHANGELOG.md",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/commands/hands.ts"
+      ],
+      "rounds": 2,
+      "commit": "b95268ef"
+    },
+    {
+      "id": "US-007",
+      "title": "Record the sandbox routing replay again",
+      "description": "As a maintainer, I want `decisions.json` recorded against the final instruction files so that the routing replay test proves the edited references route each case.",
+      "acceptanceCriteria": [
+        "The advisor runs one fresh decision-only agent for each case R1 to R17 against the final instruction files. Each decision matches its oracle in `cases.json`.",
+        "The provenance in `decisions.json` equals `sourceProvenance()` on the final branch head. `.agro/scripts/__tests__/helpers/sandbox-routing.ts` defines `sourceProvenance()`.",
+        "`agro run -- pnpm test` exits 0."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral. Re-recorded at 98fcb51e (replay9-R1..R17, 17/17, instructionSha256 298e739c...) after the US-001 round 1 docs edit. After the review repair and the rebase onto 980dc6e2: 17 fresh agents (replay11-R1..R17) graded 17/17 against the oracles; provenance instructionSha256 c8fd5c04... from sourceProvenance(); agro run -- pnpm test exit 0 (126 files, 3521 tests). After the rebase onto 9ee29fe9 (#1653: helper drops docs/runtimes/openshell.md, R8 prompt changed): 17 fresh agents (replay12-R1..R17) graded 17/17; instructionSha256 2643234e..., casesSha256 7c0b4d22...; agro run -- pnpm test exit 0 (125 files, 3459 tests).",
+      "dependsOn": [
+        "US-006"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "commit": "089221c2",
+      "rounds": 1
+    },
+    {
+      "id": "US-008",
+      "title": "Capture manual review evidence",
+      "description": "As a reviewer, I want a command transcript of the hands console flow and the removed node command. Then I can accept the change without a live console spend.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/retire-agro-node/evidence/manual-review.md` holds a transcript of the built CLI entry point. The transcript runs `agro node list` and `agro hands --help`. With `--provider console`, it runs `agro hands check`, `create --profile agro --t3 --json`, `list --json`, and `destroy --yes`.",
+        "The console calls go to a local stub HTTP server on a free port. The transcript sets `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` inline, under a new temp `HOME` with no credentials file. The transcript creates no live console resource.",
+        "The story stops the stub server. The story then deletes the temp `HOME` and reports."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "C1 executed: evidence/manual-review.md shows built CLI (node .agro/cli/dist/agro.js) for node list (exit 1 unknown command), hands --help (exit 0), and with --provider console: check, create --profile agro --t3 --json, list --json, destroy --yes, list after (all exit 0); run on 598480b8. C2 executed: stub on 127.0.0.1:18741 after ss free-port check; temp HOME and AGRO_HOME via mktemp, token and URL inline, XDG_CONFIG_HOME unset, no credentials file (find listing); request log shows create body profile agro, t3 true, sshKeyIds; token count 0 in every output; no live resource. C3 executed: stub killed (143, kill -0 no such process, ss 0 listeners), temp dirs removed, test -e returns 1. Review repair: transcript rerun on the rebased head 20f74153 with --operator on every console call plus one brain-authority check (ok console line, GET /api/nodes only); stub, temp HOME, token count 0, cleanup proof kept.",
+      "dependsOn": [
+        "US-007"
+      ],
+      "files": [
+        ".agro/tasks/retire-agro-node/evidence/manual-review.md"
+      ],
+      "commit": "120ffdd8",
+      "rounds": 1
+    }
+  ],
+  "pr": 1656
+}

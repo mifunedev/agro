@@ -6,13 +6,13 @@ import { setTimeout as delay } from "node:timers/promises";
 import { agroConfigPath, readAgroConfig, type AgroConfig, type RunSettings } from "../lib/agro-config.js";
 import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF, egressAllowHosts } from "../lib/egress-policy.js";
 import {
+  defaultImage,
   EphemeralExecutionTarget,
   HostOnlyError,
   MicrovmExecutionTarget,
   MsbVmExecutionTarget,
   microvmImageRef,
   nonEmpty,
-  openshellImage,
   resolveExecutionTarget,
   runningInsideSandbox,
   type LifecycleRunner,
@@ -288,7 +288,7 @@ async function runInSandbox(
   run: LifecycleRunner,
   env: NodeJS.ProcessEnv,
 ): Promise<number> {
-  const { root, container } = resolveSandboxTarget({ name: sandbox });
+  const { root, container } = resolveSandboxTarget({ name: sandbox }, `${opts.bin} run`);
   const target = resolveExecutionTarget({ projectRoot: root, container, run, env });
   if ((await target.status()) !== "ready") {
     io.stderr(`${opts.bin} run: sandbox ${sandbox} is not running — start it with \`${opts.bin} restart ${sandbox}\`\n`);
@@ -325,7 +325,7 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
     const root = runRoot(cwd, run);
     const config = readAgroConfig(agroConfigPath(root));
     if (opts.isolation === "microvm") return await runMicrovm(opts, io, run, root, cwd, config);
-    const image = opts.image ?? openshellImage(config);
+    const image = opts.image ?? defaultImage(config);
     const settings = config.run ?? {};
     const allowlist = config.access?.egress === "allowlist";
     if (Object.keys(settings.services ?? {}).length === 0 && !allowlist) {

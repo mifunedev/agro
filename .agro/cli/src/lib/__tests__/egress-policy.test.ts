@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
+import egressPolicy from "agro-asset:.devcontainer/egress-policy.yaml";
 import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF, egressAllowHosts, policyHosts } from "../egress-policy.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
@@ -38,11 +38,19 @@ function proxyImage(): string {
 
 describe("egressAllowHosts", () => {
   it("returns the policy hosts when access.egressAllow is absent", () => {
-    expect(egressAllowHosts({ version: 1 })).toEqual([...new Set(policyHosts(openshellPolicy))].sort());
+    expect(egressAllowHosts({ version: 1 })).toEqual([...new Set(policyHosts(egressPolicy))].sort());
+    expect(egressAllowHosts({ version: 1 })).toEqual([
+      "api.anthropic.com",
+      "api.github.com",
+      "github.com",
+      "platform.claude.com",
+      "registry.npmjs.org",
+      "release-assets.githubusercontent.com",
+    ]);
   });
 
   it("adds access.egressAllow, de-duplicated and sorted", () => {
-    const policy = policyHosts(openshellPolicy);
+    const policy = policyHosts(egressPolicy);
     expect(policy.length).toBeGreaterThan(0);
     const hosts = egressAllowHosts({
       version: 1,

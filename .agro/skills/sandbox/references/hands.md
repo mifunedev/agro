@@ -60,9 +60,9 @@ Two owners share this route:
 A hand request that runs application work names both owners: `agro hands` and `agro run`.
 
 This route uses `agro hands` for project offload.
-The validation driver's `console` adapter instead uses `agro node`.
-Its internal ID stays `console`; do not substitute `agro hands` in that adapter.
-A console node from `agro node create` is not a hand unless a brain manages it.
+The validation driver's `console` adapter also uses `agro hands`, with `--provider console --operator` and the `agro auth login` credentials.
+The adapter calls `agro hands check`, `agro hands create --json`, `agro hands list --json`, and `agro hands destroy <id> --yes`.
+A console node from `agro hands create --operator` is not a hand unless a brain manages it.
 
 ## Prerequisites
 

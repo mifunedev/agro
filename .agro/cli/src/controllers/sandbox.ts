@@ -3,7 +3,6 @@ import { runSandboxList } from "../commands/sandbox-list.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
 import { AGRO_PRODUCT, stateNames } from "../lib/product.js";
 import { DEFAULT_NAME_PREFIX } from "../lib/registry.js";
-import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
 import { AGRO_VERSION as VERSION, officialImageRef, parseReleaseVersion } from "../lib/version.js";
 import type { SandboxSubcommand } from "../command-table.js";
 
@@ -13,13 +12,6 @@ export type ParseResult<T> =
 
 export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
-}
-
-export function runtimeLines(): string {
-  const width = Math.max(...RUNTIME_CATALOG.map((r) => r.id.length));
-  return RUNTIME_CATALOG.map(
-    (r) => `  ${r.id.padEnd(width)}  ${r.provisionable ? "provisionable" : "planned"}`,
-  ).join("\n");
 }
 
 export function printSandboxHelp(bin: string = AGRO_PRODUCT.bin): void {
@@ -45,10 +37,6 @@ identity, SSH (with its host port), the host Docker socket, and the host path
 for /home/sandbox. With --checkout it seeds those answers from that
 checkout's ${stateNames(bin).configFile}.
 
-\`install openshell\` never prompts. The command needs the host \`openshell\` CLI
-and a connected gateway, and runs the prebuilt image. The command refuses
---checkout, --home-mount, and image.mode "build".
-
 Flags:
   --name <name>    Registry entry name (default: the lowest free ${DEFAULT_NAME_PREFIX}<n>)
   --checkout <dir> Bind this checkout into the sandbox and seed the defaults
@@ -71,12 +59,9 @@ Flags:
                    ${stateNames(bin).configFile} image.ref > ${officialImageRef(VERSION)}
   --image=<ref>    Run a custom image (implies --image); conflicts with --version
   --no-build       Suppress the local build and reuse an existing image
-  --print-argv     Print the docker compose or openshell argv that would run, then exit
+  --print-argv     Print the docker compose argv that would run, then exit
                    without writing an entry
   --json           Machine-readable output (list)
-
-Runtimes:
-${runtimeLines()}
 
 Next: ${bin} shell <name>
 `);
