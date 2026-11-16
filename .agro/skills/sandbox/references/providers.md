@@ -66,7 +66,7 @@ vercel sandbox remove <name> --scope "$VERCEL_SCOPE"
 
 The provider name is `console`. The adapter is `adapters/console.sh`. The adapter defines the five required functions and the hook `console_row_ssh`. The adapter defines no `console_row_https` and no `console_restart`.
 
-The adapter drives the `agro` CLI on the driver host. `console_preflight` runs `agro node check`; `console_list` runs `agro node list --json`. `console_create` runs `agro node create --json`. `console_destroy` runs `agro node delete <id> --yes`. `console_exec` runs each command with `ssh` to `sandbox@<ip>`. The `sandbox` user has passwordless sudo.
+The adapter drives the `agro` CLI on the driver host. Each call passes `--provider console`. `console_preflight` runs `agro hands check`; `console_list` runs `agro hands list --json`. `console_create` runs `agro hands create --json`. `console_destroy` runs `agro hands destroy <id> --yes`. `console_exec` runs each command with `ssh` to `sandbox@<ip>`. The `sandbox` user has passwordless sudo.
 
 The validation reference linked directly from SKILL.md owns the driver variable table.
 Keep console defaults there, not in a second setup table.
@@ -75,10 +75,10 @@ Prerequisites:
 
 1. Install the `agro` CLI on the driver host.
 2. Run `agro auth login` on the driver host, or set `AGRO_CONSOLE_TOKEN` in the driver environment. The token stays on the driver host. Do not paste the token into a chat or a log.
-3. Set `CONSOLE_SSH_IDENTITY` to the private key file for the node SSH key. Without `CONSOLE_SSH_KEY_ID`, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. Then `CONSOLE_SSH_IDENTITY` must be the matching private key `~/.ssh/id_ed25519`. With `CONSOLE_SSH_KEY_ID` set to the UUID of a console SSH key, `CONSOLE_SSH_IDENTITY` must be the private key file of that console key.
+3. Set `CONSOLE_SSH_IDENTITY` to the private key file for the node SSH key. Without `CONSOLE_SSH_KEY_ID`, `agro hands create` registers `~/.ssh/id_ed25519.pub` of the driver host. Then `CONSOLE_SSH_IDENTITY` must be the matching private key `~/.ssh/id_ed25519`. With `CONSOLE_SSH_KEY_ID` set to the UUID of a console SSH key, `CONSOLE_SSH_IDENTITY` must be the private key file of that console key.
 4. Run `bash scripts/run.sh console --preflight`. The command prints `preflight ok: console`.
 
-The free tier allows one live node for each account. The console adapter creates `n4` nodes, and `agro node create` falls back to `n4` in the free tier. Start one console run at a time. Before a run, confirm that `agro node list` shows no other live node.
+The free tier allows one live node for each account. The console adapter creates `n4` nodes, and `agro hands create` falls back to `n4` in the free tier. Start one console run at a time. Before a run, confirm that `agro hands list --provider console` shows no other live node.
 
 A console node has no image choice. When the operator sets `IMAGE`, `console_create` stops and exits 2. The image mode of `checks/agro-rows.sh` does not apply to the console. `scripts/restart-test.sh console` prints a usage line and exits 2.
 
@@ -89,15 +89,15 @@ If a check needs Docker, the check installs Docker in the VM.
 
 A console node has no tag. `console_list` counts the nodes with a name that starts with `agro-mx-` and a status other than `destroyed`. The console API returns destroyed nodes in the node list.
 
-If `agro node create` returns a node ID with no SSH target, `console_create` keeps the ID. The driver cleanup then deletes the node. If `agro node create` returns no ID, use the manual sweep.
+If `agro hands create` returns a node ID with no SSH target, `console_create` keeps the ID. The driver cleanup then deletes the node. If `agro hands create` returns no ID, use the manual sweep.
 
-`console_destroy` retries `agro node delete` on HTTP 409 for up to 60 s. The console accepts a delete before the node is gone. After a successful delete, `console_destroy` runs `agro node list --json` every 5 s for up to 180 s until the node has the status `destroyed` or is not in the list. Then `console_destroy` removes the state file and returns 0. If the node does not reach `destroyed` in 180 s, `console_destroy` prints the last status, keeps the state file, and returns 1.
+`console_destroy` retries `agro hands destroy` on HTTP 409 for up to 60 s. The console accepts a delete before the node is gone. After a successful delete, `console_destroy` runs `agro hands list --json` every 5 s for up to 180 s until the node has the status `destroyed` or is not in the list. Then `console_destroy` removes the state file and returns 0. If the node does not reach `destroyed` in 180 s, `console_destroy` prints the last status, keeps the state file, and returns 1.
 
 Manual sweep on the driver host:
 
 ```bash
-agro node list --json | jq -r '.[] | select(((.name // "") | startswith("agro-mx-")) and .status != "destroyed") | .id'
-agro node delete <id> --yes
+agro hands list --provider console --json | jq -r '.[] | select(((.name // "") | startswith("agro-mx-")) and .status != "destroyed") | .id'
+agro hands destroy --provider console <id> --yes
 ```
 
 ## Add an adapter
