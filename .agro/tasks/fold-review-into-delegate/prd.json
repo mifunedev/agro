@@ -48,8 +48,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-10 reasoned by advisor diff review of d002a227: diagram copied above state table (delegate/SKILL.md ~L36); review row between ci-red and close; default-off and both orders stated L29-34; new ## Review section with steps, docs link, Claude Code /code-review, draft-skip note; Close starts after review, step 3 includes review findings; tracker.md --review flag, review/reviewed fields, reviewed advisor-only; git/SKILL.md Ready condition with jq check. AC11 executed: ste-check delegate/SKILL.md exit 0 (also tracker.md, git/SKILL.md exit 0). Executed: vitest hermes-links, standard-skills-link, next.test.mjs exit 0 (164 passed).",
       "dependsOn": [
         "US-001"
       ],
@@ -57,7 +57,8 @@
         ".agro/skills/delegate/SKILL.md",
         ".agro/skills/prd/references/tracker.md",
         ".agro/skills/git/SKILL.md"
-      ]
+      ],
+      "commit": "d002a227"
     },
     {
       "id": "US-003",
