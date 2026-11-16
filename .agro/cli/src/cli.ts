@@ -1358,7 +1358,7 @@ async function main(argv: string[]): Promise<number> {
     if (typeof a === "number") return a;
     return await runSelfUpgrade(
       { dryRun: a.dryRun, argv1: process.argv[1] },
-      defaultDeps(),
+      defaultDeps(VERSION),
       stdio(),
     );
   }
