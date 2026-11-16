@@ -5,7 +5,7 @@ This file is the evidence for US-008. The transcript runs the built CLI entry po
 ## Setup
 
 - Branch: `feat/1654-retire-agro-node`.
-- The transcript ran on commit `91181ce76f01f152a27356048df93ea217a64efc`.
+- The transcript ran on commit `598480b832ea962e3d665fdbf48ebdc5e86dd263`.
 - Build command: `agro run -- pnpm -C .agro/cli build`. The build wrote `.agro/cli/dist/agro.js`.
 - `$S` is the untracked scratchpad folder `/tmp/claude-1000/-home-exedev--agro-workspaces-harness/a44e7554-36df-41df-ab5a-7ff0b4941444/scratchpad/us008`. The stub server script, the runner script, and the request log are in `$S`. They are not in the repository.
 - `$HOME_T` is a new temp `HOME`. `$AGRO_T` is a new temp `AGRO_HOME`. `mktemp -d` made both folders. Before the run, the folder `$S/homes` did not exist.
@@ -14,34 +14,36 @@ This file is the evidence for US-008. The transcript runs the built CLI entry po
 - The stub accepts only the bearer token `stub-secret-us008`. The stub starts with one SSH key: the throwaway public key, with id `11111111-1111-4111-8111-111111111111`.
 - Each console command sets `HOME`, `AGRO_HOME`, `AGRO_CONSOLE_TOKEN`, and `AGRO_CONSOLE_URL` inline. Each console command removes `XDG_CONFIG_HOME` with `env -u`. Thus the CLI looks for credentials only in `$HOME_T`. No env file exists.
 - Each console command has `--provider console`.
+- The stub registers the throwaway key before the run. Thus `check` finds the key, and `create` finds the key with `GET /api/ssh-keys` and does not send `POST /api/ssh-keys`. The stub still answers `POST /api/ssh-keys`.
+- An operator path guard blocks each command that names the credentials file path. The evidence does not run `test -e` on that path. The `find` listing of `$HOME_T` and `env -u XDG_CONFIG_HOME` show that no credentials file is in reach.
 
 ```text
 $ git rev-parse HEAD
-91181ce76f01f152a27356048df93ea217a64efc
+598480b832ea962e3d665fdbf48ebdc5e86dd263
 $ HOME_T=$(mktemp -d $S/homes/home.XXXXXX); AGRO_T=$(mktemp -d $S/homes/agro-home.XXXXXX)
-HOME_T=$S/homes/home.RkOjwi
-AGRO_T=$S/homes/agro-home.KArVMR
+HOME_T=$S/homes/home.f2tze8
+AGRO_T=$S/homes/agro-home.AMTZg0
 $ ls -A $HOME_T $AGRO_T
-$S/homes/agro-home.KArVMR:
+$S/homes/agro-home.AMTZg0:
 
-$S/homes/home.RkOjwi:
+$S/homes/home.f2tze8:
 $ mkdir -m 700 $HOME_T/.ssh && HOME=$HOME_T ssh-keygen -t ed25519 -N '' -f $HOME_T/.ssh/id_ed25519 -q -C throwaway-us008
 [exit 0]
 $ ls -A $HOME_T $HOME_T/.ssh
-$S/homes/home.RkOjwi:
+$S/homes/home.f2tze8:
 .ssh
 
-$S/homes/home.RkOjwi/.ssh:
+$S/homes/home.f2tze8/.ssh:
 id_ed25519
 id_ed25519.pub
 $ find $HOME_T $AGRO_T -mindepth 1 | sed "s#$TH_PARENT/##"
-home.RkOjwi/.ssh
-home.RkOjwi/.ssh/id_ed25519
-home.RkOjwi/.ssh/id_ed25519.pub
+home.f2tze8/.ssh
+home.f2tze8/.ssh/id_ed25519
+home.f2tze8/.ssh/id_ed25519.pub
 $ ss -ltn '( sport = :18741 )' | tail -n +2 | wc -l
 0
 $ node $S/stub.mjs 18741 $S/requests.log $HOME_T/.ssh/id_ed25519.pub &
-stub pid 912644
+stub pid 960822
 # stub listening on 127.0.0.1:18741
 ```
 
@@ -51,15 +53,15 @@ Each block shows the command line, the merged stdout and stderr, and the exit st
 
 ### agro node list
 
-The removed command goes to the unknown command path and exits 1.
+The removed command goes to the unknown command path and exits 1. The block keeps the top-level `agro hands` help line from commit `60700440`.
 
 ```text
-$ HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR node .agro/cli/dist/agro.js node list
+$ HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 node .agro/cli/dist/agro.js node list
 agro: unknown command "node"
 
 agro — AGRO CLI (v0.39.0)
 [... general agro usage omitted ...]
-  agro hands <args...>        Manage hands from a brain (list|create|exec|fetch|fork|pause|resume|destroy)
+  agro hands <args...>        Manage hands and console VMs (list|create|check|exec|fetch|fork|pause|resume|destroy)
 [...]
 [exit 1]
 ```
@@ -69,7 +71,7 @@ agro — AGRO CLI (v0.39.0)
 The block keeps the usage block, the providers paragraph, and the console paragraphs that this task changed.
 
 ```text
-$ HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR node .agro/cli/dist/agro.js hands --help
+$ HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 node .agro/cli/dist/agro.js hands --help
 agro hands — Create and manage hands and console VMs from a brain or an operator host
 
 Usage:
@@ -135,7 +137,7 @@ https://console.mifune.dev. Without a token, the verbs exit 2.
 ### agro hands check --provider console
 
 ```text
-$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands check --provider console
+$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands check --provider console
 ok ssh-key 11111111-1111-4111-8111-111111111111 ~/.ssh/id_ed25519.pub
 ok free-tier
 ok credit: balance $5.00
@@ -145,7 +147,7 @@ ok credit: balance $5.00
 ### agro hands create --provider console --profile agro --t3 --json
 
 ```text
-$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands create --provider console --profile agro --t3 --json
+$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands create --provider console --profile agro --t3 --json
 agro hands create: hand 33333333-3333-4333-8333-333333333333 queued
 agro hands create: hand 33333333-3333-4333-8333-333333333333 running
 {"id":"33333333-3333-4333-8333-333333333333","index":7,"alias":"stub-hand","name":null,"status":"running","spec":"n8","sshHost":"stub-hand.example.test","ssh":"ssh sandbox@stub-hand.example.test"}
@@ -155,7 +157,7 @@ agro hands create: hand 33333333-3333-4333-8333-333333333333 running
 ### agro hands list --provider console --json
 
 ```text
-$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands list --provider console --json
+$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands list --provider console --json
 [{"id":"33333333-3333-4333-8333-333333333333","index":7,"alias":"stub-hand","name":null,"profile":"agro","status":"running","spec":"n8","sshHost":"stub-hand.example.test"}]
 [exit 0]
 ```
@@ -163,7 +165,7 @@ $ env -u XDG_CONFIG_HOME HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.
 ### agro hands destroy 7 --provider console --yes
 
 ```text
-$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands destroy 7 --provider console --yes
+$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands destroy 7 --provider console --yes
 destroyed 7
 [exit 0]
 ```
@@ -173,7 +175,7 @@ destroyed 7
 This call shows that the stub holds no hand after `destroy`.
 
 ```text
-$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.RkOjwi AGRO_HOME=$S/homes/agro-home.KArVMR AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands list --provider console --json
+$ env -u XDG_CONFIG_HOME HOME=$S/homes/home.f2tze8 AGRO_HOME=$S/homes/agro-home.AMTZg0 AGRO_CONSOLE_TOKEN=stub-secret-us008 AGRO_CONSOLE_URL=http://127.0.0.1:18741 node .agro/cli/dist/agro.js hands list --provider console --json
 []
 [exit 0]
 ```
@@ -210,10 +212,10 @@ $ grep -c stub-secret-us008 $S/out/0[1-7]-*.txt (output lines only, command line
 05-list.txt 0
 06-destroy.txt 0
 07-list-after.txt 0
-$ kill 912644
+$ kill 960822
 [exit of stub wait: 143]
-$ kill -0 912644
-$S/run.sh: line 47: kill: (912644) - No such process
+$ kill -0 960822
+$S/run.sh: line 47: kill: (960822) - No such process
 [exit 1]
 $ ss -ltn '( sport = :18741 )' | tail -n +2 | wc -l
 0
