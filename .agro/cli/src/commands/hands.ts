@@ -166,7 +166,7 @@ code-server. Each app flag requires \`--profile agro\`. \`--ssh-key <uuid>\`
 adds a console SSH key to the hand. Repeat it for more keys. Without
 \`--ssh-key\` and without a brain token, \`create\` finds ~/.ssh/id_ed25519.pub
 in the console SSH keys, or registers it as agro-cli@<host name>, and sends
-its id. When the file does not exist, \`create\` says so and sends no key.
+its id. When the file does not exist, \`create\` exits 1 and creates no hand.
 On a brain, \`create\` sends only the \`--ssh-key\` ids.
 
 \`--json\` prints one JSON line with id, index, alias, name, status, spec,
@@ -799,7 +799,7 @@ export async function runHands(
     const keyPath = join(deps.userHome(), ".ssh", "id_ed25519.pub");
     const localKey: LocalSshKey | undefined =
       authority === "operator"
-        ? { path: keyPath, read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
+        ? { read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
         : undefined;
     provider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
   }

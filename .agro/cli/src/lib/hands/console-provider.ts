@@ -17,9 +17,9 @@ const NO_NODE_ID = "the console response has no node id";
 const DISPOSABLE_PROFILE_UNSUPPORTED_LINE =
   "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox";
 const DESTROY_ADMIN_LINE = "destroy needs the admin role in agro-console";
+const LOCAL_SSH_KEY_MISSING = "no --ssh-key given and ~/.ssh/id_ed25519.pub not found";
 
 export interface LocalSshKey {
-  path: string;
   read: () => string | undefined;
   name: string;
 }
@@ -68,10 +68,7 @@ export function createConsoleProvider(
   async function defaultSshKeyIds(): Promise<HandOutcome<string[]>> {
     if (localKey === undefined) return { ok: true, value: [] };
     const publicKey = localKey.read()?.trim();
-    if (publicKey === undefined || publicKey === "") {
-      notice(`${localKey.path} not found; the hand gets no SSH key`);
-      return { ok: true, value: [] };
-    }
+    if (publicKey === undefined || publicKey === "") return { ok: false, error: LOCAL_SSH_KEY_MISSING };
     const found = await findOrRegisterSshKey(deps, config, publicKey, localKey.name);
     return found.ok ? { ok: true, value: [found.id] } : found;
   }

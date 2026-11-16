@@ -933,15 +933,13 @@ describe("agro hands create ssh key resolution", () => {
     expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["top-key"] });
   });
 
-  it("sends no key and says so when the local key file does not exist", async () => {
+  it("exits 1 and creates no hand when the local key file does not exist", async () => {
     const h = operator([QUEUED, RUNNING], {});
-    expect(await runHands(["create"], h.io, h.deps)).toBe(0);
-    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
-      "POST https://console.example/api/nodes",
-      "GET https://console.example/api/nodes/u9",
-    ]);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox" });
-    expect(h.stderr()).toContain(`agro hands create: ${LOCAL_KEY_PATH} not found; the hand gets no SSH key\n`);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.reads).toContain(LOCAL_KEY_PATH);
+    expect(h.stderr()).toBe("agro hands create: no --ssh-key given and ~/.ssh/id_ed25519.pub not found\n");
+    expect(h.calls).toEqual([]);
+    expect(h.stdout()).toBe("");
   });
 
   it("uses only the given --ssh-key flags and makes no ssh-keys call", async () => {
