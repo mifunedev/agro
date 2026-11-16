@@ -10,14 +10,13 @@ import {
 } from "../lib/execution/index.js";
 import {
   assertSpawned,
-  messageOf,
   requireLifecycleScript,
   spawnRunner,
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/runner.js";
 import { renderComposeEnv } from "../lib/config-render.js";
-import { assertActiveRuntime, getAgroConfigValue, agroConfigPath, readAgroConfig, type AgroConfig } from "../lib/agro-config.js";
+import { assertValidEntry, getAgroConfigValue, agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { DEFAULT_SANDBOX_NAME, agroEnvPair, agroEnvValue } from "../lib/layout.js";
 import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.js";
@@ -96,7 +95,7 @@ export interface SandboxOptions extends LifecycleOptions {
 
 function sandboxRoot(opts: Pick<SandboxTargetOptions, "name" | "cwd">, command: string): string {
   const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
-  assertActiveRuntime(root, command);
+  assertValidEntry(root, command);
   if (existsSync(agroConfigPath(root))) {
     const repo = configuredString(root, "repo");
     materialize(root, repo === undefined ? {} : { repo });
@@ -354,13 +353,7 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     return 1;
   }
   const root = sandboxRoot(opts, `${opts.bin} destroy`);
-  let config: AgroConfig;
-  try {
-    config = readAgroConfig(agroConfigPath(root));
-  } catch (err) {
-    io.stderr(`${opts.bin} destroy: ${messageOf(err)}\n`);
-    return 1;
-  }
+  const config = readAgroConfig(agroConfigPath(root));
   const name = destroyConfirmationPhrase(root);
 
   if (opts.yes !== true) {

@@ -11,7 +11,6 @@ import {
   agroConfigPath,
   readAgroConfig,
   setAgroConfigValue,
-  isRetiredRuntime,
   SANDBOX_RUNTIME,
   validateAgroConfig,
   writeAgroConfig,
@@ -110,12 +109,9 @@ describe("round trip", () => {
 });
 
 describe("validateAgroConfig", () => {
-  it("accepts the retired openshell runtime that a previous release wrote", () => {
-    expect(validateAgroConfig({ version: 1, runtime: "openshell" }).runtime).toBe("openshell");
-    expect(isRetiredRuntime("openshell")).toBe(true);
-    expect(isRetiredRuntime("docker")).toBe(false);
-    expect(() => setAgroConfigValue({ version: 1 }, "runtime", "openshell")).toThrow(
-      'unknown agro.json field "runtime"',
+  it("rejects the openshell runtime that a previous release wrote", () => {
+    expect(() => validateAgroConfig({ version: 1, runtime: "openshell" })).toThrow(
+      "agro.json: runtime must be one of docker",
     );
   });
 

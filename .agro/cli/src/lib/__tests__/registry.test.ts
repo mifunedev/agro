@@ -219,10 +219,14 @@ describe("materialize", () => {
     expect(walk(allowed)).toContain("egress-allow.txt");
   });
 
-  it("writes no file into an entry with the retired openshell runtime", () => {
+  it.each([
+    ["an invalid runtime", JSON.stringify({ version: 1, runtime: "openshell" }), "agro.json: runtime must be one of docker"],
+    ["malformed JSON", "{ not json", "agro.json is not valid JSON"],
+  ])("refuses an entry with %s and writes no file", (_label, body, detail) => {
     registry();
-    const root = addEntry("retired", { runtime: "openshell" });
-    materialize(root, { repo: "/srv/checkout" });
+    const root = addEntry("invalid");
+    writeFileSync(join(root, "agro.json"), body);
+    expect(() => materialize(root, { repo: "/srv/checkout" })).toThrow(detail);
     expect(walk(root)).toEqual(["agro.json"]);
   });
 
@@ -265,6 +269,18 @@ describe("resolveSandboxRoot", () => {
     addEntry("elsewhere", { repo: "/nowhere" });
     const root = addEntry("mine", { repo: checkout });
     expect(resolveSandboxRoot({ cwd: join(checkout, "packages", "app") })).toBe(root);
+  });
+
+  it.each([
+    ["an invalid runtime", JSON.stringify({ version: 1, runtime: "openshell", repo: "/" })],
+    ["malformed JSON", "{ not json"],
+  ])("skips an entry with %s during the checkout scan", (_label, body) => {
+    registry();
+    const checkout = mkdtempSync(join(tmpdir(), "oh-registry-repo-"));
+    cleanups.push(checkout);
+    writeFileSync(join(addEntry("aaa-invalid"), "agro.json"), body);
+    const root = addEntry("mine", { repo: checkout });
+    expect(resolveSandboxRoot({ cwd: join(checkout, "app") })).toBe(root);
   });
 
   it("errors listing the registered names when nothing matches", () => {
