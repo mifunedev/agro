@@ -73,14 +73,15 @@
         "`agro run -- pnpm test` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: the advisor ran 17 fresh general-purpose decision-only agents (claude-opus-5-5), one per case, against the instruction files at 47d36875; each read only the 9 instruction files and executed nothing. 2 executed: an advisor-side check found route and required owners match the oracle for R1..R17; the grader in sandbox-routing.test.ts confirms. 3 executed: the worker built provenance by importing sourceProvenance() from the helper; the grader stale-source check passes. 4 reasoned from 5: sandbox-routing.test.ts is part of the full run and passes (the worker also ran it alone, 33/33). 5 executed: agro run -- pnpm test exit 0, 126 files, 3440 tests.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
-      ]
+      ],
+      "commit": "5be2461c"
     },
     {
       "id": "US-004",
