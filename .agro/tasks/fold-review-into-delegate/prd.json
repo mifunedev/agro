@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1658-fold-review-into-delegate",
+  "description": "Fold an opt-in code review step into /delegate: review after first green CI, Close (retro) after review, gh pr ready last. Off by default.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add the opt-in review state to next.sh",
+      "description": "As the advisor, I want `next.sh` to print `review` after the first green CI when the task opts in. The code review then runs before Close and before `gh pr ready`.",
+      "acceptanceCriteria": [
+        "When the top-level field `review` in `prd.json` is absent or `false`, `next.sh` prints the same state sequence as today: `story`, `close`, `push`, `ci`, `ready`, `done`.",
+        "When `review` is `true`, every story passes, `pr` is set, `reviewed` is empty or absent, and CI is green on `HEAD`, `next.sh` prints `review`.",
+        "When `review` is `true` and `reviewed` is empty, `next.sh` prints `push`, `ci`, or `ci-red` before `review` by the same rules that it uses before `ready` today.",
+        "When `review` is `true`, `reviewed` is a non-empty string, and `## Lessons` in `prd.md` is empty, `next.sh` prints `close`.",
+        "When `review` is `true`, `reviewed` is a non-empty string, and `## Lessons` is not empty, `next.sh` prints `push`, `ci`, `ci-red`, `ready`, or `done` by the current rules.",
+        "The action line for `review` is `Run the code review per /delegate § Review, then write reviewed in prd.json.`",
+        "Each current case in `next.test.mjs` passes with no change to its expected state.",
+        "New cases in `next.test.mjs` cover each criterion above, and each new case fails before the `next.sh` change.",
+        "`pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Executed: pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs exit 0 (107 passed) by advisor. AC1-7,9 executed via 24 new cases in describe(\"review opt-in\"); AC6 asserts exact action string. AC8: 12 new-behavior cases failed against old next.sh (worker red run 12 failed/95 passed); 12 regression-guard cases (review false/string/reviewed set) cannot fail before by design - reasoned. fixture.mjs unchanged: default review absent keeps prior states. Worker also ran pnpm test (3252 passed) and pnpm typecheck exit 0. Review repair round 1 (1cbb5969): pr_draft and err_file declared top-level, final case reads pr_draft; new reopen-after-review test. Executed: next.test.mjs exit 0 (111 passed). Review repair round 2 (8958dec5): review_is_current requires reviewed to resolve to a commit and git diff --quiet <commit> HEAD -- . :!.agro/tasks. Executed: next.test.mjs exit 0 (121 passed). Repair round 3 (8e6ea7b6, operator-approved simplification): reviewed must be a 7-40 hex SHA; stale only when a first-parent non-merge commit since reviewed touches files outside .agro/tasks. Executed: next.test.mjs exit 0 (126 passed).",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/scripts/next.sh",
+        ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
+        ".agro/skills/delegate/scripts/__tests__/fixture.mjs"
+      ],
+      "commit": "8e6ea7b6",
+      "rounds": 2
+    },
+    {
+      "id": "US-002",
+      "title": "Put the flow and the opt-in into the /delegate contract",
+      "description": "As the operator, I want `/delegate` to own the whole flow from approval to merge. One diagram and one state table describe the flow, and the review step runs only when I opt in.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` § Task lifecycle holds the flow diagram from the Summary of this plan, directly above the state table.",
+        "The state table has a `review` row between `ci` and `close`. The row names § Review, the exit condition \"`prd.json` has a non-empty `reviewed`\", and the owner \"Advisor; a worker repairs\".",
+        "§ Task lifecycle states that the review step is off by default, and that `\"review\": true` in `prd.json` turns the step on.",
+        "A new § Review section states the procedure: run the review on the task branch, repair each finding per § Repair, rerun the review, then write the reviewed commit SHA to `reviewed`.",
+        "§ Review links `https://code.claude.com/docs/en/code-review` as the reference for the review options. Claude Code runs `/code-review`. Codex, Pi, and another harness pick an option from the \"Compare ways to get a review\" table on that page.",
+        "§ Review states that the managed Code Review service skips draft pull requests. The PR is a draft at `review`, so the advisor does not wait for that service.",
+        "When `review` is `true`, § Close starts after `review`, and step 3 of § Close tells the advisor to include each review finding in `## Lessons`.",
+        "`.agro/skills/prd/references/tracker.md` documents the top-level fields `review` and `reviewed`, and the conversion flag `--review` that writes `\"review\": true`.",
+        "§ Field ownership in `tracker.md` lists `reviewed` as advisor-only.",
+        "`.agro/skills/git/SKILL.md` § Ready for review adds this condition: when `review` is `true`, `prd.json` has a non-empty `reviewed`.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "AC1-10 reasoned by advisor diff review of d002a227: diagram copied above state table (delegate/SKILL.md ~L36); review row between ci-red and close; default-off and both orders stated L29-34; new ## Review section with steps, docs link, Claude Code /code-review, draft-skip note; Close starts after review, step 3 includes review findings; tracker.md --review flag, review/reviewed fields, reviewed advisor-only; git/SKILL.md Ready condition with jq check. AC11 executed: ste-check delegate/SKILL.md exit 0 (also tracker.md, git/SKILL.md exit 0). Executed: vitest hermes-links, standard-skills-link, next.test.mjs exit 0 (164 passed).",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/delegate/SKILL.md",
+        ".agro/skills/prd/references/tracker.md",
+        ".agro/skills/git/SKILL.md"
+      ],
+      "commit": "d002a227"
+    },
+    {
+      "id": "US-003",
+      "title": "Align the hook test, the harness docs, and the changelog",
+      "description": "As an operator on any harness, I want the Stop hook docs and tests to list `review` so that the documented contract matches `next.sh`.",
+      "acceptanceCriteria": [
+        "The `it.each` list at `.agro/scripts/__tests__/hooks.test.ts:475` contains `review`.",
+        "The Stop hook state list in `docs/harnesses/claude-code.md`, `docs/harnesses/codex.md`, and `docs/harnesses/pi.md` contains `review` between `ci-red` and `ready`.",
+        "`CHANGELOG.md` `## [Unreleased]` has one entry that states that `/delegate` can run an opt-in code review before Close, and marks the PR ready only after the retro.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "AC1 executed: hooks.test.ts it.each contains review. AC2: claude-code.md and codex.md list review between ci-red and ready (diff reviewed); pi.md reasoned N/A - Pi has no Stop hook and no state list (docs/harnesses/pi.md:145). AC3: CHANGELOG [Unreleased] ### Changed entry for #1658. AC4 executed: pnpm exec vitest run .agro/scripts/__tests__/hooks.test.ts exit 0 (198 passed). ste-check on 3 docs exit 0. Round 1 repair: catch-up merge of origin/development (1ee51121); CHANGELOG conflict resolved, #1658 entry under [Unreleased] ### Changed, no conflict markers. Executed: hooks+next tests exit 0 (305), pnpm typecheck exit 0. Full pnpm test: 1 local-only failure in sandbox-skill.test.ts from ignored untracked .agro/skills/remote-sandbox/ leftover on disk; not in the tree.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/hooks.test.ts",
+        "docs/harnesses/claude-code.md",
+        "docs/harnesses/codex.md",
+        "docs/harnesses/pi.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "1ee51121",
+      "rounds": 1
+    },
+    {
+      "id": "US-004",
+      "title": "Capture manual review evidence",
+      "description": "As the operator, I want a command transcript of both state orders so that I can confirm the flow without a live PR.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/fold-review-into-delegate/evidence/manual-review.md` holds a transcript that runs `bash .agro/skills/delegate/scripts/next.sh --task <tmp slug>` in a new temp git repository with a stub `gh` on `PATH`.",
+        "With `review` absent, the transcript shows this sequence: `story`, `close`, `push`, `ci`, `ready`, `done`.",
+        "With `\"review\": true`, the transcript shows this sequence: `story`, `push`, `ci`, `review`, `close`, `push`, `ci`, `ready`, `done`.",
+        "The story creates the temp repository under a new temp path, deletes the temp path at the end, and changes no existing task."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Executed by advisor: extracted stub gh and drive.sh from evidence/manual-review.md, ran drive.sh default -> story close push ci ready done removed; drive.sh review -> story push ci review close push ci ready done removed. Temp paths under scratchpad, deleted; git status clean after run (no existing task changed). Repair round 1 (da257caa): driver writes reviewed as the HEAD SHA. Executed by advisor: drive.sh default -> story close push ci ready done removed; drive.sh review -> story push ci review close push ci ready done removed.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/fold-review-into-delegate/evidence/manual-review.md"
+      ],
+      "commit": "da257caa",
+      "rounds": 1
+    },
+    {
+      "id": "US-005",
+      "title": "Turn the review on by default at conversion",
+      "description": "As the operator, I want each new task to run the code review unless I opt out. `next.sh` keeps its rule, so tasks in flight do not change.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/references/tracker.md` tells the converter to write `\"review\": true` by default, and to write `\"review\": false` when the conversion has `--no-review`.",
+        "`tracker.md` no longer documents a `--review` flag.",
+        "The output schema example in `tracker.md` holds `\"review\": true`.",
+        "`.agro/skills/delegate/SKILL.md` § Task lifecycle states that the conversion turns the review on by default, that `--no-review` turns it off, and that `next.sh` skips the review when `review` is absent or `false`.",
+        "The `CHANGELOG.md` entry for #1658 states that new tasks run the code review by default.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on `tracker.md` and on `.agro/skills/delegate/SKILL.md`.",
+        "`.agro/skills/delegate/scripts/next.sh` has no change in this story."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor diff review of b0f17093: AC1 reasoned tracker.md:11,62 (--no-review writes false, default true); AC2 executed grep finds no --review; AC3 reasoned tracker.md:24 schema has \"review\": true; AC4 reasoned delegate/SKILL.md:29-36; AC5 reasoned CHANGELOG #1658 entry says default on; AC6 executed ste-check exit 0 on both; AC7 executed git diff --quiet next.sh exit 0. Executed: vitest hermes-links, standard-skills-link, next, hooks exit 0 (362 passed). Review repair round 1 (4542aee2): § Review runs /code-review <pr>; § Repair clears reviewed on reopen; diagram label set at conversion; review loop described; prd SKILL §7 names --no-review. Executed: ste-check delegate/SKILL.md and prd/SKILL.md exit 0; hermes-links + standard-skills-link tests exit 0. Review repair round 2 (3efc74bd): manual reviewed delete removed; review repairs keep rounds; findings go to Lessons at review time; unowned findings follow Close step 3; tracker and git Ready check describe the stale-review rule. Executed: ste-check exit 0 on delegate/SKILL.md, tracker.md, git/SKILL.md; related vitest exit 0. Repair round 3 (6ee971ac, operator-approved simplification): review repairs count toward rounds; findings go to Lessons at Close, late passes extend the one section; staleness wording matches next.sh; git Ready defers to next.sh. Executed: ste-check exit 0 on 3 skill files; related vitest exit 0.",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/prd/references/tracker.md",
+        ".agro/skills/delegate/SKILL.md",
+        "CHANGELOG.md",
+        ".agro/skills/prd/SKILL.md",
+        ".agro/skills/git/SKILL.md"
+      ],
+      "commit": "6ee971ac",
+      "rounds": 2
+    }
+  ],
+  "pr": 1659,
+  "review": true,
+  "reviewed": "57d7e529cc2b4f451381336dc89fc72c03fcdd92"
+}

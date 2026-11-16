@@ -14,7 +14,8 @@ argument-hint: "[<task-slug> | --plan <path>] [--dry-run]"
 ## Task lifecycle
 
 An explicit operator approval of the plan authorizes the full run: the issue,
-`prd.json`, the draft PR, all waves, Close, the push, and `gh pr ready`. The
+`prd.json`, the draft PR, all waves, the review, Close, the push, and
+`gh pr ready`. The
 merge stays with the operator. This section is the only copy of the approval
 scope.
 
@@ -25,13 +26,41 @@ only at `done`, `blocked`, or `none`. If an action needs live spend, set
 during the run, set `blocked` in `prd.json` with the question as the reason.
 The Stop hook allows the stop at `blocked`.
 
+The tracker conversion turns the review step on by default: it writes
+`"review": true` in `prd.json`. The conversion flag `--no-review` turns the
+review step off: it writes `"review": false`. When `review` is absent or
+`false`, `next.sh` skips the review step. Without the review step, `next.sh` prints
+the states in this order: `story`, `close`, `push`, `ci`, `ready`, `done`. When
+`review` is `true`, `next.sh` prints the states in this order: `story`, `push`,
+`ci`, `review`, `close`, `push`, `ci`, `ready`, `done`. In both orders,
+`ci-red` can follow `ci`. The state table lists the states in the review order.
+
+```text
+ OPERATOR            ADVISOR (/delegate, next.sh loop)              WORKERS / CI
+ /prd ──▶ prd.md
+ ◆ APPROVE ◆ ─▶ prd §7: issue #N → prd.json → DRAFT PR
+                story <id> ──dispatch──────────────────────────▶ worker
+                   ▲  verify → passes:true ◀──report────────────┘
+                   └─ next story / wave
+                ┌─ review: true (set at conversion) ───────────────┐
+                │ push → ci ──ci-red──▶ reopen owning story        │
+                │ review: harness review → repair → reviewed=<sha> │
+                └──────────────────────────────────────────────────┘
+                close (retro): checks + evidence + ## Lessons
+                push → ci ──ci-red──▶ reopen owning story
+                       │ green
+                ready: gh pr ready
+ ◆ MERGE ◆ ◀─── done
+```
+
 | State | Next action | Exit condition | Owner |
 |---|---|---|---|
 | `story <id>` | Dispatch, verify, and accept the story (§ Waves, § Acceptance) | The story has `passes: true` | Advisor; a worker implements |
-| `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
 | `push` | Push the task branch | The remote task branch head equals local `HEAD` | Advisor |
 | `ci` | Wait for CI with `/ci-status` | No PR check is pending | Advisor |
 | `ci-red` | Reopen the story that owns the failing path as a bounded repair (§ Acceptance) | The reopened story has `passes: true` | Advisor; the same worker repairs |
+| `review` | Run the code review, repair each finding, and write `reviewed` (§ Review) | `prd.json` has a non-empty `reviewed`, the value is a hex commit SHA, and no task-branch commit after that SHA changes a file outside `.agro/tasks`. Merges of the base branch do not count | Advisor; a worker repairs |
+| `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
 | `ready` | Run `gh pr ready` (`/git` § Ready for review) | The PR is not a draft | Advisor |
 | `done` | Stop | The run ends | Operator merges |
 | `blocked` | Stop. Write the reason in the `blocked` field of `prd.json`. Run `/escalate` one time | The operator clears `blocked` | Operator |
@@ -195,9 +224,12 @@ cannot check out the task branch. Do these steps from the main checkout:
 
 ### Repair
 
-A failed story check or a red CI check (`ci-red`) starts a repair. The advisor
+A failed story check, a red CI check (`ci-red`), or a review finding
+(§ Review) starts a repair. The advisor
 reopens the story whose `files` hold the failing path: write `passes: false`
-and add 1 to `rounds`. The same worker repairs the story as a bounded repair.
+and add 1 to `rounds`. When `review` is `true`, a task-branch commit after the
+`reviewed` SHA that changes a file outside `.agro/tasks` sends the task back
+to `review`. Merges of the base branch do not count. The same worker repairs the story as a bounded repair.
 The advisor does not repair. Dependents of a reopened story wait. Before a repair
 in a worktree, the worker merges the current task branch into the worker branch.
 
@@ -206,7 +238,7 @@ each of these cases:
 
 - `rounds` is greater than 2.
 - A round does not decrease the set of failed checks.
-- No story owns the failing path.
+- No story owns the path of a failed story check or a red CI check.
 - `/ci-status` reports `NO-RUN` or `TIMEOUT`.
 
 ## Integration
@@ -241,9 +273,38 @@ Provider defaults live in provider settings. For Claude Code, the default is
 `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
 A per-dispatch model overrides the default.
 
+## Review
+
+`next.sh` prints `review` only when `prd.json` has `"review": true`. At
+`review`, do these steps on the task branch:
+
+1. Review the task PR. At `review`, `HEAD` equals the upstream, so a review of
+   the local diff is empty. In Claude Code, run `/code-review <pr>` with the
+   `pr` number from `prd.json`, or review the diff `<base>...HEAD`. In Codex,
+   Pi, or another harness, pick an option from the "Compare ways to get a
+   review" table at `https://code.claude.com/docs/en/code-review`. That page
+   is the reference for the review options.
+2. Repair each finding with a required fix per § Repair. After a reopened
+   story, `next.sh` prints these states in order: `story`, `push`, `ci`,
+   `review`.
+3. For a finding in a path with no owning story, apply § Close step 3: fold
+   the finding into the PR only under the conditions of that step. Otherwise,
+   propose an issue, or drop the finding with the reason. This finding does
+   not block the task.
+4. When a review pass leaves no finding to repair, write the SHA of the
+   reviewed commit to `reviewed` in `prd.json`.
+
+Close runs after `review` and writes the review findings to `## Lessons`
+(§ Close step 3). When `## Lessons` already has content at a review pass, add
+the findings of that pass to the same `## Lessons` section.
+
+The managed Code Review service skips draft pull requests. The PR is a draft
+at `review`, so the advisor does not wait for that service.
+
 ## Close
 
-When every story has `passes: true`, do these steps:
+When `review` is `true`, start Close after `review`. When every story has
+`passes: true`, do these steps:
 
 1. In the main checkout, validate the integrated result with the checks of the
    repository: lint, typecheck, test, and build. Record each exit status. When a
@@ -254,11 +315,14 @@ When every story has `passes: true`, do these steps:
    a job type, a command, or a file. When the evidence covers a different
    subject, mark the criterion `unmet`. When any criterion is `unmet`, do not
    report the task as done.
-3. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
+3. Write or extend `## Lessons` at the end of `prd.md`. Keep one
+   `## Lessons` section. Give each lesson a claim,
    evidence, and exactly one outcome:
    - fixed in this PR;
    - issue #N; or
    - dropped, with the reason.
+
+   When `review` is `true`, include each review finding in `## Lessons`.
 
    Fold a finding into the PR only when one of these conditions is true:
    its fix is in a file that the PR already changes and the PR caused or

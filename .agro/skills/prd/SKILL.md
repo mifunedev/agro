@@ -236,7 +236,7 @@ explicit operator statement. Writing or revising a plan is never approval.
 [`/delegate` § Task lifecycle](../delegate/SKILL.md#task-lifecycle) holds the approval scope.
 
 1. Open the issue. Do step 1 of § Draft PR for a task in [`.agro/skills/git/SKILL.md`](../git/SKILL.md). Record `<N>`.
-2. Convert `prd.md` to `.agro/tasks/<slug>/prd.json` with `--issue <N>`. Follow [`references/tracker.md`](references/tracker.md).
+2. Convert `prd.md` to `.agro/tasks/<slug>/prd.json` with `--issue <N>`. Follow [`references/tracker.md`](references/tracker.md). The conversion writes `"review": true` by default. `--no-review` turns the review off.
 3. Do steps 2 to 4 of § Draft PR for a task in [`.agro/skills/git/SKILL.md`](../git/SKILL.md).
 4. Run `/delegate <slug>`.
 

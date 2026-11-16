@@ -155,11 +155,12 @@ export function createFixture() {
 
   const ready = ({ prd = basePrd(), lessons = "None." } = {}) => {
     write("src/app.txt", "v1\n");
-    commit("code");
-    writePrd(prd);
+    const codeSha = commit("code");
+    writePrd(typeof prd === "function" ? prd(codeSha) : prd);
     writePrdMd(lessons);
     commit("task state");
     push();
+    return codeSha;
   };
 
   return {
