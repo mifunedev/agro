@@ -60,6 +60,20 @@ Status: DRAFT
 - [ ] With `"review": true`, the transcript shows this sequence: `story`, `push`, `ci`, `review`, `close`, `push`, `ci`, `ready`, `done`.
 - [ ] The story creates the temp repository under a new temp path, deletes the temp path at the end, and changes no existing task.
 
+### US-005: Turn the review on by default at conversion
+
+**Description:** As the operator, I want each new task to run the code review unless I opt out. `next.sh` keeps its rule, so tasks in flight do not change.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/skills/prd/references/tracker.md` tells the converter to write `"review": true` by default, and to write `"review": false` when the conversion has `--no-review`.
+- [ ] `tracker.md` no longer documents a `--review` flag.
+- [ ] The output schema example in `tracker.md` holds `"review": true`.
+- [ ] `.agro/skills/delegate/SKILL.md` § Task lifecycle states that the conversion turns the review on by default, that `--no-review` turns it off, and that `next.sh` skips the review when `review` is absent or `false`.
+- [ ] The `CHANGELOG.md` entry for #1658 states that new tasks run the code review by default.
+- [ ] `bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on `tracker.md` and on `.agro/skills/delegate/SKILL.md`.
+- [ ] `.agro/skills/delegate/scripts/next.sh` has no change in this story.
+
 ## Summary
 
 Today `/delegate` runs this state order: `story`, `close`, `push`, `ci`, `ci-red`, `ready`, `done`. Source: `.agro/skills/delegate/scripts/next.sh`. A code review runs outside the lifecycle, after `gh pr ready`.
@@ -122,6 +136,7 @@ The top-level fields `review` and `reviewed` in `.agro/tasks/<slug>/prd.json` st
 - `next.sh` stays the only state machine. `next.sh` reads `review` as the opt-in and checks only that `reviewed` is a non-empty string.
 - The review step is off by default. A task without `review` keeps the current state order, so tasks in flight do not change.
 - The operator opts in at conversion with `--review`, or edits `prd.json` before `/delegate` starts.
+- Revision (US-005, operator request): the conversion writes `"review": true` by default, and `--no-review` opts out. `next.sh` keeps absent as off, so tasks in flight do not change.
 - Close is the retro. The plan adds no separate retro state.
 - Review findings use § Repair. A worker repairs, and the advisor accepts.
 
