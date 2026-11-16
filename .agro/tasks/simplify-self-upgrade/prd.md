@@ -138,3 +138,9 @@ None
 - [ ] CI on the PR is green.
 
 ## Lessons
+
+1. Claim: the curl-install path does not need most of the old code. Evidence: `self-upgrade.ts` drops from 462 to 120 lines. The standalone path keeps four parts: the `#!` check, the `--version` run on the new file, the pinned Node shebang, and the same-directory rename. The manual review transcript shows an upgrade that keeps the fnm shebang at mode `755`. Outcome: fixed in this PR.
+2. Claim: the plan gave test commands in the form `pnpm --dir .agro/cli exec vitest run src/...`. That form finds no test files, because the only vitest config is at the repository root. Evidence: the US-001 worker report shows "No test files found" and exit 1, and the root-relative form exits 0. Outcome: fixed in this PR. The plan and `prd.json` now use root-relative paths.
+3. Claim: `.gitignore` ignores `.agro/tasks/*/evidence/`, so a plain `git add` skips the evidence files. Evidence: `git add` refused `evidence/manual-review.md`. `.agro/skills/git/references/manual-review.md` names `git add -f` as the remedy for a linked file. Outcome: dropped, because the documented remedy works. The PR links only the manual review file, so `baseline.md` stays local.
+4. Claim: a clipboard case in `bundle-identity.test.ts` fails under `umask 077`. Evidence: the US-002 worker saw a failure at line 167 under `umask 077`, and the case passes under the default umask and on CI. Outcome: dropped, because the case is a test-environment flake outside this change.
+5. Claim: an edit to any section of `docs/lifecycle-commands.md` makes the sandbox routing replay stale. Evidence: US-003 changed only the self-upgrade section, and US-004 needed 17 fresh agents to record the replay again. Outcome: dropped, because this is process cost and not a correctness or security risk.
