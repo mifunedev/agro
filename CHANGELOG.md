@@ -16,7 +16,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - `agro self-upgrade` runs `npm i -g @mifune/agro@latest` for an npm install under the global npm prefix, replaces an `install.sh` file in place, and refuses every other executable: an npm install under another prefix, a symbolic link, a file in a directory without write access, and a lower release version ([#1651](https://github.com/mifunedev/agro/issues/1651)).
-- Make `/delegate` run an opt-in code review before Close when prd.json sets `"review": true` (off by default), and mark the PR ready only after the retro ([#1658](https://github.com/mifunedev/agro/issues/1658)).
+- Make `/delegate` run a code review before Close for new tasks by default (`--no-review` opts out), and mark the PR ready only after the retro ([#1658](https://github.com/mifunedev/agro/issues/1658)).
 
 ### Removed
 

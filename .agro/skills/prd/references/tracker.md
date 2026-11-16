@@ -8,7 +8,7 @@ in the same folder. The folder name is the slug. Do not derive the slug again.
 - The task folder, for example `.agro/tasks/install-prereq-detection/`.
 - `--issue <N>`: the GitHub issue number. This argument is required.
 - `--prefix <feat|bug|task|audit|skill>`: the branch prefix. The default is `feat`.
-- `--review`: write `"review": true` at the top level of `prd.json`. This argument is optional.
+- `--no-review`: write `"review": false` at the top level of `prd.json`. This argument is optional. Without this argument, write `"review": true`.
 
 If `--issue` is missing, stop and write nothing. Print this message:
 "issue number required: open the GitHub issue first per `.agro/skills/git/SKILL.md`, then run again with `--issue <N>`."
@@ -21,6 +21,7 @@ If `--issue` is missing, stop and write nothing. Print this message:
   "project": "<project name>",
   "branchName": "<prefix>/<N>-<slug>",
   "description": "<feature description from the prd.md title and summary>",
+  "review": true,
   "userStories": [
     {
       "id": "US-001",
@@ -58,7 +59,7 @@ The task also has optional top-level fields:
 - `reviewed`: the SHA of the reviewed commit. The advisor writes this field after the review. When `review` is `true` and this string is not empty, `next.sh` continues to Close.
 
 The optional fields need no `schemaVersion` change. Each tool must accept a file without them.
-Omit `commit`, `rounds`, `pr`, `blocked`, and `reviewed` at conversion time. Write `review` only when the conversion has `--review`.
+Omit `commit`, `rounds`, `pr`, `blocked`, and `reviewed` at conversion time. Write `"review": true` at conversion time. When the conversion has `--no-review`, write `"review": false`.
 `bash .agro/skills/delegate/scripts/next.sh` reads these fields and prints the next task state.
 
 ## Field ownership

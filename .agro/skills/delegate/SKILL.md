@@ -14,7 +14,7 @@ argument-hint: "[<task-slug> | --plan <path>] [--dry-run]"
 ## Task lifecycle
 
 An explicit operator approval of the plan authorizes the full run: the issue,
-`prd.json`, the draft PR, all waves, the opt-in review, Close, the push, and
+`prd.json`, the draft PR, all waves, the review, Close, the push, and
 `gh pr ready`. The
 merge stays with the operator. This section is the only copy of the approval
 scope.
@@ -26,12 +26,14 @@ only at `done`, `blocked`, or `none`. If an action needs live spend, set
 during the run, set `blocked` in `prd.json` with the question as the reason.
 The Stop hook allows the stop at `blocked`.
 
-The review step is off by default. Without the opt-in, `next.sh` prints the
-states in this order: `story`, `close`, `push`, `ci`, `ready`, `done`.
-`"review": true` in `prd.json` turns the review step on. With the opt-in,
-`next.sh` prints the states in this order: `story`, `push`, `ci`, `review`,
-`close`, `push`, `ci`, `ready`, `done`. In both orders, `ci-red` can follow
-`ci`. The state table lists the states in the opt-in order.
+The tracker conversion turns the review step on by default: it writes
+`"review": true` in `prd.json`. The conversion flag `--no-review` turns the
+review step off: it writes `"review": false`. When `review` is absent or
+`false`, `next.sh` skips the review step. Without the review step, `next.sh` prints
+the states in this order: `story`, `close`, `push`, `ci`, `ready`, `done`. When
+`review` is `true`, `next.sh` prints the states in this order: `story`, `push`,
+`ci`, `review`, `close`, `push`, `ci`, `ready`, `done`. In both orders,
+`ci-red` can follow `ci`. The state table lists the states in the review order.
 
 ```text
  OPERATOR            ADVISOR (/delegate, next.sh loop)              WORKERS / CI
@@ -40,7 +42,7 @@ states in this order: `story`, `close`, `push`, `ci`, `ready`, `done`.
                 story <id> ──dispatch──────────────────────────▶ worker
                    ▲  verify → passes:true ◀──report────────────┘
                    └─ next story / wave
-                ┌─ review: true (opt-in) ──────────────────────────┐
+                ┌─ review: true (default) ─────────────────────────┐
                 │ push → ci ──ci-red──▶ reopen owning story        │
                 │ review: harness review → repair → reviewed=<sha> │
                 └──────────────────────────────────────────────────┘
