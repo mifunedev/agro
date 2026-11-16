@@ -991,6 +991,7 @@ describe("parseSandboxArgs — upgrade", () => {
     expect(text).toContain("agro sandbox upgrade <name> --version <X.Y.Z>");
     expect(text).toContain("agro sandbox install <runtime>");
     expect(text).toContain("agro sandbox list [--json]");
+    expect(text).not.toContain("Runtimes:");
   });
 });
 

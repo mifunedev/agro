@@ -9,7 +9,7 @@ import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
 import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, agroConfigPath, isRetiredRuntime, readAgroConfig, type AgroConfig } from "./agro-config.js";
+import { configCheckout, agroConfigPath, readAgroConfig, type AgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
 import { egressAllowHosts } from "./egress-policy.js";
 import { isDirectory } from "./project.js";
@@ -52,7 +52,12 @@ export function listEntries(): string[] {
 }
 
 export function entryRepo(name: string): string | undefined {
-  const config = readAgroConfig(agroConfigPath(entryRoot(name)));
+  let config: AgroConfig;
+  try {
+    config = readAgroConfig(agroConfigPath(entryRoot(name)));
+  } catch {
+    return undefined;
+  }
   const checkout = configCheckout(config);
   return checkout === undefined ? undefined : resolve(checkout);
 }
@@ -93,14 +98,6 @@ interface MaterializedFile {
   mode: number;
 }
 
-function safeReadAgroConfig(entry: string): AgroConfig {
-  try {
-    return readAgroConfig(agroConfigPath(entry));
-  } catch {
-    return { version: 1 };
-  }
-}
-
 function dockerFiles(entry: string, opts: MaterializeOptions, config: AgroConfig): MaterializedFile[] {
   const scripts = join(resolveProjectLayout(entry).controlDir, "scripts");
   const files: MaterializedFile[] = [
@@ -128,8 +125,7 @@ function dockerFiles(entry: string, opts: MaterializeOptions, config: AgroConfig
 
 export function materialize(root: string, opts: MaterializeOptions = {}): void {
   const entry = resolve(root);
-  const config = safeReadAgroConfig(entry);
-  if (isRetiredRuntime(config.runtime)) return;
+  const config = readAgroConfig(agroConfigPath(entry));
   const files = dockerFiles(entry, opts, config);
   for (const file of files) {
     const dest = resolve(file.dest);

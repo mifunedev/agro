@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { basename, dirname, resolve } from "node:path";
 import { assertInRoot } from "./env-file.js";
 import { NAMES, resolveProjectLayout } from "./layout.js";
-import { PROVISIONABLE_RUNTIMES, type ProvisionableRuntimeId } from "./runtimes/catalog.js";
 
 const AGRO_CONFIG_FILE = NAMES.configFile;
 const AGRO_CONFIG_MODE = 0o644;
@@ -90,22 +89,12 @@ export interface RunSettings {
 
 const SERVICE_NAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
-export type SandboxRuntime = ProvisionableRuntimeId;
-
-export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = PROVISIONABLE_RUNTIMES;
-
-export const RETIRED_RUNTIMES = ["openshell"] as const;
-
-export type RetiredRuntime = (typeof RETIRED_RUNTIMES)[number];
-
-export function isRetiredRuntime(value: unknown): value is RetiredRuntime {
-  return (RETIRED_RUNTIMES as readonly unknown[]).includes(value);
-}
+export const SANDBOX_RUNTIME = "docker" as const;
 
 export interface AgroConfig {
   version: 1;
   name?: string;
-  runtime?: SandboxRuntime | RetiredRuntime;
+  runtime?: typeof SANDBOX_RUNTIME;
   repo?: string;
   checkout?: string;
   timezone?: string;
@@ -151,32 +140,22 @@ export function defaultAgroConfig(name: string): AgroConfig {
   };
 }
 
-export class RetiredRuntimeError extends Error {
+export class InvalidSandboxEntryError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "RetiredRuntimeError";
+    this.name = "InvalidSandboxEntryError";
   }
 }
 
-export function retiredRuntimeRefusal(root: string): string | undefined {
-  let config: AgroConfig;
+export function assertValidEntry(root: string, command: string): AgroConfig {
+  const path = agroConfigPath(root);
   try {
-    config = readAgroConfig(agroConfigPath(root));
-  } catch {
-    return undefined;
+    return readAgroConfig(path);
+  } catch (error) {
+    throw new InvalidSandboxEntryError(
+      `${command}: ${messageOf(error)}\n${command}: fix ${path}, or remove the entry ${resolve(root)}`,
+    );
   }
-  if (!isRetiredRuntime(config.runtime)) return undefined;
-  const entry = resolve(root);
-  const name = config.name !== undefined && config.name !== "" ? config.name : basename(entry);
-  return (
-    `the sandbox ${name} uses the retired openshell runtime; ` +
-    `run \`openshell sandbox delete ${name}\`, then remove the entry ${entry}`
-  );
-}
-
-export function assertActiveRuntime(root: string, command: string): void {
-  const refusal = retiredRuntimeRefusal(root);
-  if (refusal !== undefined) throw new RetiredRuntimeError(`${command}: ${refusal}`);
 }
 
 export function readAgroConfig(path: string): AgroConfig {
@@ -227,7 +206,7 @@ export function validateAgroConfig(value: unknown): AgroConfig {
   }
 
   expectString(record, "name");
-  if (!isRetiredRuntime(record.runtime)) expectEnum(record, "runtime", "", SANDBOX_RUNTIMES);
+  expectEnum(record, "runtime", "", [SANDBOX_RUNTIME]);
   expectString(record, "repo");
   expectString(record, "checkout");
   expectString(record, "timezone");
@@ -412,7 +391,6 @@ export interface AgroConfigField {
 
 export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "name", type: "string" },
-  { path: "runtime", type: "enum", values: SANDBOX_RUNTIMES },
   { path: "repo", type: "string" },
   { path: "checkout", type: "string" },
   { path: "timezone", type: "string" },

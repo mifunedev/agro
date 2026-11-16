@@ -16,8 +16,7 @@ Run these commands on the host:
 
 ```bash
 agro sandbox install docker    # create a sandbox on the Docker runtime
-agro sandbox list              # every sandbox: name, runtime, status, checkout
-agro sandbox --help            # the runtime catalog and the state of each runtime
+agro sandbox list              # every sandbox: name, status, checkout
 ```
 
 `agro sandbox install docker` writes a registry entry under
@@ -46,13 +45,13 @@ the sandbox. The sandbox does not mount the host Docker socket
 | [Docker container](#the-docker-daemon) | shared host kernel, namespaces and cgroups | provisionable | `agro sandbox install docker` |
 | [MicroSandbox](microsandbox.md) | microVM with its own kernel, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary only |
 
-`agro sandbox install microsandbox` exits with this error:
+`agro sandbox install` with any runtime other than `docker` exits 1 with this
+error:
 
 ```text
-agro sandbox install: microsandbox is not a provisionable runtime yet; see
-https://github.com/mifunedev/agro/issues/592. Inside a sandbox run `agro tool install microsandbox`.
+agro sandbox install: unknown runtime "microsandbox" — the only runtime is docker
 ```
 
-Each registry entry records the runtime that created the entry: `runtime:
-"docker"` in its `agro.json`. No configuration field
-selects another runtime.
+A new registry entry does not record a runtime. The `runtime` field in
+`agro.json` is a legacy field, and its only accepted value is `docker`. See
+[Configuration → Identity](../configuration.md#identity).

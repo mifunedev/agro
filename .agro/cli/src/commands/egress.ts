@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { agroConfigPath, assertActiveRuntime, readAgroConfig } from "../lib/agro-config.js";
+import { agroConfigPath, assertValidEntry, readAgroConfig } from "../lib/agro-config.js";
 import { assertSpawned, requireLifecycleScript, spawnRunner, type RunResult } from "../lib/execution/runner.js";
 import { materialize, resolveSandboxRoot } from "../lib/registry.js";
 import type { EgressVerb } from "../command-table.js";
@@ -36,7 +36,7 @@ function rematerialize(root: string): void {
 export function runEgress(verb: EgressVerb, opts: SandboxTargetOptions, io: LifecycleIO): number {
   const run = opts.run ?? spawnRunner;
   const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
-  assertActiveRuntime(root, `${opts.bin} egress ${verb}`);
+  assertValidEntry(root, `${opts.bin} egress ${verb}`);
   const name = basename(root);
   const refused = refusal(root, name);
   if (refused !== undefined) {

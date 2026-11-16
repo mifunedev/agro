@@ -49,7 +49,7 @@ checkout. To bind your own checkout at `/home/sandbox/harness`, see
 ## 3. Enter the sandbox
 
 ```bash
-agro sandbox list   # name, runtime, status, checkout
+agro sandbox list   # name, status, checkout
 agro shell <name>   # zsh in the container, as the sandbox user
 ```
 

@@ -3,7 +3,6 @@ import { runSandboxList } from "../commands/sandbox-list.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
 import { AGRO_PRODUCT, stateNames } from "../lib/product.js";
 import { DEFAULT_NAME_PREFIX } from "../lib/registry.js";
-import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
 import { AGRO_VERSION as VERSION, officialImageRef, parseReleaseVersion } from "../lib/version.js";
 import type { SandboxSubcommand } from "../command-table.js";
 
@@ -13,13 +12,6 @@ export type ParseResult<T> =
 
 export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
-}
-
-export function runtimeLines(): string {
-  const width = Math.max(...RUNTIME_CATALOG.map((r) => r.id.length));
-  return RUNTIME_CATALOG.map(
-    (r) => `  ${r.id.padEnd(width)}  ${r.provisionable ? "provisionable" : "planned"}`,
-  ).join("\n");
 }
 
 export function printSandboxHelp(bin: string = AGRO_PRODUCT.bin): void {
@@ -70,9 +62,6 @@ Flags:
   --print-argv     Print the docker compose argv that would run, then exit
                    without writing an entry
   --json           Machine-readable output (list)
-
-Runtimes:
-${runtimeLines()}
 
 Next: ${bin} shell <name>
 `);

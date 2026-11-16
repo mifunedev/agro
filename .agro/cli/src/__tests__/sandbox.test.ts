@@ -6,7 +6,6 @@ import { runSandboxInstall, runSandboxList, type SandboxIO } from "../commands/s
 import { entryRoot, materialize } from "../lib/registry.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
-import { runtimeLines } from "../controllers/sandbox.js";
 import { renderComposeVars } from "../lib/config-render.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
@@ -294,42 +293,30 @@ describe("agro sandbox upgrade", () => {
 });
 
 describe("agro sandbox install — runtime selection", () => {
-  it.each(["agro", "agro"])(
-    "refuses microsandbox with the RFC pointer and the %s tool verb",
-    async (bin) => {
-      registry();
+  it.each(["microsandbox", "openshell", "podman"])(
+    "refuses the %s runtime and writes no entry",
+    async (runtime) => {
+      const registryPath = registry();
       const { err, io } = makeIo();
-      expect(await runSandboxInstall({ bin, runtime: "microsandbox", yes: true }, io)).toBe(1);
-      expect(err.join("")).toContain(
-        "microsandbox is not a provisionable runtime yet; see https://github.com/mifunedev/agro/issues/592. " +
-          `Inside a sandbox run \`${bin} tool install microsandbox\`.`,
+      expect(await runSandboxInstall({ bin: "agro", runtime, yes: true }, io)).toBe(1);
+      expect(err.join("")).toBe(
+        `agro sandbox install: unknown runtime "${runtime}" — the only runtime is docker\n`,
       );
+      expect(existsSync(registryPath)).toBe(false);
     },
   );
 
-  it("refuses an unknown runtime and lists the catalog", async () => {
-    registry();
-    const { err, io } = makeIo();
-    expect(await runSandboxInstall({ bin: "agro", runtime: "podman", yes: true }, io)).toBe(1);
-    expect(err.join("")).toContain('unknown runtime "podman"');
-    expect(err.join("")).toContain("docker, microsandbox");
-  });
-
-  it("refuses the retired runtime as an unknown runtime and writes no entry", async () => {
-    const retired = ["open", "shell"].join("");
+  it("writes no runtime field into the entry agro.json", async () => {
     const registryPath = registry();
-    const { err, io } = makeIo();
-    expect(await runSandboxInstall({ bin: "agro", runtime: retired, yes: true }, io)).toBe(1);
-    expect(err.join("")).toBe(
-      `agro sandbox install: unknown runtime "${retired}" — known runtimes: docker, microsandbox\n`,
-    );
-    expect(existsSync(registryPath)).toBe(false);
-  });
-
-  it("writes no entry for a refused runtime", async () => {
-    const registryPath = registry();
-    await runSandboxInstall({ bin: "agro", runtime: "microsandbox", yes: true }, makeIo().io);
-    expect(existsSync(registryPath)).toBe(false);
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "plain", yes: true, run: makeRunner().run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const raw = readJson(agroConfigPath(join(registryPath, "plain")));
+    expect(raw).not.toHaveProperty("runtime");
+    expect(raw.name).toBe("plain");
   });
 });
 
@@ -723,9 +710,9 @@ describe("agro sandbox list", () => {
 
     expect(await runSandboxList({ bin: "agro", run }, io)).toBe(0);
     expect(out.join("")).toBe(
-      "alpha        docker  ready    /srv/alpha\n" +
-        "longer-name  docker  stopped  /srv/legacy\n" +
-        "zeta         docker  stopped  -\n",
+      "alpha        ready    /srv/alpha\n" +
+        "longer-name  stopped  /srv/legacy\n" +
+        "zeta         stopped  -\n",
     );
     expect(err).toEqual([]);
     expect(calls).toEqual(["alpha", "longer-name", "zeta"].map((name) => ({
@@ -747,9 +734,9 @@ describe("agro sandbox list", () => {
 
     expect(await runSandboxList({ bin: "agro", json: true, run }, io)).toBe(0);
     expect(out.join("")).toBe(`${JSON.stringify([
-      { name: "alpha", runtime: "docker", checkout: "/srv/current", repo: "/srv/current", status: "ready" },
-      { name: "beta", runtime: "docker", checkout: "/srv/legacy", repo: "/srv/legacy", status: "stopped" },
-      { name: "zeta", runtime: "docker", checkout: "-", repo: "-", status: "stopped" },
+      { name: "alpha", checkout: "/srv/current", repo: "/srv/current", status: "ready" },
+      { name: "beta", checkout: "/srv/legacy", repo: "/srv/legacy", status: "stopped" },
+      { name: "zeta", checkout: "-", repo: "-", status: "stopped" },
     ], null, 2)}\n`);
     expect(err).toEqual([]);
   });
@@ -765,12 +752,12 @@ describe("agro sandbox list", () => {
     const { out, err, io } = makeIo();
 
     expect(await runSandboxList({ bin: "agro", run }, io)).toBe(0);
-    expect(out).toEqual(["alpha  docker  absent  -\n"]);
+    expect(out).toEqual(["alpha  absent  -\n"]);
     expect(err).toEqual([]);
     expect(calls).toEqual([{ cmd: "docker", args: ["inspect", "-f", "{{.State.Status}}", "alpha"] }]);
   });
 
-  it("prints one row per entry with runtime, status and repo", async () => {
+  it("prints one row per entry with status and checkout", async () => {
     registry();
     seed("alpha");
     seed("beta", { repo: "/srv/checkout" });
@@ -785,8 +772,8 @@ describe("agro sandbox list", () => {
     expect(await runSandboxList({ bin: "agro", run }, io)).toBe(0);
     const rows = out.join("").trimEnd().split("\n");
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatch(/^alpha\s+docker\s+ready\s+-$/);
-    expect(rows[1]).toMatch(/^beta\s+docker\s+stopped\s+\/srv\/checkout$/);
+    expect(rows[0]).toMatch(/^alpha\s+ready\s+-$/);
+    expect(rows[1]).toMatch(/^beta\s+stopped\s+\/srv\/checkout$/);
   });
 
   it("--json emits the same rows as data", async () => {
@@ -799,7 +786,6 @@ describe("agro sandbox list", () => {
     expect(JSON.parse(out.join(""))).toEqual([
       {
         name: "alpha",
-        runtime: "docker",
         checkout: "/srv/checkout",
         repo: "/srv/checkout",
         status: "absent",
@@ -821,7 +807,7 @@ describe("agro sandbox list", () => {
     for (const row of rows) expect(row.repo).toBe(row.checkout);
   });
 
-  it("--json orders the keys name, runtime, checkout, repo, status", async () => {
+  it("--json orders the keys name, checkout, repo, status", async () => {
     registry();
     seed("alpha", { checkout: "/srv/checkout" });
     const run: LifecycleRunner = () => ({ status: 1 });
@@ -829,7 +815,7 @@ describe("agro sandbox list", () => {
 
     expect(await runSandboxList({ bin: "agro", json: true, run }, io)).toBe(0);
     const [row] = JSON.parse(out.join("")) as Record<string, string>[];
-    expect(Object.keys(row)).toEqual(["name", "runtime", "checkout", "repo", "status"]);
+    expect(Object.keys(row)).toEqual(["name", "checkout", "repo", "status"]);
   });
 
   it("keeps the human table free of the alias — one checkout column, unchanged", async () => {
@@ -847,32 +833,36 @@ describe("agro sandbox list", () => {
 
     expect(await runSandboxList({ bin: "agro", run }, io)).toBe(0);
     expect(out.join("")).toBe(
-      "alpha             docker  ready    -\n" +
-        "beta-longer-name  docker  stopped  /srv/checkout\n" +
-        "gamma             docker  stopped  /very/long/path/to/a/checkout\n",
+      "alpha             ready    -\n" +
+        "beta-longer-name  stopped  /srv/checkout\n" +
+        "gamma             stopped  /very/long/path/to/a/checkout\n",
     );
   });
 
-  it("lists an entry with the retired openshell runtime without probing it", async () => {
+  it.each([
+    ["an openshell runtime", JSON.stringify({ version: 1, name: "old-box", runtime: "openshell", checkout: "/srv/old" }), "agro.json: runtime must be one of docker"],
+    ["malformed JSON", "{ not json", "agro.json is not valid JSON"],
+  ])("skips an entry with %s, warns once, and probes only healthy entries", async (_label, body, detail) => {
     registry();
     seed("alpha");
-    seed("old-box", { runtime: "openshell", checkout: "/srv/old" });
+    seed("old-box");
+    writeFileSync(join(registryRootPath(), "old-box", "agro.json"), body);
     const { calls, run } = makeRunner();
+
     const text = makeIo();
     expect(await runSandboxList({ bin: "agro", run }, text.io)).toBe(0);
-    expect(text.out.join("")).toBe(
-      "alpha    docker               failed   -\n" +
-        "old-box  openshell (retired)  retired  /srv/old\n",
-    );
-    expect(text.err).toEqual([]);
+    expect(text.out.join("")).toBe("alpha  failed  -\n");
+    expect(text.err).toHaveLength(1);
+    expect(text.err[0]).toMatch(/^agro sandbox list: skipped old-box: .*\n$/);
+    expect(text.err[0]).toContain(detail);
     expect(calls.map((c) => c.args.at(-1))).toEqual(["alpha"]);
 
     const json = makeIo();
     expect(await runSandboxList({ bin: "agro", json: true, run }, json.io)).toBe(0);
     expect(JSON.parse(json.out.join(""))).toEqual([
-      { name: "alpha", runtime: "docker", checkout: "-", repo: "-", status: "failed" },
-      { name: "old-box", runtime: "openshell (retired)", checkout: "/srv/old", repo: "/srv/old", status: "retired" },
+      { name: "alpha", checkout: "-", repo: "-", status: "failed" },
     ]);
+    expect(json.err).toEqual(text.err);
   });
 
   it("points at the install verb when the registry is empty", async () => {
