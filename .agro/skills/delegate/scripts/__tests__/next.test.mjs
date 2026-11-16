@@ -578,3 +578,141 @@ describe("state order", () => {
     expectState(fx.run([], { GH_STUB_CHECKS: "pending", GH_STUB_DRAFT: "true" }), "ci");
   });
 });
+
+describe("review opt-in", () => {
+  const REVIEW_ACTION = "Run the code review per /delegate § Review, then write reviewed in prd.json.";
+  const reviewPrd = (overrides = {}) => basePrd({ review: true, ...overrides });
+
+  test("review false keeps close before push", () => {
+    fx.ready({ prd: basePrd({ review: false }), lessons: null });
+    fx.write(`.agro/tasks/${SLUG}/evidence/x.md`, "x\n");
+    fx.commit("unpushed task commit");
+    expectState(fx.run(), "close");
+  });
+
+  test("review false prints ready after green CI", () => {
+    fx.ready({ prd: basePrd({ review: false }) });
+    expectState(fx.run(), "ready", "Run gh pr ready 7.");
+  });
+
+  test("review false prints done when the PR is not a draft", () => {
+    fx.ready({ prd: basePrd({ review: false }) });
+    expectState(fx.run([], { GH_STUB_DRAFT: "false" }), "done");
+  });
+
+  test("a review value other than JSON true keeps the review step off", () => {
+    fx.ready({ prd: basePrd({ review: "true" }) });
+    expectState(fx.run(), "ready");
+  });
+
+  test("review true without reviewed prints review after green CI", () => {
+    fx.ready({ prd: reviewPrd() });
+    expectState(fx.run(), "review", REVIEW_ACTION);
+  });
+
+  test("review true with an empty reviewed prints review after green CI", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "" }) });
+    expectState(fx.run(), "review", REVIEW_ACTION);
+  });
+
+  test("review true with a non-string reviewed prints review", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: 1 }) });
+    expectState(fx.run(), "review");
+  });
+
+  test("review true prints review and not close when Lessons is empty", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    expectState(fx.run(), "review", REVIEW_ACTION);
+  });
+
+  test("review true prints review and not done when the PR is not a draft", () => {
+    fx.ready({ prd: reviewPrd() });
+    expectState(fx.run([], { GH_STUB_DRAFT: "false" }), "review");
+  });
+
+  test("review true prints push before review", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    fx.write(`.agro/tasks/${SLUG}/evidence/x.md`, "x\n");
+    fx.commit("unpushed task commit");
+    expectState(fx.run(), "push", "Run git push.");
+  });
+
+  test("review true prints push before review when the branch has no upstream", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    fx.git("branch", "--unset-upstream");
+    expectState(fx.run(), "push");
+  });
+
+  test("review true prints ci before review when a check is pending", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    expectState(fx.run([], { GH_STUB_CHECKS: "pass pending" }), "ci", "Run /ci-status and wait for the result.");
+  });
+
+  test("review true prints ci before review when no checks are reported", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    expectState(fx.run([], { GH_STUB_CHECKS: "" }), "ci");
+  });
+
+  test("review true prints ci before review when the PR head is stale", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    expectState(fx.run([], { GH_STUB_HEAD: "f".repeat(40) }), "ci");
+  });
+
+  test("review true prints ci-red before review when a check failed", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    expectState(
+      fx.run([], { GH_STUB_CHECKS: "pass fail" }),
+      "ci-red",
+      "Reopen the story that owns the failing path per /delegate § Acceptance.",
+    );
+  });
+
+  test("review true prints ci-red before review when a check was cancelled", () => {
+    fx.ready({ prd: reviewPrd(), lessons: null });
+    expectState(fx.run([], { GH_STUB_CHECKS: "cancel" }), "ci-red");
+  });
+
+  test("review true with reviewed set prints close when Lessons is empty", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }), lessons: null });
+    expectState(fx.run(), "close");
+  });
+
+  test("review true with reviewed set prints close before push", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }), lessons: "\n\n" });
+    fx.write(`.agro/tasks/${SLUG}/evidence/x.md`, "x\n");
+    fx.commit("unpushed task commit");
+    expectState(fx.run(), "close");
+  });
+
+  test("review true with reviewed set and Lessons prints push", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    fx.writePrdMd("Updated lesson.");
+    fx.commit("unpushed");
+    expectState(fx.run(), "push");
+  });
+
+  test("review true with reviewed set and Lessons prints ci when a check is pending", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    expectState(fx.run([], { GH_STUB_CHECKS: "pending" }), "ci");
+  });
+
+  test("review true with reviewed set and Lessons prints ci-red when a check failed", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    expectState(fx.run([], { GH_STUB_CHECKS: "fail" }), "ci-red");
+  });
+
+  test("review true with reviewed set and Lessons prints ready when the PR is a draft", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    expectState(fx.run(), "ready", "Run gh pr ready 7.");
+  });
+
+  test("review true with reviewed set and Lessons prints done when the PR is not a draft", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    expectState(fx.run([], { GH_STUB_DRAFT: "false" }), "done", "Stop.");
+  });
+
+  test("review true still prints story before review", () => {
+    fx.ready({ prd: reviewPrd({ userStories: [story("US-001", { passes: false })] }) });
+    expectState(fx.run(), "story US-001");
+  });
+});
