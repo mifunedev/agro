@@ -124,8 +124,8 @@
         "`.agro/skills/delegate/scripts/next.sh` has no change in this story."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "Advisor diff review of b0f17093: AC1 reasoned tracker.md:11,62 (--no-review writes false, default true); AC2 executed grep finds no --review; AC3 reasoned tracker.md:24 schema has \"review\": true; AC4 reasoned delegate/SKILL.md:29-36; AC5 reasoned CHANGELOG #1658 entry says default on; AC6 executed ste-check exit 0 on both; AC7 executed git diff --quiet next.sh exit 0. Executed: vitest hermes-links, standard-skills-link, next, hooks exit 0 (362 passed). Review repair round 1 (4542aee2): § Review runs /code-review <pr>; § Repair clears reviewed on reopen; diagram label set at conversion; review loop described; prd SKILL §7 names --no-review. Executed: ste-check delegate/SKILL.md and prd/SKILL.md exit 0; hermes-links + standard-skills-link tests exit 0. Review repair round 2 (3efc74bd): manual reviewed delete removed; review repairs keep rounds; findings go to Lessons at review time; unowned findings follow Close step 3; tracker and git Ready check describe the stale-review rule. Executed: ste-check exit 0 on delegate/SKILL.md, tracker.md, git/SKILL.md; related vitest exit 0.",
+      "passes": true,
+      "notes": "Advisor diff review of b0f17093: AC1 reasoned tracker.md:11,62 (--no-review writes false, default true); AC2 executed grep finds no --review; AC3 reasoned tracker.md:24 schema has \"review\": true; AC4 reasoned delegate/SKILL.md:29-36; AC5 reasoned CHANGELOG #1658 entry says default on; AC6 executed ste-check exit 0 on both; AC7 executed git diff --quiet next.sh exit 0. Executed: vitest hermes-links, standard-skills-link, next, hooks exit 0 (362 passed). Review repair round 1 (4542aee2): § Review runs /code-review <pr>; § Repair clears reviewed on reopen; diagram label set at conversion; review loop described; prd SKILL §7 names --no-review. Executed: ste-check delegate/SKILL.md and prd/SKILL.md exit 0; hermes-links + standard-skills-link tests exit 0. Review repair round 2 (3efc74bd): manual reviewed delete removed; review repairs keep rounds; findings go to Lessons at review time; unowned findings follow Close step 3; tracker and git Ready check describe the stale-review rule. Executed: ste-check exit 0 on delegate/SKILL.md, tracker.md, git/SKILL.md; related vitest exit 0. Repair round 3 (6ee971ac, operator-approved simplification): review repairs count toward rounds; findings go to Lessons at Close, late passes extend the one section; staleness wording matches next.sh; git Ready defers to next.sh. Executed: ste-check exit 0 on 3 skill files; related vitest exit 0.",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -137,7 +137,7 @@
         ".agro/skills/prd/SKILL.md",
         ".agro/skills/git/SKILL.md"
       ],
-      "commit": "3efc74bd",
+      "commit": "6ee971ac",
       "rounds": 2
     }
   ],
