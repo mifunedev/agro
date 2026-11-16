@@ -22,7 +22,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Removed
 
 - Remove the one-time star prompt after `agro sandbox install` and its `AGRO_NO_STAR_PROMPT` variable ([#1651](https://github.com/mifunedev/agro/issues/1651)).
-- Remove the OpenShell runtime and `agro sandbox install openshell`. `agro sandbox list` skips an invalid entry with one warning, and each other verb exits 1 with the error and a remedy ([#1660](https://github.com/mifunedev/agro/issues/1660)).
+- Remove the OpenShell runtime and `agro sandbox install openshell`. `agro sandbox list` skips an invalid entry. Each verb that targets the entry exits 1 with the error and a remedy. For an OpenShell entry, the remedy names `openshell sandbox delete <name>` ([#1660](https://github.com/mifunedev/agro/issues/1660)).
+- Remove `docs/runtimes/openshell.md` and the `openshell-journey.sh` validation check ([#1652](https://github.com/mifunedev/agro/issues/1652)).
 - Remove the `runtime` column of `agro sandbox list`, the `runtime` key of `agro sandbox list --json`, and `agro config set runtime` ([#1660](https://github.com/mifunedev/agro/issues/1660)).
 - Remove `agro node`. Use `agro hands --provider console --operator` for console VMs ([#1654](https://github.com/mifunedev/agro/issues/1654)).
 
