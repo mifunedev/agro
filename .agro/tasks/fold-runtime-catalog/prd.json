@@ -15,14 +15,14 @@
         "`AGRO_CONFIG_FIELDS` has no `runtime` entry, so `agro config set runtime docker` exits non-zero as an unknown key.",
         "`seedConfig` in `commands/sandbox.ts` writes no `runtime` field. A test reads the `agro.json` that `agro sandbox install docker --yes` writes and finds no `runtime` key.",
         "`agro sandbox install docker` keeps working: the existing install tests pass with the positional `docker`.",
-        "`agro sandbox install` with no positional exits 1 with `a runtime is required, e.g. \\`agro sandbox install docker\\``. `agro sandbox install microsandbox` and `agro sandbox install openshell` exit 1 with `agro sandbox install: unknown runtime \"<value>\" \u2014 the only runtime is docker` and write no entry.",
+        "`agro sandbox install` with no positional exits 1 with `a runtime is required, e.g. \\`agro sandbox install docker\\``. `agro sandbox install microsandbox` and `agro sandbox install openshell` exit 1 with `agro sandbox install: unknown runtime \"<value>\" — the only runtime is docker` and write no entry.",
         "`agro sandbox --help` prints no `Runtimes:` section.",
         "`agro run -- pnpm run typecheck` exits 0.",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed by advisor: test ! -e lib/runtimes (ok); git grep of catalog symbols exit 1 (no match); agro run -- pnpm run typecheck exit 0; agro run -- pnpm test exit 0 (125 files, 3458 tests; -1 vs baseline from merged cases). Tests cover: SANDBOX_RUNTIME export and validation (agro-config.test.ts); runtime absent from AGRO_CONFIG_FIELDS, config set runtime -> unknown agro.json field (agro-config.test.ts); install writes no runtime key, unknown runtime refusal for microsandbox/openshell/podman with no entry (sandbox.test.ts); missing positional error and no Runtimes: in help (lifecycle.test.ts). Install docker tests pass (sandbox.test.ts).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/runtimes/catalog.ts",
@@ -37,7 +37,8 @@
         ".agro/cli/src/lib/__tests__/config-render.test.ts",
         ".agro/cli/src/__tests__/compose-verbs.test.ts",
         ".agro/cli/src/__tests__/execution-target.test.ts"
-      ]
+      ],
+      "commit": "5c7dfda9"
     },
     {
       "id": "US-002",
@@ -125,5 +126,6 @@
         ".agro/tasks/fold-runtime-catalog/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1661
 }
