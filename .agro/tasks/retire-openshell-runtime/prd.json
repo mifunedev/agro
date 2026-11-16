@@ -44,8 +44,8 @@
         "`docs/configuration.md` and `docs/security-considerations.md` link `.devcontainer/egress-policy.yaml`, and `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Round 1 extended files with sandbox-skill.test.ts (heading and checks counts); repair commit 6b0cae68. 1 executed: test -e on both paths, neither exists; git grep openshell-journey matches only CHANGELOG. 2 executed: grep -c -i openshell validation.md = 0; worker renumbered Third..Fifth and anchors; sandbox-skill.test.ts passes. 3 executed: R8 prompt says persistent Docker workspace; jq shows oracle unchanged. 4 executed: grep openshell in helper and routing test prints nothing. 5 executed: CHANGELOG Unreleased has ### Removed entry linking #1652. 6 executed: git grep with the three exclusions exit 1. 7 executed: ste-check.sh exit 0 on all 9 changed Markdown files. 8 executed: both docs link ../.devcontainer/egress-policy.yaml; docs-reference.test.ts passes in full run. Full run: agro run -- pnpm test exit 1, 3439/3440 pass; the one failure is the stale observed replay in sandbox-routing.test.ts that US-003 re-records.",
       "dependsOn": [
         "US-001"
       ],
@@ -55,8 +55,11 @@
         "CHANGELOG.md",
         ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
         ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
-        ".agro/scripts/__tests__/sandbox-routing.test.ts"
-      ]
+        ".agro/scripts/__tests__/sandbox-routing.test.ts",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts"
+      ],
+      "commit": "6b0cae68",
+      "rounds": 1
     },
     {
       "id": "US-003",
