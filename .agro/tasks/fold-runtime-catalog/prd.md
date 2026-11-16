@@ -148,3 +148,9 @@ None
 - [ ] The PR is ready for review with green CI.
 
 ## Lessons
+
+- Claim: `materialize` fell back to `{ version: 1 }` when the function could not read `agro.json`, so a verb could write docker files into an invalid entry. Evidence: `safeReadAgroConfig` in `lib/registry.ts` at `581343a5`. Outcome: fixed in this PR. `materialize` now reads strictly, and each targeted verb validates the entry before `materialize` (`90377912`).
+- Claim: the `docs/lifecycle-commands.md` table says that `agro sandbox list` shows every registry entry, but the verb skips an invalid entry. Evidence: commit `58a7e35c`. Outcome: dropped. The verb still reports each entry, as a row or as one warning line, and `docs/configuration.md` documents the warning. A change to that file forces a new routing replay of 17 agents for one word.
+- Claim: Git ignores `.agro/tasks/*/evidence/`, so `baseline.md` stayed untracked until the advisor added it with `git add -f`. Evidence: `git status` after US-004. Outcome: dropped. `manual-review.md` in `/git` already documents `git add -f` for evidence files.
+- Claim: the task brief named `docs/runtimes/openshell.md` as a hashed routing file, but that file does not exist and `sandbox-routing.ts` does not hash it. Evidence: `instructionFiles` in `.agro/scripts/__tests__/helpers/sandbox-routing.ts`. Outcome: dropped. No code or document depends on the brief.
+- Proposed issues: none.
