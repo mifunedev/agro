@@ -42,7 +42,7 @@ the states in this order: `story`, `close`, `push`, `ci`, `ready`, `done`. When
                 story <id> ──dispatch──────────────────────────▶ worker
                    ▲  verify → passes:true ◀──report────────────┘
                    └─ next story / wave
-                ┌─ review: true (default) ─────────────────────────┐
+                ┌─ review: true (set at conversion) ───────────────┐
                 │ push → ci ──ci-red──▶ reopen owning story        │
                 │ review: harness review → repair → reviewed=<sha> │
                 └──────────────────────────────────────────────────┘
@@ -227,7 +227,8 @@ cannot check out the task branch. Do these steps from the main checkout:
 A failed story check, a red CI check (`ci-red`), or a review finding
 (§ Review) starts a repair. The advisor
 reopens the story whose `files` hold the failing path: write `passes: false`
-and add 1 to `rounds`. The same worker repairs the story as a bounded repair.
+and add 1 to `rounds`. When `review` is `true`, the advisor also deletes
+`reviewed` from `prd.json`, so the repaired commits get a new review. The same worker repairs the story as a bounded repair.
 The advisor does not repair. Dependents of a reopened story wait. Before a repair
 in a worktree, the worker merges the current task branch into the worker branch.
 
@@ -276,13 +277,17 @@ A per-dispatch model overrides the default.
 `next.sh` prints `review` only when `prd.json` has `"review": true`. At
 `review`, do these steps on the task branch:
 
-1. Run the code review on the task branch. In Claude Code, run `/code-review`.
-   In Codex, Pi, or another harness, pick an option from the "Compare ways to
-   get a review" table at `https://code.claude.com/docs/en/code-review`. That
-   page is the reference for the review options.
-2. Repair each finding per § Repair. A worker repairs, and the advisor accepts.
-3. Run the review again.
-4. Write the SHA of the reviewed commit to `reviewed` in `prd.json`.
+1. Review the task PR. At `review`, `HEAD` equals the upstream, so a review of
+   the local diff is empty. In Claude Code, run `/code-review <pr>` with the
+   `pr` number from `prd.json`, or review the diff `<base>...HEAD`. In Codex,
+   Pi, or another harness, pick an option from the "Compare ways to get a
+   review" table at `https://code.claude.com/docs/en/code-review`. That page
+   is the reference for the review options.
+2. Repair each finding with a required fix per § Repair. Record the outcome of
+   every remaining finding for `## Lessons`. After a reopened story, `next.sh`
+   prints these states in order: `story`, `push`, `ci`, `review`.
+3. When a review pass leaves no finding to repair, write the SHA of the
+   reviewed commit to `reviewed` in `prd.json`.
 
 The managed Code Review service skips draft pull requests. The PR is a draft
 at `review`, so the advisor does not wait for that service.
