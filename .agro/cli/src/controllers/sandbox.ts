@@ -18,10 +18,10 @@ export function printSandboxHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} sandbox — Create and list sandboxes
 
 Usage:
-  ${bin} sandbox install <runtime> [--name <name>] [--checkout <dir>]
-                               [--home-mount <dir>] [--yes]
-                               [--version <X.Y.Z> | --image[=<ref>]]
-                               [--no-build] [--print-argv]
+  ${bin} sandbox install docker [--name <name>] [--checkout <dir>]
+                            [--home-mount <dir>] [--yes]
+                            [--version <X.Y.Z> | --image[=<ref>]]
+                            [--no-build] [--print-argv]
   ${bin} sandbox list [--json]
   ${bin} sandbox upgrade <name> --version <X.Y.Z>
 

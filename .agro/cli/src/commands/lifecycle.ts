@@ -16,10 +16,10 @@ import {
   type RunResult,
 } from "../lib/execution/runner.js";
 import { renderComposeEnv } from "../lib/config-render.js";
-import { assertValidEntry, getAgroConfigValue, agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
+import { getAgroConfigValue, agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { DEFAULT_SANDBOX_NAME, agroEnvPair, agroEnvValue } from "../lib/layout.js";
-import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.js";
+import { materialize, registryRoot, resolveSandboxEntry, type SandboxEntry } from "../lib/registry.js";
 import { setEnvValue } from "../lib/env-file.js";
 import { ensureSandboxPassword } from "../lib/secrets.js";
 import * as prompt from "../lib/prompt.js";
@@ -93,14 +93,17 @@ export interface SandboxOptions extends LifecycleOptions {
   printArgv?: boolean;
 }
 
-function sandboxRoot(opts: Pick<SandboxTargetOptions, "name" | "cwd">, command: string): string {
-  const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
-  assertValidEntry(root, command);
-  if (existsSync(agroConfigPath(root))) {
-    const repo = configuredString(root, "repo");
-    materialize(root, repo === undefined ? {} : { repo });
+function sandboxEntry(opts: Pick<SandboxTargetOptions, "name" | "cwd">, command: string): SandboxEntry {
+  const entry = resolveSandboxEntry({ name: opts.name, cwd: opts.cwd, command });
+  if (existsSync(agroConfigPath(entry.root))) {
+    const repo = entry.config.repo;
+    materialize(entry.root, repo === undefined || repo === "" ? {} : { repo }, entry.config);
   }
-  return root;
+  return entry;
+}
+
+function sandboxRoot(opts: Pick<SandboxTargetOptions, "name" | "cwd">, command: string): string {
+  return sandboxEntry(opts, command).root;
 }
 
 export const DEFAULT_CONTAINER_NAME = DEFAULT_SANDBOX_NAME;
@@ -352,8 +355,7 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     io.stderr(hostOnlyRefusal(opts.bin, "destroy"));
     return 1;
   }
-  const root = sandboxRoot(opts, `${opts.bin} destroy`);
-  const config = readAgroConfig(agroConfigPath(root));
+  const { root, config } = sandboxEntry(opts, `${opts.bin} destroy`);
   const name = destroyConfirmationPhrase(root);
 
   if (opts.yes !== true) {

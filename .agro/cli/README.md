@@ -46,7 +46,7 @@ Create a sandbox from any directory — no project checkout needed:
 
 ```bash
 agro sandbox install docker   # wizard, then boot; writes ~/.agro/sandboxes/<name>/
-agro sandbox list             # name, runtime, status, checkout
+agro sandbox list             # name, status, checkout
 agro shell <name>             # open a zsh shell in the running container
 ```
 
@@ -86,8 +86,8 @@ with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 
 | Command | What it does |
 |---|---|
-| `agro sandbox install <runtime>` | Create a sandbox: run the wizard, write the registry entry under `${AGRO_HOME:-~/.agro}/sandboxes/<name>/`, materialise the compose files and wrapper into it, and boot the container. Flags: `--name`, `--checkout <dir>` (alias `--repo <dir>`), `--home-mount <dir>`, `--yes`, `--image[=<ref>]`, `--no-build`, `--print-argv`. `docker` is provisionable; `microsandbox` is planned and refuses with a pointer at the runtime RFC. |
-| `agro sandbox list [--json]` | List the registry entries with name, runtime, container status, and bound checkout. |
+| `agro sandbox install docker` | Create a sandbox: run the wizard, write the registry entry under `${AGRO_HOME:-~/.agro}/sandboxes/<name>/`, materialise the compose files and wrapper into it, and boot the container. Flags: `--name`, `--checkout <dir>` (alias `--repo <dir>`), `--home-mount <dir>`, `--yes`, `--image[=<ref>]`, `--no-build`, `--print-argv`. Any runtime other than `docker` exits 1 as an unknown runtime. |
+| `agro sandbox list [--json]` | List the registry entries with name, container status, and bound checkout. |
 | `agro sandbox upgrade <name> --version <X.Y.Z>` | Recreate one image-mode sandbox immediately with the specified official release image. Keep the home mount, named volumes, checkout, `.env`, and unrelated settings. |
 | `agro shell [name]` | Open a `zsh` shell in the running sandbox container. |
 | `agro stop [name]` | Stop the sandbox, preserving volumes. |

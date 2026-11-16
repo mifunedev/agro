@@ -3,7 +3,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "n
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { agroConfigPath, readAgroConfig, type AgroConfig, type RunSettings } from "../lib/agro-config.js";
+import { agroConfigPath, InvalidSandboxEntryError, readAgroConfig, type AgroConfig, type RunSettings } from "../lib/agro-config.js";
 import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF, egressAllowHosts } from "../lib/egress-policy.js";
 import {
   defaultImage,
@@ -348,6 +348,7 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
     });
     return (await target.exec({ argv: opts.command, cwd, stdio: "inherit" })).exitCode;
   } catch (err) {
+    if (err instanceof InvalidSandboxEntryError) throw err;
     io.stderr(`${opts.bin} run: ${messageOf(err)}\n`);
     return 1;
   } finally {

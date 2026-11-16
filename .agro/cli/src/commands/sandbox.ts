@@ -20,6 +20,7 @@ import {
   entryRoot,
   materialize,
   nextDefaultName,
+  readSandboxEntry,
 } from "../lib/registry.js";
 import { runSandbox, type LifecycleIO } from "./lifecycle.js";
 
@@ -80,9 +81,9 @@ function readSeedConfig(repo: string | undefined): AgroConfig | undefined {
   return existsSync(file) ? readAgroConfig(file) : undefined;
 }
 
-function readEntryConfig(name: string): AgroConfig | undefined {
-  const file = agroConfigPath(entryRoot(name));
-  return existsSync(file) ? readAgroConfig(file) : undefined;
+function readEntryConfig(name: string, command: string): AgroConfig | undefined {
+  const root = entryRoot(name);
+  return existsSync(agroConfigPath(root)) ? readSandboxEntry(root, command) : undefined;
 }
 
 function assignSetting(target: AgroConfig, path: string, value: unknown): void {
@@ -200,7 +201,7 @@ export async function runSandboxInstall(
     return 1;
   }
 
-  const config = seedConfig(name, checkout, mergeSettings(readEntryConfig(name), repoSeed), run);
+  const config = seedConfig(name, checkout, mergeSettings(readEntryConfig(name, `${opts.bin} sandbox install`), repoSeed), run);
 
   const buildRequested =
     config.image?.mode === "build" &&

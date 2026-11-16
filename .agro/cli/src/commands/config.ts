@@ -64,10 +64,10 @@ function existingNamedVolume(root: string, run: LifecycleRunner): string | undef
   return undefined;
 }
 
-function configRoot(opts: ConfigOptions): string {
+function configRoot(opts: ConfigOptions, command: string): string {
   return opts.sandbox === undefined
     ? resolveProjectRoot(opts.cwd)
-    : resolveSandboxRoot({ name: opts.sandbox });
+    : resolveSandboxRoot({ name: opts.sandbox, command });
 }
 
 function hostScope(opts: ConfigOptions): { env: NodeJS.ProcessEnv; home: string } {
@@ -116,7 +116,7 @@ export function configFieldList(): string {
 }
 
 export async function runConfigShow(opts: ConfigOptions, io: ConfigIO): Promise<number> {
-  const root = configRoot(opts);
+  const root = configRoot(opts, `${opts.bin} config show`);
   const config = readAgroConfig(agroConfigPath(root));
   io.stdout(`${JSON.stringify(config, null, 2)}\n`);
   reportRetiredHands(root, opts, io);
@@ -146,7 +146,7 @@ export async function runConfigSet(
     return 1;
   }
 
-  const root = configRoot(opts);
+  const root = configRoot(opts, `${opts.bin} config set`);
   reportRetiredHands(root, opts, io);
 
   if (key === HOME_PATH_FIELD && opts.force !== true && currentHomePath(root) !== value) {

@@ -1,9 +1,9 @@
 import { closeSync, existsSync, openSync, readFileSync, unlinkSync, writeSync } from "node:fs";
 import { join } from "node:path";
-import { agroConfigPath, assertValidEntry, readAgroConfig, writeAgroConfig } from "../lib/agro-config.js";
+import { agroConfigPath, readAgroConfig, writeAgroConfig } from "../lib/agro-config.js";
 import { runningInsideSandbox } from "../lib/execution/index.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
-import { entryRoot } from "../lib/registry.js";
+import { entryRoot, readSandboxEntry } from "../lib/registry.js";
 import { officialImageRef, parseReleaseVersion } from "../lib/version.js";
 import { configuredContainerName, DEFAULT_CONTAINER_NAME, runSandbox, type LifecycleIO } from "../commands/lifecycle.js";
 
@@ -52,7 +52,7 @@ export async function runSandboxUpgrade(opts: SandboxUpgradeOptions, io: Lifecyc
     io.stderr(`${prefix} no sandbox entry named "${opts.name}"\n`);
     return 1;
   }
-  assertValidEntry(root, `${opts.bin} sandbox upgrade`);
+  readSandboxEntry(root, `${opts.bin} sandbox upgrade`);
   const lock = join(root, ".sandbox-upgrade.lock");
   let fd: number;
   try {

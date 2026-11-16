@@ -42,6 +42,8 @@ import {
 } from "../lib/host-workspace.js";
 import { ask as promptAsk, askYesNo } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
+import { InvalidSandboxEntryError } from "../lib/agro-config.js";
+import { activeBin } from "../lib/product.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
 import {
   findHarness,
@@ -97,8 +99,11 @@ export const PROBE_TIMEOUT_MS = 15_000;
 
 function registeredContainerName(cwd: string | undefined): string | undefined {
   try {
-    return configuredContainerName(resolveSandboxRoot(cwd === undefined ? {} : { cwd }));
-  } catch {
+    return configuredContainerName(
+      resolveSandboxRoot({ ...(cwd === undefined ? {} : { cwd }), command: `${activeBin()} harness` }),
+    );
+  } catch (error) {
+    if (error instanceof InvalidSandboxEntryError) throw error;
     return undefined;
   }
 }

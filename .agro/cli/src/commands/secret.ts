@@ -27,10 +27,10 @@ export interface SecretOptions {
   sandbox?: string;
 }
 
-function secretsRoot(opts: SecretOptions): string {
+function secretsRoot(opts: SecretOptions, verb: string): string {
   return opts.sandbox === undefined
     ? resolveProjectRoot(opts.cwd)
-    : resolveSandboxRoot({ name: opts.sandbox });
+    : resolveSandboxRoot({ name: opts.sandbox, command: `${opts.bin} secret ${verb}` });
 }
 
 function isGitIgnored(root: string, path: string): boolean {
@@ -72,7 +72,7 @@ export async function runSecretSet(
     return 1;
   }
 
-  const root = secretsRoot(opts);
+  const root = secretsRoot(opts, "set");
   const askSecret = io.askSecret ?? prompt.askSecret;
   const value = (await askSecret(`Value for ${prompt.bold(key)} (input hidden):`)).trim();
   if (value === "") {
@@ -97,7 +97,7 @@ export async function runSecretGet(
   opts: SecretOptions,
   io: SecretIO,
 ): Promise<number> {
-  const root = secretsRoot(opts);
+  const root = secretsRoot(opts, "get");
   let value: string | undefined;
   try {
     value = readSecret(root, key);
@@ -116,7 +116,7 @@ export async function runSecretGet(
 }
 
 export async function runSecretList(opts: SecretOptions, io: SecretIO): Promise<number> {
-  const root = secretsRoot(opts);
+  const root = secretsRoot(opts, "list");
   const keys = listSecretKeys(root);
   if (keys.length === 0) {
     io.stdout(`no secrets set — write one with \`${opts.bin} secret set <KEY>\`\n`);

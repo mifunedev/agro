@@ -147,17 +147,6 @@ export class InvalidSandboxEntryError extends Error {
   }
 }
 
-export function assertValidEntry(root: string, command: string): AgroConfig {
-  const path = agroConfigPath(root);
-  try {
-    return readAgroConfig(path);
-  } catch (error) {
-    throw new InvalidSandboxEntryError(
-      `${command}: ${messageOf(error)}\n${command}: fix ${path}, or remove the entry ${resolve(root)}`,
-    );
-  }
-}
-
 export function readAgroConfig(path: string): AgroConfig {
   if (!existsSync(path)) return defaultAgroConfig(basename(dirname(resolve(path))));
 

@@ -283,6 +283,19 @@ describe("resolveSandboxRoot", () => {
     expect(resolveSandboxRoot({ cwd: join(checkout, "app") })).toBe(root);
   });
 
+  it("refuses an invalid entry nested under a healthy parent checkout", () => {
+    registry();
+    const parent = mkdtempSync(join(tmpdir(), "oh-registry-repo-"));
+    cleanups.push(parent);
+    const nested = join(parent, "nested");
+    addEntry("aa-parent", { repo: parent });
+    const invalid = addEntry("zz-invalid", { runtime: "podman", checkout: nested });
+    expect(() => resolveSandboxRoot({ cwd: join(nested, "app"), command: "agro ps" })).toThrow(
+      `agro ps: agro.json: runtime must be one of docker\nagro ps: fix ${join(invalid, "agro.json")}, or remove the entry ${invalid}`,
+    );
+    expect(resolveSandboxRoot({ cwd: join(parent, "other") })).toBe(join(registryRoot(), "aa-parent"));
+  });
+
   it("errors listing the registered names when nothing matches", () => {
     registry();
     addEntry("alpha");
