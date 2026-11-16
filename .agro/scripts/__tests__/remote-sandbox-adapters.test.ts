@@ -53,7 +53,7 @@ function stubConsole(list = "[]", lists: string[] = []) {
       '  "hands destroy")',
       `    n=$(( $(cat "${bin}/deletes" 2>/dev/null || echo 0) + 1 )); echo "$n" > "${bin}/deletes"`,
       '    [ "$n" -le "${CONFLICTS:-0}" ] && { echo "agro hands destroy: HTTP 409 conflict: hand is busy" >&2; exit 1; }',
-      '    echo "destroyed $5" ;;',
+      '    echo "destroyed $6" ;;',
       "esac",
     ].join("\n"),
     ssh: `printf '%s\\n' "$*" >> "${bin}/ssh.calls"\necho ran`,
@@ -135,13 +135,13 @@ describe("remote-sandbox adapters", () => {
     const result = withConsole("console_preflight", bin);
     expect(result.code).toBe(0);
     expect(result.stdout).toBe("ok ssh-key key-uuid\n");
-    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands check --provider console --ssh-key key-uuid\n");
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands check --provider console --operator --ssh-key key-uuid\n");
   });
 
   it("console_preflight omits the key without CONSOLE_SSH_KEY_ID", () => {
     const bin = stubConsole();
     expect(withConsole("unset CONSOLE_SSH_KEY_ID; console_preflight", bin).code).toBe(0);
-    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands check --provider console\n");
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands check --provider console --operator\n");
   });
 
   it("console_create stops before agro hands create when agro hands check fails", () => {
@@ -150,7 +150,7 @@ describe("remote-sandbox adapters", () => {
     expect(result.stdout).toContain("fail ssh-key key-uuid: not found in agro-console");
     expect(result.stdout).toContain("rc=1");
     expect(result.stderr).toContain("no hand created");
-    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands check --provider console --ssh-key key-uuid\n");
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands check --provider console --operator --ssh-key key-uuid\n");
     expect(withLib(`test -e "$STATE_DIR/console-agro-mx-0"`).code).not.toBe(0);
   });
 
@@ -170,7 +170,7 @@ describe("remote-sandbox adapters", () => {
     const bin = stubConsole();
     expect(withConsole("unset CONSOLE_SSH_KEY_ID; console_create agro-mx-nokey", bin).code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
-      "hands check --provider console\nhands create --provider console --spec n4 --name agro-mx-nokey --json\n",
+      "hands check --provider console --operator\nhands create --provider console --operator --spec n4 --name agro-mx-nokey --json\n",
     );
   });
 
@@ -179,7 +179,7 @@ describe("remote-sandbox adapters", () => {
     const result = withConsole('console_create agro-mx-1 && cat "$STATE_DIR/console-agro-mx-1"', bin);
     expect(result.code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
-      "hands check --provider console --ssh-key key-uuid\nhands create --provider console --spec n4 --ssh-key key-uuid --name agro-mx-1 --json\n",
+      "hands check --provider console --operator --ssh-key key-uuid\nhands create --provider console --operator --spec n4 --ssh-key key-uuid --name agro-mx-1 --json\n",
     );
     expect(result.stdout.trim().split("\n").at(-1)).toBe("node-1 sandbox@203.0.113.7");
   });
@@ -188,7 +188,7 @@ describe("remote-sandbox adapters", () => {
     const bin = stubConsole();
     expect(withConsole("CONSOLE_SPEC=n8 console_create agro-mx-2", bin).code).toBe(0);
     expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
-      "hands check --provider console --ssh-key key-uuid\nhands create --provider console --spec n8 --ssh-key key-uuid --name agro-mx-2 --json\n",
+      "hands check --provider console --operator --ssh-key key-uuid\nhands create --provider console --operator --spec n8 --ssh-key key-uuid --name agro-mx-2 --json\n",
     );
   });
 
@@ -220,7 +220,7 @@ describe("remote-sandbox adapters", () => {
     const result = withConsole("console_create agro-mx-5 >/dev/null && console_destroy agro-mx-5", bin);
     expect(result.code).toBe(0);
     expect(result.stdout).toBe("destroyed node-1\n");
-    expect(withLib(`grep -c "^hands destroy --provider console node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
+    expect(withLib(`grep -c "^hands destroy --provider console --operator node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
   });
 
   it("console_destroy retries a 409", () => {
@@ -250,6 +250,7 @@ describe("remote-sandbox adapters", () => {
     );
     expect(result.stdout).toContain("rc=0\nstate=1\n");
     expect(withLib(`cat "${bin}/lists"`).stdout).toBe("3\n");
+    expect(withLib(`grep -c "^hands list --provider console --operator --json$" "${bin}/agro.calls"`).stdout).toBe("3\n");
     expect(withLib(`cat "${bin}/sleep.calls"`).stdout).toBe("5\n5\n");
   });
 
@@ -273,7 +274,7 @@ describe("remote-sandbox adapters", () => {
     );
     expect(result.stdout).toContain("rc=1\nnode-1 \nexec=1\ndestroyed node-1\n");
     expect(withLib(`test -e "${bin}/ssh.calls"`).code).not.toBe(0);
-    expect(withLib(`grep -c "^hands destroy --provider console node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
+    expect(withLib(`grep -c "^hands destroy --provider console --operator node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
   });
 
   it("console_list counts only live agro-mx- hands", () => {
@@ -285,7 +286,9 @@ describe("remote-sandbox adapters", () => {
       { id: "5", name: "x-agro-mx-1", status: "running" },
       { id: "6", name: "agro-mx-1013-090000", status: "destroyed" },
     ]);
-    expect(withConsole("console_list", stubConsole(list)).stdout).toBe("2\n");
+    const bin = stubConsole(list);
+    expect(withConsole("console_list", bin).stdout).toBe("2\n");
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe("hands list --provider console --operator --json\n");
   });
 
   it("console_row_ssh prints the R10 line with the stored target", () => {
