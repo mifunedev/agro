@@ -196,15 +196,15 @@
         "`agro run -- pnpm test` exits 0."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral. Re-recorded at 98fcb51e (replay9-R1..R17, 17/17, instructionSha256 298e739c...) after the US-001 round 1 docs edit.",
+      "passes": true,
+      "notes": "C1 executed: 17 fresh decision-only agents (claude-opus-5-5, handles replay8-R1..R17) answered from the case prompts only; advisor graded 17/17 against cases.json oracles. C2 executed: provenance instructionSha256 3b79887b... equals sourceProvenance() on the head; sandbox-routing.test.ts 33/33. C3 executed: agro run -- pnpm test exit 0 (127 files, 3509 tests); typecheck exit 0. This run also closes the US-004 C5 deferral. Re-recorded at 98fcb51e (replay9-R1..R17, 17/17, instructionSha256 298e739c...) after the US-001 round 1 docs edit. After the review repair and the rebase onto 980dc6e2: 17 fresh agents (replay11-R1..R17) graded 17/17 against the oracles; provenance instructionSha256 c8fd5c04... from sourceProvenance(); agro run -- pnpm test exit 0 (126 files, 3521 tests).",
       "dependsOn": [
         "US-006"
       ],
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "19e449e1",
+      "commit": "aa6e3718",
       "rounds": 1
     },
     {
@@ -217,15 +217,15 @@
         "The story stops the stub server. The story then deletes the temp `HOME` and reports."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "C1 executed: evidence/manual-review.md shows built CLI (node .agro/cli/dist/agro.js) for node list (exit 1 unknown command), hands --help (exit 0), and with --provider console: check, create --profile agro --t3 --json, list --json, destroy --yes, list after (all exit 0); run on 598480b8. C2 executed: stub on 127.0.0.1:18741 after ss free-port check; temp HOME and AGRO_HOME via mktemp, token and URL inline, XDG_CONFIG_HOME unset, no credentials file (find listing); request log shows create body profile agro, t3 true, sshKeyIds; token count 0 in every output; no live resource. C3 executed: stub killed (143, kill -0 no such process, ss 0 listeners), temp dirs removed, test -e returns 1.",
+      "passes": true,
+      "notes": "C1 executed: evidence/manual-review.md shows built CLI (node .agro/cli/dist/agro.js) for node list (exit 1 unknown command), hands --help (exit 0), and with --provider console: check, create --profile agro --t3 --json, list --json, destroy --yes, list after (all exit 0); run on 598480b8. C2 executed: stub on 127.0.0.1:18741 after ss free-port check; temp HOME and AGRO_HOME via mktemp, token and URL inline, XDG_CONFIG_HOME unset, no credentials file (find listing); request log shows create body profile agro, t3 true, sshKeyIds; token count 0 in every output; no live resource. C3 executed: stub killed (143, kill -0 no such process, ss 0 listeners), temp dirs removed, test -e returns 1. Review repair: transcript rerun on the rebased head 20f74153 with --operator on every console call plus one brain-authority check (ok console line, GET /api/nodes only); stub, temp HOME, token count 0, cleanup proof kept.",
       "dependsOn": [
         "US-007"
       ],
       "files": [
         ".agro/tasks/retire-agro-node/evidence/manual-review.md"
       ],
-      "commit": "8f7e458b",
+      "commit": "120ffdd8",
       "rounds": 1
     }
   ],
