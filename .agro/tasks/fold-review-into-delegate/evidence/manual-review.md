@@ -1,6 +1,6 @@
 # Manual review: next.sh state order with and without review
 
-This transcript runs `bash .agro/skills/delegate/scripts/next.sh --task demo` in a new temp git repository with a stub `gh` on `PATH`. It records the state sequence for a task without `review` and for a task with `"review": true`. Each output is copied from an observed run on 2026-11-15 against `next.sh` at commit `a46b4021`.
+This transcript runs `bash .agro/skills/delegate/scripts/next.sh --task demo` in a new temp git repository with a stub `gh` on `PATH`. It records the state sequence for a task without `review` and for a task with `"review": true`. Each output is copied from an observed run on 2026-11-15 against `next.sh` at commit `8e6ea7b6`.
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ esac
 1. Creates a new temp path with `mktemp -d`, a bare remote, and a work repository on `feat/1-demo`.
 2. Copies `next.sh` to `.agro/skills/delegate/scripts/next.sh` in the work repository, because `next.sh` runs from the git toplevel.
 3. Writes `.agro/tasks/demo/prd.json` with one story `US-001` (`passes: false`) and `pr: 7`. In `review` mode, it also writes `"review": true`. Writes `prd.md` with an empty `## Lessons`.
-4. Changes one piece of state per step and runs `next.sh` after each change.
+4. Changes one piece of state per step and runs `next.sh` after each change. At the `review` step, it writes `reviewed` as the SHA of the reviewed commit (`git rev-parse HEAD`). That commit changes only `.agro/tasks/`, so the review stays current.
 5. Deletes the temp path and checks that the path no longer exists.
 
 The driver writes no file in the harness checkout.
@@ -115,8 +115,9 @@ if [ "$mode" = review ]; then
   step "# git push; checks pending"
   export GH_STUB_CHECKS=pass
   step "# checks pass"
-  set_prd '.reviewed = "2026-11-15 code review: no findings"' reviewed
-  step "# reviewed written and committed; ## Lessons empty"
+  rev="$(git rev-parse HEAD)"
+  set_prd ".reviewed = \"$rev\"" reviewed
+  step "# reviewed=$rev written and committed; ## Lessons empty"
 else
   step "# US-001 passes=true; ## Lessons empty"
 fi
@@ -148,7 +149,7 @@ TMPDIR=$SCRATCH bash $SCRATCH/drive.sh /home/sandbox/harness $SCRATCH/gh default
 Observed output (`$SCRATCH` was `/tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad`):
 
 ```text
-# temp path: /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.OGRb1rfBGg
+# temp path: /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.YuJEcD2twc
 
 $ # US-001 passes=false
 $ GH_STUB_CHECKS=pending GH_STUB_DRAFT=true bash .agro/skills/delegate/scripts/next.sh --task demo
@@ -180,7 +181,7 @@ $ GH_STUB_CHECKS=pass GH_STUB_DRAFT=false bash .agro/skills/delegate/scripts/nex
 done
 Stop.
 
-$ rm -rf /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.OGRb1rfBGg && test ! -e /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.OGRb1rfBGg && echo removed
+$ rm -rf /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.YuJEcD2twc && test ! -e /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.YuJEcD2twc && echo removed
 removed
 exit=0
 ```
@@ -196,7 +197,7 @@ TMPDIR=$SCRATCH bash $SCRATCH/drive.sh /home/sandbox/harness $SCRATCH/gh review;
 Observed output:
 
 ```text
-# temp path: /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.WZZK2mieeb
+# temp path: /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.D2dZc9aMRa
 
 $ # US-001 passes=false
 $ GH_STUB_CHECKS=pending GH_STUB_DRAFT=true bash .agro/skills/delegate/scripts/next.sh --task demo
@@ -218,7 +219,7 @@ $ GH_STUB_CHECKS=pass GH_STUB_DRAFT=true bash .agro/skills/delegate/scripts/next
 review
 Run the code review per /delegate § Review, then write reviewed in prd.json.
 
-$ # reviewed written and committed; ## Lessons empty
+$ # reviewed=66f122155782f15d478da337838dbf94fc72345f written and committed; ## Lessons empty
 $ GH_STUB_CHECKS=pass GH_STUB_DRAFT=true bash .agro/skills/delegate/scripts/next.sh --task demo
 close
 Write a non-empty ## Lessons section in prd.md per /git § Ready for review.
@@ -243,7 +244,7 @@ $ GH_STUB_CHECKS=pass GH_STUB_DRAFT=false bash .agro/skills/delegate/scripts/nex
 done
 Stop.
 
-$ rm -rf /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.WZZK2mieeb && test ! -e /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.WZZK2mieeb && echo removed
+$ rm -rf /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.D2dZc9aMRa && test ! -e /tmp/claude-1000/-home-sandbox-harness/9c211caa-ee44-4543-8afc-6953e94c1d33/scratchpad/tmp.D2dZc9aMRa && echo removed
 removed
 exit=0
 ```
