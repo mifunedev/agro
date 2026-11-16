@@ -1,7 +1,7 @@
 import { basename } from "node:path";
-import { agroConfigPath, assertValidEntry, readAgroConfig } from "../lib/agro-config.js";
+import type { AgroConfig } from "../lib/agro-config.js";
 import { assertSpawned, requireLifecycleScript, spawnRunner, type RunResult } from "../lib/execution/runner.js";
-import { materialize, resolveSandboxRoot } from "../lib/registry.js";
+import { materialize, resolveSandboxEntry } from "../lib/registry.js";
 import type { EgressVerb } from "../command-table.js";
 import { withComposeEnvFile, type LifecycleIO, type SandboxTargetOptions } from "./lifecycle.js";
 
@@ -22,28 +22,27 @@ export function markDenied(text: string): string {
     .join("\n");
 }
 
-function refusal(root: string, name: string): string | undefined {
-  const egress = readAgroConfig(agroConfigPath(root)).access?.egress ?? "open";
+function refusal(config: AgroConfig, name: string): string | undefined {
+  const egress = config.access?.egress ?? "open";
   if (egress !== "allowlist") return `the sandbox ${name} uses access.egress ${egress}; set access.egress allowlist`;
   return undefined;
 }
 
-function rematerialize(root: string): void {
-  const repo = readAgroConfig(agroConfigPath(root)).repo;
-  materialize(root, repo === undefined || repo === "" ? {} : { repo });
+function rematerialize(root: string, config: AgroConfig): void {
+  const repo = config.repo;
+  materialize(root, repo === undefined || repo === "" ? {} : { repo }, config);
 }
 
 export function runEgress(verb: EgressVerb, opts: SandboxTargetOptions, io: LifecycleIO): number {
   const run = opts.run ?? spawnRunner;
-  const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
-  assertValidEntry(root, `${opts.bin} egress ${verb}`);
+  const { root, config } = resolveSandboxEntry({ name: opts.name, cwd: opts.cwd, command: `${opts.bin} egress ${verb}` });
   const name = basename(root);
-  const refused = refusal(root, name);
+  const refused = refusal(config, name);
   if (refused !== undefined) {
     io.stderr(`${opts.bin} egress ${verb}: ${refused}\n`);
     return 1;
   }
-  rematerialize(root);
+  rematerialize(root, config);
   const script = requireLifecycleScript(root, "docker-compose.sh");
   const capture = verb === "log";
   return withComposeEnvFile(root, (extraArgs) => {

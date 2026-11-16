@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import composeRepo from "agro-asset:.devcontainer/docker-compose.yml";
 import composeImageOnly from "agro-asset:.devcontainer/docker-compose.image-only.yml";
 import composeSsh from "agro-asset:.devcontainer/docker-compose.ssh.yml";
@@ -8,8 +8,8 @@ import composeEgress from "agro-asset:.devcontainer/docker-compose.egress.yml";
 import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
 import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
-import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, agroConfigPath, readAgroConfig, type AgroConfig } from "./agro-config.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "./execution/runner.js";
+import { agroConfigPath, InvalidSandboxEntryError, readAgroConfig, type AgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
 import { egressAllowHosts } from "./egress-policy.js";
 import { isDirectory } from "./project.js";
@@ -51,15 +51,38 @@ export function listEntries(): string[] {
     .sort();
 }
 
-export function entryRepo(name: string): string | undefined {
-  let config: AgroConfig;
+function rawEntryConfig(root: string): Record<string, unknown> | undefined {
   try {
-    config = readAgroConfig(agroConfigPath(entryRoot(name)));
+    const parsed = JSON.parse(readFileSync(agroConfigPath(root), "utf8")) as unknown;
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
   } catch {
     return undefined;
   }
-  const checkout = configCheckout(config);
-  return checkout === undefined ? undefined : resolve(checkout);
+}
+
+function rawEntryCheckout(root: string): string | undefined {
+  const raw = rawEntryConfig(root);
+  const value = raw?.checkout ?? raw?.repo;
+  return typeof value === "string" && value !== "" ? resolve(value) : undefined;
+}
+
+export function readSandboxEntry(root: string, command: string): AgroConfig {
+  const entry = resolve(root);
+  const path = agroConfigPath(entry);
+  try {
+    return readAgroConfig(path);
+  } catch (error) {
+    const lines = [`${command}: ${messageOf(error)}`];
+    const raw = rawEntryConfig(entry);
+    if (raw?.runtime === "openshell") {
+      const name = typeof raw.name === "string" && raw.name !== "" ? raw.name : basename(entry);
+      lines.push(`${command}: run \`openshell sandbox delete ${name}\` first`);
+    }
+    lines.push(`${command}: fix ${path}, or remove the entry ${entry}`);
+    throw new InvalidSandboxEntryError(lines.join("\n"));
+  }
 }
 
 function runningContainerNames(run: LifecycleRunner): Set<string> {
@@ -123,9 +146,12 @@ function dockerFiles(entry: string, opts: MaterializeOptions, config: AgroConfig
   return files;
 }
 
-export function materialize(root: string, opts: MaterializeOptions = {}): void {
+export function materialize(
+  root: string,
+  opts: MaterializeOptions = {},
+  config: AgroConfig = readAgroConfig(agroConfigPath(resolve(root))),
+): void {
   const entry = resolve(root);
-  const config = readAgroConfig(agroConfigPath(entry));
   const files = dockerFiles(entry, opts, config);
   for (const file of files) {
     const dest = resolve(file.dest);
@@ -140,9 +166,24 @@ export function materialize(root: string, opts: MaterializeOptions = {}): void {
 export interface ResolveSandboxOptions {
   name?: string;
   cwd?: string;
+  command?: string;
+}
+
+export interface SandboxEntry {
+  root: string;
+  config: AgroConfig;
 }
 
 export function resolveSandboxRoot(opts: ResolveSandboxOptions = {}): string {
+  return resolveSandboxEntry(opts).root;
+}
+
+export function resolveSandboxEntry(opts: ResolveSandboxOptions = {}): SandboxEntry {
+  const root = findSandboxRoot(opts);
+  return { root, config: readSandboxEntry(root, opts.command ?? activeBin()) };
+}
+
+function findSandboxRoot(opts: ResolveSandboxOptions): string {
   if (opts.name !== undefined) {
     const root = entryRoot(opts.name);
     if (!isDirectory(root)) {
@@ -158,12 +199,14 @@ export function resolveSandboxRoot(opts: ResolveSandboxOptions = {}): string {
   if (names.length === 1) return entryRoot(names[0]);
 
   const cwd = resolve(opts.cwd ?? process.cwd());
+  let match: { root: string; checkout: string } | undefined;
   for (const name of names) {
-    const repo = entryRepo(name);
-    if (repo !== undefined && (cwd === repo || cwd.startsWith(repo + sep))) {
-      return entryRoot(name);
-    }
+    const root = entryRoot(name);
+    const checkout = rawEntryCheckout(root);
+    if (checkout === undefined || !(cwd === checkout || cwd.startsWith(checkout + sep))) continue;
+    if (match === undefined || checkout.length > match.checkout.length) match = { root, checkout };
   }
+  if (match !== undefined) return match.root;
 
   if (names.length === 0) {
     throw new Error(
