@@ -106,6 +106,9 @@ fi
 pr="$(field '.pr // "" | tostring')"
 [ -n "$pr" ] || emit "blocked prd.json has no pr"
 
+err_file=""
+pr_draft=""
+
 green_ci_on_head() {
   local head_sha upstream_sha pr_state_query pr_state pr_head bucket_list buckets
   head_sha="$(git rev-parse HEAD)"
@@ -138,7 +141,7 @@ green_ci_on_head() {
 
   pr_state="$(gh pr view "$pr" --json headRefOid,isDraft,statusCheckRollup -q "$pr_state_query" 2>"$err_file")" ||
     gh_blocked "$(cat "$err_file")"
-  read -r pr_head draft bucket_list <<<"$pr_state" || true
+  read -r pr_head pr_draft bucket_list <<<"$pr_state" || true
   [ "${pr_head:-}" = "$head_sha" ] || emit ci
 
   buckets="$(tr ' ' '\n' <<<"${bucket_list:-}")"
@@ -158,7 +161,7 @@ awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' "$task_
 
 green_ci_on_head
 
-case "${draft:-}" in
+case "$pr_draft" in
   true) emit ready ;;
   false) emit "done" ;;
   *) emit "blocked gh unavailable: unexpected isDraft output" ;;

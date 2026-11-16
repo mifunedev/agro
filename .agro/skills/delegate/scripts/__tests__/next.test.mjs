@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, readFileSync, statSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -714,5 +714,32 @@ describe("review opt-in", () => {
   test("review true still prints story before review", () => {
     fx.ready({ prd: reviewPrd({ userStories: [story("US-001", { passes: false })] }) });
     expectState(fx.run(), "story US-001");
+  });
+
+  test("review true with reviewed set prints a reopened story before close or ready", () => {
+    fx.ready({
+      prd: reviewPrd({ reviewed: "a".repeat(40), userStories: [story("US-001"), story("US-002", { passes: false })] }),
+    });
+    expectState(fx.run(), "story US-002", "Dispatch, verify, and accept US-002 per /delegate.");
+  });
+
+  test("review true without reviewed asks gh about the pr once", () => {
+    fx.ready({ prd: reviewPrd() });
+    fx.run();
+    expect(readFileSync(fx.ghLog, "utf8").match(/^pr view 7 /gm)).toHaveLength(1);
+  });
+
+  test("review true with reviewed set asks gh about the pr once and reads its draft state", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    expectState(fx.run([], { GH_STUB_DRAFT: "" }), "blocked gh unavailable: unexpected isDraft output", STOP_BLOCKED);
+    expect(readFileSync(fx.ghLog, "utf8").match(/^pr view 7 /gm)).toHaveLength(1);
+  });
+
+  test("next.sh removes its gh error file", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "a".repeat(40) }) });
+    const scratch = path.join(fx.root, "tmp");
+    mkdirSync(scratch);
+    fx.run([], { TMPDIR: scratch });
+    expect(readdirSync(scratch)).toEqual([]);
   });
 });
