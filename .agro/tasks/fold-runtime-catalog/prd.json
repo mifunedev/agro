@@ -91,8 +91,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits 58a7e35c (docs, changelog) and 5cd474b5 (routing fixture). Reasoned from diff: configuration.md runtime row is a legacy docker-only field with list-skip and verb exit-1 wording and no openshell mention; lifecycle-commands.md, quickstart.md, overview.md list name, status, checkout; overview.md quotes the new unknown-runtime refusal and drops the help catalog line; CHANGELOG Unreleased replaces the openshell line and adds the runtime column/key/config-set removal line (#1652 rename kept under Changed). Executed: git grep lifecycle-commands-sandbox-list -- docs (no match) and the png is deleted; ste-check exit 0 on the four docs files (CHANGELOG.md has 276 pre-existing findings, none on the new lines); 17 fresh decision-only opus agents (replay13-R1..R17) recorded against the final instruction files, each route and required owners match the oracle; agro run -- pnpm test exit 0 (125 files, 3461 tests, sandbox-routing.test.ts included); typecheck exit 0.",
       "dependsOn": [
         "US-002"
       ],
@@ -104,7 +104,8 @@
         "docs/img/lifecycle-commands-sandbox-list.png",
         "CHANGELOG.md",
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
-      ]
+      ],
+      "commit": "5cd474b5"
     },
     {
       "id": "US-004",
