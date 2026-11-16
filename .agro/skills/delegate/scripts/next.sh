@@ -154,9 +154,9 @@ green_ci_on_head() {
 review_is_current() {
   local reviewed reviewed_commit
   reviewed="$(field 'if (.reviewed | type) == "string" then .reviewed else "" end')"
-  [ -n "$reviewed" ] || return 1
+  [[ "$reviewed" =~ ^[0-9a-f]{7,40}$ ]] || return 1
   reviewed_commit="$(git rev-parse --verify --quiet --end-of-options "$reviewed^{commit}" 2>/dev/null)" || return 1
-  git diff --quiet "$reviewed_commit" HEAD -- . ':!.agro/tasks' 2>/dev/null
+  [ -z "$(git rev-list --first-parent --no-merges "$reviewed_commit"..HEAD -- . ':!.agro/tasks')" ]
 }
 
 if [ "$(field '.review == true')" = true ] && ! review_is_current; then

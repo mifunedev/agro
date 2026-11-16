@@ -796,4 +796,47 @@ describe("review freshness", () => {
     fx.writePrd(reviewPrd({ reviewed: fx.git("rev-parse", "HEAD^{tree}") }));
     expectState(fx.run(), "review");
   });
+
+  test("a catch-up merge of code from the base branch keeps the review current", () => {
+    const codeSha = fx.ready({ prd: (sha) => reviewPrd({ reviewed: sha }) });
+    fx.git("checkout", "-q", "-b", "base", codeSha);
+    fx.write("src/base.txt", "base\n");
+    fx.commit("base branch code");
+    fx.git("checkout", "-q", BRANCH);
+    fx.git("merge", "-q", "--no-ff", "-m", "catch up with base", "base");
+    fx.push();
+    expectState(fx.run(), "ready");
+    expectState(fx.run([], { GH_STUB_DRAFT: "false" }), "done");
+  });
+
+  test("a code commit on the task branch after a catch-up merge prints review", () => {
+    const codeSha = fx.ready({ prd: (sha) => reviewPrd({ reviewed: sha }) });
+    fx.git("checkout", "-q", "-b", "base", codeSha);
+    fx.write("src/base.txt", "base\n");
+    fx.commit("base branch code");
+    fx.git("checkout", "-q", BRANCH);
+    fx.git("merge", "-q", "--no-ff", "-m", "catch up with base", "base");
+    fx.write("src/app.txt", "v2\n");
+    fx.commit("code after merge");
+    fx.push();
+    expectState(fx.run(), "review");
+  });
+
+  test("a reviewed value HEAD prints review", () => {
+    fx.ready({ prd: reviewPrd({ reviewed: "HEAD" }) });
+    expectState(fx.run(), "review");
+  });
+
+  test("a reviewed value that names a branch prints review", () => {
+    fx.ready({ prd: reviewPrd() });
+    fx.git("branch", "reviewed-branch");
+    fx.writePrd(reviewPrd({ reviewed: "reviewed-branch" }));
+    expectState(fx.run(), "review");
+  });
+
+  test("an abbreviated SHA of HEAD counts as current", () => {
+    fx.ready({ prd: reviewPrd() });
+    fx.writePrd(reviewPrd({ reviewed: fx.git("rev-parse", "--short=7", "HEAD") }));
+    expectState(fx.run(), "ready");
+  });
 });
