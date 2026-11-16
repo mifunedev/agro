@@ -15,7 +15,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Removed
 
 - Remove the one-time star prompt after `agro sandbox install` and its `AGRO_NO_STAR_PROMPT` variable ([#1651](https://github.com/mifunedev/agro/issues/1651)).
-- Remove the experimental OpenShell runtime and `agro sandbox install openshell`. `agro sandbox install openshell` now exits 1 as an unknown runtime, and `runtime` in `agro.json` accepts only `"docker"`. `.devcontainer/openshell-policy.yaml` becomes `.devcontainer/egress-policy.yaml`, and the Docker egress allowlist proxy reads its hosts from that file. Remove `docs/runtimes/openshell.md` and the `openshell-journey.sh` validation check ([#1652](https://github.com/mifunedev/agro/issues/1652)).
+- Remove the experimental OpenShell runtime and `agro sandbox install openshell`. `agro sandbox install openshell` now exits 1 as an unknown runtime. The CLI still reads `runtime: "openshell"` in `agro.json` as a retired value. Each acting verb refuses such an entry with the removal steps. The first step is `openshell sandbox delete <name>`. The second step removes the entry. `agro sandbox list` lists the entry as retired. `.devcontainer/openshell-policy.yaml` becomes `.devcontainer/egress-policy.yaml`, and the Docker egress allowlist proxy reads its hosts from that file. Remove `docs/runtimes/openshell.md` and the `openshell-journey.sh` validation check ([#1652](https://github.com/mifunedev/agro/issues/1652)).
 
 ## [0.39.0] - 2026-11-15
 
