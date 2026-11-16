@@ -12,6 +12,7 @@ import {
   readAgroConfig,
   setAgroConfigValue,
   isRetiredRuntime,
+  SANDBOX_RUNTIME,
   validateAgroConfig,
   writeAgroConfig,
   type AgroConfig,
@@ -114,7 +115,7 @@ describe("validateAgroConfig", () => {
     expect(isRetiredRuntime("openshell")).toBe(true);
     expect(isRetiredRuntime("docker")).toBe(false);
     expect(() => setAgroConfigValue({ version: 1 }, "runtime", "openshell")).toThrow(
-      "agro.json: runtime must be one of docker",
+      'unknown agro.json field "runtime"',
     );
   });
 
@@ -246,12 +247,20 @@ describe("validateAgroConfig", () => {
     expect(validated.repo).toBe("/srv/checkout");
   });
 
-  it("makes runtime and repo settable through `agro config set`", () => {
-    expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "runtime")).toEqual({
-      path: "runtime",
-      type: "enum",
-      values: ["docker"],
-    });
+  it("exports docker as the only sandbox runtime and accepts an unset runtime", () => {
+    expect(SANDBOX_RUNTIME).toBe("docker");
+    expect(validateAgroConfig({ version: 1 }).runtime).toBeUndefined();
+    expect(validateAgroConfig({ version: 1, runtime: "docker" }).runtime).toBe("docker");
+  });
+
+  it("keeps runtime out of `agro config set` and rejects it as an unknown field", () => {
+    expect(AGRO_CONFIG_FIELDS.some((f) => f.path === "runtime")).toBe(false);
+    expect(() => setAgroConfigValue({ version: 1 }, "runtime", "docker")).toThrow(
+      'unknown agro.json field "runtime"',
+    );
+  });
+
+  it("makes repo and checkout settable through `agro config set`", () => {
     expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "repo")).toEqual({
       path: "repo",
       type: "string",

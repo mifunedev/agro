@@ -6,7 +6,6 @@ import { runSandboxInstall, runSandboxList, type SandboxIO } from "../commands/s
 import { entryRoot, materialize } from "../lib/registry.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
-import { runtimeLines } from "../controllers/sandbox.js";
 import { renderComposeVars } from "../lib/config-render.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
@@ -294,42 +293,30 @@ describe("agro sandbox upgrade", () => {
 });
 
 describe("agro sandbox install — runtime selection", () => {
-  it.each(["agro", "agro"])(
-    "refuses microsandbox with the RFC pointer and the %s tool verb",
-    async (bin) => {
-      registry();
+  it.each(["microsandbox", "openshell", "podman"])(
+    "refuses the %s runtime and writes no entry",
+    async (runtime) => {
+      const registryPath = registry();
       const { err, io } = makeIo();
-      expect(await runSandboxInstall({ bin, runtime: "microsandbox", yes: true }, io)).toBe(1);
-      expect(err.join("")).toContain(
-        "microsandbox is not a provisionable runtime yet; see https://github.com/mifunedev/agro/issues/592. " +
-          `Inside a sandbox run \`${bin} tool install microsandbox\`.`,
+      expect(await runSandboxInstall({ bin: "agro", runtime, yes: true }, io)).toBe(1);
+      expect(err.join("")).toBe(
+        `agro sandbox install: unknown runtime "${runtime}" — the only runtime is docker\n`,
       );
+      expect(existsSync(registryPath)).toBe(false);
     },
   );
 
-  it("refuses an unknown runtime and lists the catalog", async () => {
-    registry();
-    const { err, io } = makeIo();
-    expect(await runSandboxInstall({ bin: "agro", runtime: "podman", yes: true }, io)).toBe(1);
-    expect(err.join("")).toContain('unknown runtime "podman"');
-    expect(err.join("")).toContain("docker, microsandbox");
-  });
-
-  it("refuses the retired runtime as an unknown runtime and writes no entry", async () => {
-    const retired = ["open", "shell"].join("");
+  it("writes no runtime field into the entry agro.json", async () => {
     const registryPath = registry();
-    const { err, io } = makeIo();
-    expect(await runSandboxInstall({ bin: "agro", runtime: retired, yes: true }, io)).toBe(1);
-    expect(err.join("")).toBe(
-      `agro sandbox install: unknown runtime "${retired}" — known runtimes: docker, microsandbox\n`,
-    );
-    expect(existsSync(registryPath)).toBe(false);
-  });
-
-  it("writes no entry for a refused runtime", async () => {
-    const registryPath = registry();
-    await runSandboxInstall({ bin: "agro", runtime: "microsandbox", yes: true }, makeIo().io);
-    expect(existsSync(registryPath)).toBe(false);
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "plain", yes: true, run: makeRunner().run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const raw = readJson(agroConfigPath(join(registryPath, "plain")));
+    expect(raw).not.toHaveProperty("runtime");
+    expect(raw.name).toBe("plain");
   });
 });
 

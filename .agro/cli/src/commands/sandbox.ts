@@ -7,6 +7,7 @@ import {
   defaultAgroConfig,
   getAgroConfigValue,
   AGRO_CONFIG_FIELDS,
+  SANDBOX_RUNTIME,
   agroConfigPath,
   readAgroConfig,
   writeAgroConfig,
@@ -20,7 +21,6 @@ import {
   materialize,
   nextDefaultName,
 } from "../lib/registry.js";
-import { findRuntime, runtimeIds } from "../lib/runtimes/catalog.js";
 import { runSandbox, type LifecycleIO } from "./lifecycle.js";
 
 export interface SandboxIO extends LifecycleIO {
@@ -121,7 +121,6 @@ function seedConfig(
 ): AgroConfig {
   const config = overlaySettings(defaultAgroConfig(name), seed);
   config.name = name;
-  config.runtime = "docker";
   if (checkout !== undefined) config.checkout = checkout;
   config.timezone = nonEmpty(seed?.timezone) ?? hostTimezone();
   config.git = {
@@ -179,15 +178,10 @@ export async function runSandboxInstall(
   io: SandboxIO,
 ): Promise<number> {
   const run = opts.run ?? spawnRunner;
-  const runtime = findRuntime(opts.runtime);
-  if (runtime === undefined) {
+  if (opts.runtime !== SANDBOX_RUNTIME) {
     io.stderr(
-      `${opts.bin} sandbox install: unknown runtime "${opts.runtime}" — known runtimes: ${runtimeIds().join(", ")}\n`,
+      `${opts.bin} sandbox install: unknown runtime "${opts.runtime}" — the only runtime is ${SANDBOX_RUNTIME}\n`,
     );
-    return 1;
-  }
-  if (!runtime.provisionable) {
-    io.stderr(`${opts.bin} sandbox install: ${runtime.notProvisionableReason?.(opts.bin) ?? ""}\n`);
     return 1;
   }
 

@@ -41,7 +41,7 @@ import { runAuth } from "./commands/auth.js";
 import { runHands } from "./commands/hands.js";
 import { PromptInterruptedError } from "./lib/prompt.js";
 import { RetiredRuntimeError } from "./lib/agro-config.js";
-export { isHelpFlag, parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
+export { isHelpFlag, parseSandboxArgs, printSandboxHelp } from "./controllers/sandbox.js";
 export type { ParseResult, SandboxArgs } from "./controllers/sandbox.js";
 import {
   runHarnessInstall,

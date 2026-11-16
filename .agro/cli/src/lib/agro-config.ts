@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { basename, dirname, resolve } from "node:path";
 import { assertInRoot } from "./env-file.js";
 import { NAMES, resolveProjectLayout } from "./layout.js";
-import { PROVISIONABLE_RUNTIMES, type ProvisionableRuntimeId } from "./runtimes/catalog.js";
 
 const AGRO_CONFIG_FILE = NAMES.configFile;
 const AGRO_CONFIG_MODE = 0o644;
@@ -90,9 +89,7 @@ export interface RunSettings {
 
 const SERVICE_NAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
-export type SandboxRuntime = ProvisionableRuntimeId;
-
-export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = PROVISIONABLE_RUNTIMES;
+export const SANDBOX_RUNTIME = "docker" as const;
 
 export const RETIRED_RUNTIMES = ["openshell"] as const;
 
@@ -105,7 +102,7 @@ export function isRetiredRuntime(value: unknown): value is RetiredRuntime {
 export interface AgroConfig {
   version: 1;
   name?: string;
-  runtime?: SandboxRuntime | RetiredRuntime;
+  runtime?: typeof SANDBOX_RUNTIME | RetiredRuntime;
   repo?: string;
   checkout?: string;
   timezone?: string;
@@ -227,7 +224,7 @@ export function validateAgroConfig(value: unknown): AgroConfig {
   }
 
   expectString(record, "name");
-  if (!isRetiredRuntime(record.runtime)) expectEnum(record, "runtime", "", SANDBOX_RUNTIMES);
+  if (!isRetiredRuntime(record.runtime)) expectEnum(record, "runtime", "", [SANDBOX_RUNTIME]);
   expectString(record, "repo");
   expectString(record, "checkout");
   expectString(record, "timezone");
@@ -412,7 +409,6 @@ export interface AgroConfigField {
 
 export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "name", type: "string" },
-  { path: "runtime", type: "enum", values: SANDBOX_RUNTIMES },
   { path: "repo", type: "string" },
   { path: "checkout", type: "string" },
   { path: "timezone", type: "string" },
