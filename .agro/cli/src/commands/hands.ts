@@ -11,10 +11,12 @@ import {
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
   resolveHandsConsoleConfig,
+  type ConsoleConfig,
   type ConsoleIO,
   type ConsolePollDeps,
 } from "../lib/console-api.js";
 import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-auth.js";
+import { consoleCheckLines, parseCheck } from "../lib/hands/console-check.js";
 import { createConsoleProvider, type LocalSshKey } from "../lib/hands/console-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
@@ -142,6 +144,7 @@ Usage:
   ${bin} hands destroy <hand> [--yes]
   ${bin} hands exec <hand> [--project <owner>/<repo>] -- <command...>
   ${bin} hands fetch <hand> --project <owner>/<repo>
+  ${bin} hands check [--ssh-key <uuid>]...
 
 Providers:
   \`hands.provider\` in the host config \${AGRO_HOME:-~/.agro}/config.json
@@ -187,6 +190,14 @@ free-tier allowance.
 \`fork\` copies a hand with its credentials. The fork takes the spec of the
 source unless --spec is given. When the console names the fork, \`fork\`
 waits for it like \`create\`. Otherwise, run \`${bin} hands list\` to find it.
+
+\`check\` applies only to console hands. It sends only GET requests and
+creates nothing. It finds each \`--ssh-key\` id in the console SSH keys.
+Without \`--ssh-key\`, it finds ~/.ssh/id_ed25519.pub there. It reads the free
+tier eligibility. It reads the org credit from /api/billing/balance for the
+credit line. \`check\` prints one line for each check and exits 0 only when
+no line starts with \`fail \`. An account outside the free tier gets a warn
+line. The credit line is ok or warn and never changes the exit status.
 
 The verbs read the console token from AGRO_CONSOLE_TOKEN, then from the
 brain token ${brainTokenPath(BRAIN_HOME)}, then from the credentials that
@@ -713,6 +724,21 @@ async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provid
   return 0;
 }
 
+async function runCheck(
+  tokens: string[],
+  io: HandsIO,
+  deps: HandsDeps,
+  config: ConsoleConfig,
+  keyPath: string,
+  prefix: string,
+): Promise<number> {
+  const parsed = parseCheck(tokens);
+  if (!parsed.ok) return failed(io, prefix, parsed.error);
+  const lines = await consoleCheckLines(deps, config, parsed.sshKeyIds, () => deps.readFile(keyPath));
+  for (const line of lines) io.stdout(`${line}\n`);
+  return lines.some((line) => line.startsWith("fail ")) ? 1 : 0;
+}
+
 type ProviderFlag = { ok: true; provider: string | undefined; args: string[] } | { ok: false; error: string };
 
 function takeProviderFlag(args: string[]): ProviderFlag {
@@ -772,6 +798,10 @@ export async function runHands(
   let safe: HandsIO;
   let provider: HandProvider;
   if (providerId === "exedev") {
+    if (verb === "check") {
+      io.stderr(`${prefix}: check applies only to console hands\n`);
+      return 1;
+    }
     const consoleOnly: readonly string[] = verb === "create" ? CONSOLE_ONLY_CREATE_FLAGS : verb === "fork" ? ["--spec"] : [];
     const refused = options
       .map((token) => (token.includes("=") ? token.slice(0, token.indexOf("=")) : token))
@@ -797,6 +827,7 @@ export async function runHands(
     const hidden = hiding(io, config.token);
     safe = hidden;
     const keyPath = join(deps.userHome(), ".ssh", "id_ed25519.pub");
+    if (verb === "check") return runCheck(rest, hidden, deps, config, keyPath, prefix);
     const localKey: LocalSshKey | undefined =
       authority === "operator"
         ? { read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }

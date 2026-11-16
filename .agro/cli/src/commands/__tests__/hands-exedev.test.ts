@@ -360,6 +360,14 @@ describe("agro hands lifecycle on exedev hands", () => {
     expect(r.calls).toEqual([]);
   });
 
+  it.each([[["check"]], [["check", "--ssh-key", "k1"]]])("refuses %j with no ssh exe.dev call", async (args) => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(args, h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands check: check applies only to console hands\n");
+    expect(r.calls).toEqual([]);
+  });
+
   it("forks a tagged hand with --copy-tags and waits for a named fork", async () => {
     const r = fakeRunner({ ls: [lsFixture(), lsOf(vm("copy"))] });
     const h = harness(r.run);

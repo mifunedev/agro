@@ -1065,3 +1065,175 @@ describe("agro hands destroy admin role", () => {
     expect(h.stderr()).toBe("agro hands destroy: destroy needs the admin role in agro-console\n");
   });
 });
+
+describe("agro hands check", () => {
+  const CONSOLE_ENV = { AGRO_CONSOLE_TOKEN: TOKEN, AGRO_CONSOLE_URL: "https://console.example" };
+  const LOCAL_KEY = "ssh-ed25519 AAAAlocal op@laptop";
+  const LOCAL_KEY_PATH = join(USER_HOME, ".ssh", "id_ed25519.pub");
+  const KEYS = { status: 200, body: { sshKeys: [{ id: "key-1", publicKey: "ssh-ed25519 AAAAlocal other@host" }, { id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } };
+  const ELIGIBLE = { status: 200, body: { eligible: true } };
+  const balance = (balanceMicros: number, overrides: Record<string, unknown> = {}) => ({
+    status: 200,
+    body: { balanceMicros, hasCard: false, paymentsEnabled: true, canManage: true, autoTopup: null, ...overrides },
+  });
+  const FUNDED = balance(12_345_678);
+  const AUTO_TOPUP = { amountUsd: 20, thresholdUsd: 5 };
+  const RETIRED_FLAG = ["--free", "tier"].join("-");
+  const LOCAL_SSH_KEY_MISSING = "no --ssh-key given and ~/.ssh/id_ed25519.pub not found";
+  const withLocalKey = { readFile: (path: string) => (path === LOCAL_KEY_PATH ? `${LOCAL_KEY}\n` : undefined) };
+  const methods = (calls: Recorded[]) => calls.map((c) => `${c.method} ${c.url}`);
+  const BOTH = [
+    "GET https://console.example/api/ssh-keys",
+    "GET https://console.example/api/free-tier",
+    "GET https://console.example/api/billing/balance",
+  ];
+  const checkHarness = (replies: Reply[], overrides: Partial<HandsDeps> = {}) =>
+    harness(replies, { env: CONSOLE_ENV, readFile: () => undefined, ...overrides });
+
+  it("finds the local public key by identity and checks the free tier with GET only", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, FUNDED], withLocalKey);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1 ~/.ssh/id_ed25519.pub\nok free-tier\nok credit: balance $12.35\n");
+    expect(methods(h.calls)).toEqual(BOTH);
+    expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("fails without a POST when the local public key is not registered", async () => {
+    const h = checkHarness([{ status: 200, body: { sshKeys: [{ id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } }, ELIGIBLE, FUNDED], withLocalKey);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toMatch(/^fail ssh-key ~\/\.ssh\/id_ed25519\.pub: not registered in agro-console — .*--ssh-key <uuid>\nok free-tier\nok credit: balance \$12\.35\n$/);
+    expect(h.calls.every((c) => c.method === "GET")).toBe(true);
+  });
+
+  it("fails with a remedy when the local public key file is missing and reads only the free tier", async () => {
+    const h = checkHarness([ELIGIBLE, FUNDED]);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain(`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`);
+    expect(methods(h.calls)).toEqual(["GET https://console.example/api/free-tier", "GET https://console.example/api/billing/balance"]);
+  });
+
+  it("finds each --ssh-key id and fails on an unknown id", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-2", "--ssh-key=key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")).toEqual([
+      "ok ssh-key key-2",
+      "fail ssh-key key-9: not found in agro-console — pass the id of an SSH key in agro-console",
+      "ok free-tier",
+      "ok credit: balance $12.35",
+      "",
+    ]);
+    expect(methods(h.calls)).toEqual(BOTH);
+  });
+
+  it("passes the free tier check when eligible", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1\nok free-tier\nok credit: balance $12.35\n");
+    expect(methods(h.calls)).toEqual(BOTH);
+  });
+
+  it("warns with the code and the reason when the account is not eligible and keeps exit 0", async () => {
+    const h = checkHarness([KEYS, { status: 200, body: { eligible: false, code: "FREE_TIER_INELIGIBLE", reason: "a free node is live" } }, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toContain("ok ssh-key key-1\n");
+    expect(h.stdout()).toMatch(/\nwarn free-tier: not eligible \(FREE_TIER_INELIGIBLE: a free node is live\) — .*agro auth login in the personal context\nok credit: balance \$12\.35\n$/);
+  });
+
+  it("keeps exit 1 for a failed key check when the account is not eligible", async () => {
+    const h = checkHarness([KEYS, { status: 200, body: { eligible: false } }, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("warn free-tier: not eligible — ");
+  });
+
+  it("names onboarding and the personal context on a 403 onboarding reply", async () => {
+    const h = checkHarness([KEYS, { status: 403, body: { error: "Onboarding required" } }, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("fail free-tier: HTTP 403 no code: Onboarding required — finish agro-console onboarding, or run agro auth login in the personal context\n");
+  });
+
+  it("never sends a POST or a DELETE across every check outcome", async () => {
+    const h = checkHarness([{ status: 200, body: { sshKeys: [] } }, { status: 200, body: { eligible: false } }, balance(0)], withLocalKey);
+    expect(await runHands(["check"], h.io, h.deps)).toBe(1);
+    expect(h.calls.length).toBe(3);
+    expect(h.calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+    expect(h.stdout()).toContain("warn free-tier: not eligible — ");
+  });
+
+  it.each([
+    ["payments are off", balance(0, { paymentsEnabled: false }), "ok credit: payments are off"],
+    ["a positive balance", balance(1_500_000), "ok credit: balance $1.50"],
+    ["a positive balance with auto top-up", balance(1_500_000, { autoTopup: AUTO_TOPUP }), "ok credit: balance $1.50, auto top-up on"],
+    [
+      "a zero balance without auto top-up",
+      balance(0),
+      "warn credit: no credit (balance $0.00) — top up at https://console.example/billing",
+    ],
+    [
+      "a negative balance without auto top-up",
+      balance(-40_000),
+      "warn credit: no credit (balance -$0.04) — top up at https://console.example/billing",
+    ],
+    ["a zero balance with auto top-up", balance(0, { autoTopup: AUTO_TOPUP }), "ok credit: balance $0.00, auto top-up on"],
+    ["a negative balance with auto top-up", balance(-40_000, { autoTopup: AUTO_TOPUP }), "ok credit: balance -$0.04, auto top-up on"],
+    [
+      "a console without the balance route",
+      { status: 404, body: { error: "Not found", code: "NOT_FOUND" } },
+      "warn credit: HTTP 404 NOT_FOUND: Not found",
+    ],
+    ["a failed balance read", { status: 500, body: { error: "boom" } }, "warn credit: HTTP 500 no code: boom"],
+  ])("prints the credit line for %s with GET only and keeps exit 0", async (_, reply, line) => {
+    const h = checkHarness([KEYS, ELIGIBLE, reply]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe(`ok ssh-key key-1\nok free-tier\n${line}\n`);
+    expect(methods(h.calls)).toEqual(BOTH);
+  });
+
+  it("keeps exit 1 on a failed key check whatever the credit line says", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, balance(5_000_000)]);
+    expect(await runHands(["check", "--ssh-key", "key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("ok credit: balance $5.00\n");
+  });
+
+  it("names the credit line in the help", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain("credit line");
+    expect(help).toContain("/api/billing/balance");
+  });
+
+  it("rejects an unknown flag before any request", async () => {
+    const h = checkHarness([KEYS]);
+    expect(await runHands(["check", "--spec", "n4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe('agro hands check: unknown flag "--spec"\n');
+    expect(h.calls).toEqual([]);
+  });
+
+  it("rejects the retired free tier flag before any request", async () => {
+    const h = checkHarness([KEYS]);
+    expect(await runHands(["check", RETIRED_FLAG], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands check: unknown flag "${RETIRED_FLAG}"\n`);
+    expect(h.calls).toEqual([]);
+  });
+
+  it("lists check in the verbs and the help", () => {
+    expect(HANDS_VERBS).toContain("check");
+    expect(handsHelp("agro")).toContain("agro hands check [--ssh-key <uuid>]...");
+  });
+
+  it("runs on a brain token against the brain console URL", async () => {
+    const h = harness([KEYS, ELIGIBLE, FUNDED]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1\nok free-tier\nok credit: balance $12.35\n");
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://brain-console.example/api/ssh-keys",
+      "GET https://brain-console.example/api/free-tier",
+      "GET https://brain-console.example/api/billing/balance",
+    ]);
+  });
+
+  it("never prints the token in a check line", async () => {
+    const h = checkHarness([KEYS, ELIGIBLE, { status: 500, body: { error: `bad token ${TOKEN}` } }]);
+    expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.all()).not.toContain(TOKEN);
+    expect(h.stdout()).toContain("warn credit: HTTP 500 no code: bad token [redacted]\n");
+  });
+});
