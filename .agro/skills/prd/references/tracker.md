@@ -56,7 +56,7 @@ The task also has optional top-level fields:
 - `pr`: the number of the task pull request.
 - `blocked`: a reason string. When this string is not empty, the task stops. Only the operator clears this field.
 - `review`: a boolean. Set `true` to turn on the review step of `/delegate` § Review. When this field is absent or `false`, the task skips the review step.
-- `reviewed`: the SHA of the reviewed commit. The advisor writes this field after the review. When `review` is `true` and this string is not empty, `next.sh` continues to Close.
+- `reviewed`: the SHA of the reviewed commit. The advisor writes this field after the review. When `review` is `true`, `next.sh` continues past `review` only when this field names a commit and no file outside `.agro/tasks` changed after that commit.
 
 The optional fields need no `schemaVersion` change. Each tool must accept a file without them.
 Omit `commit`, `rounds`, `pr`, `blocked`, and `reviewed` at conversion time. Write `"review": true` at conversion time. When the conversion has `--no-review`, write `"review": false`.
