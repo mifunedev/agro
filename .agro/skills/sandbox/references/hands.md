@@ -213,7 +213,7 @@ Never destroy an unrelated hand or a borrowed VM.
 ## Failure remedies
 
 If the console returns HTTP 403, stop. Do not retry.
-Report the console message to the operator.
+Report `BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN` to the operator.
 Do not inspect the token or switch credentials to bypass the refusal.
 The `exedev` provider refuses a write to a VM without the tag `agro-hand` and to the brain itself.
 If a guard refuses, stop and report the refusal. Do not tag a VM or rename a target to pass the guard.
