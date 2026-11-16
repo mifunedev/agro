@@ -118,8 +118,10 @@
         ".agro/cli/src/lib/console-api.ts",
         ".agro/cli/src/__tests__/",
         ".agro/cli/src/lib/hands/console-provider.ts",
-        ".agro/cli/src/lib/hands/console-check.ts"
-      ]
+        ".agro/cli/src/lib/hands/console-check.ts",
+        "docs/lifecycle-commands.md"
+      ],
+      "rounds": 1
     },
     {
       "id": "US-005",
