@@ -78,7 +78,7 @@ Status: DRAFT
 
 Today `/delegate` runs this state order: `story`, `close`, `push`, `ci`, `ci-red`, `ready`, `done`. Source: `.agro/skills/delegate/scripts/next.sh`. A code review runs outside the lifecycle, after `gh pr ready`.
 
-This plan adds one opt-in state, `review`. The step is off by default, and the default state order does not change. When `prd.json` sets `"review": true`, Close moves after the review. Close already writes `## Lessons`, so Close is the retro. One retro then covers the stories and the review findings. `gh pr ready` stays the last advisor action in both orders.
+This plan adds one state, `review`. The tracker conversion turns the review on by default, and `--no-review` turns it off (US-005). A `prd.json` without `review` keeps the old order. When `prd.json` sets `"review": true`, Close moves after the review. Close already writes `## Lessons`, so Close is the retro. `gh pr ready` stays the last advisor action in both orders.
 
 The Stop hook `.agro/hooks/task-next-stop.sh` already lists `review` in its blocking `case`. The hook needs no change.
 
@@ -91,7 +91,7 @@ The diagram for § Task lifecycle:
                 story <id> ──dispatch──────────────────────────▶ worker
                    ▲  verify → passes:true ◀──report────────────┘
                    └─ next story / wave
-                ┌─ review: true (opt-in) ──────────────────────────┐
+                ┌─ review: true (set at conversion) ───────────────┐
                 │ push → ci ──ci-red──▶ reopen owning story        │
                 │ review: harness review → repair → reviewed=<sha> │
                 └──────────────────────────────────────────────────┘
@@ -123,7 +123,7 @@ The diagram for § Task lifecycle:
 |---|---|---|
 | `next.sh` output | New state | `review` with one action line, only when `review` is `true` |
 | `prd.json` | New optional fields | Top-level `review` (boolean opt-in) and `reviewed` (the reviewed commit SHA) |
-| Tracker conversion | New flag | `--review` writes `"review": true` |
+| Tracker conversion | New default | The conversion writes `"review": true`; `--no-review` writes `"review": false` |
 | `/delegate` | Contract change | With the opt-in, review and retro run before `gh pr ready` |
 
 ## Storage
@@ -133,9 +133,9 @@ The top-level fields `review` and `reviewed` in `.agro/tasks/<slug>/prd.json` st
 ## Architectural Decisions
 
 - `/delegate` stays the only owner of the lifecycle. No new skill.
-- `next.sh` stays the only state machine. `next.sh` reads `review` as the opt-in and checks only that `reviewed` is a non-empty string.
-- The review step is off by default. A task without `review` keeps the current state order, so tasks in flight do not change.
-- The operator opts in at conversion with `--review`, or edits `prd.json` before `/delegate` starts.
+- `next.sh` stays the only state machine. `next.sh` treats the review as current only when `reviewed` names a commit and no file outside `.agro/tasks` changed since that commit.
+- `next.sh` treats an absent `review` as off. A task in flight without `review` keeps the old state order.
+- The tracker conversion writes `"review": true` by default (US-005). The operator opts out with `--no-review`, or edits `prd.json` before `/delegate` starts.
 - Revision (US-005, operator request): the conversion writes `"review": true` by default, and `--no-review` opts out. `next.sh` keeps absent as off, so tasks in flight do not change.
 - Close is the retro. The plan adds no separate retro state.
 - Review findings use § Repair. A worker repairs, and the advisor accepts.
