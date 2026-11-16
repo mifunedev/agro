@@ -29,7 +29,7 @@ describe("sandbox routing grader", () => {
     expect(loadCases(root).map((row) => row.id)).toEqual(caseIds);
     expect(() => gradeSynthetic(syntheticRecord())).not.toThrow();
   });
-  it.each(["docs/lifecycle-commands.md", "docs/runtimes/openshell.md"])("invalidates provenance when %s bytes change", (document) => {
+  it.each(["docs/lifecycle-commands.md", ".agro/skills/sandbox/references/local-docker.md"])("invalidates provenance when %s bytes change", (document) => {
     const fixtureRoot = mkdtempSync(join(tmpdir(), "sandbox-routing-"));
     try {
       for (const file of [...instructionFiles, casesFile]) {

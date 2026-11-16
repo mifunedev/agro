@@ -1,8 +1,7 @@
 import { resolveExecutionTarget } from "../lib/execution/index.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
-import { agroConfigPath, configCheckout, readAgroConfig } from "../lib/agro-config.js";
+import { agroConfigPath, configCheckout, isRetiredRuntime, readAgroConfig } from "../lib/agro-config.js";
 import { entryRoot, listEntries, registryRoot } from "../lib/registry.js";
-import { entrySandboxName } from "../lib/runtimes/verbs.js";
 import type { SandboxIO } from "./sandbox.js";
 
 export interface SandboxListOptions {
@@ -21,7 +20,7 @@ interface SandboxRow {
 
 async function entryStatus(root: string, name: string, run: LifecycleRunner): Promise<string> {
   try {
-    const target = resolveExecutionTarget({ projectRoot: root, container: entrySandboxName(root) ?? name, run });
+    const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
     return await target.status();
   } catch {
     return "unknown";
@@ -35,12 +34,13 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
     const root = entryRoot(name);
     const config = readAgroConfig(agroConfigPath(root));
     const checkout = configCheckout(config) ?? "-";
+    const retired = isRetiredRuntime(config.runtime);
     rows.push({
       name,
-      runtime: config.runtime ?? "docker",
+      runtime: retired ? `${config.runtime} (retired)` : (config.runtime ?? "docker"),
       checkout,
       repo: checkout,
-      status: await entryStatus(root, name, run),
+      status: retired ? "retired" : await entryStatus(root, name, run),
     });
   }
 

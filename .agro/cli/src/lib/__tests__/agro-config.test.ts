@@ -11,6 +11,7 @@ import {
   agroConfigPath,
   readAgroConfig,
   setAgroConfigValue,
+  isRetiredRuntime,
   validateAgroConfig,
   writeAgroConfig,
   type AgroConfig,
@@ -108,9 +109,18 @@ describe("round trip", () => {
 });
 
 describe("validateAgroConfig", () => {
+  it("accepts the retired openshell runtime that a previous release wrote", () => {
+    expect(validateAgroConfig({ version: 1, runtime: "openshell" }).runtime).toBe("openshell");
+    expect(isRetiredRuntime("openshell")).toBe(true);
+    expect(isRetiredRuntime("docker")).toBe(false);
+    expect(() => setAgroConfigValue({ version: 1 }, "runtime", "openshell")).toThrow(
+      "agro.json: runtime must be one of docker",
+    );
+  });
+
   const cases: Array<[string, unknown, RegExp]> = [
     ["name", { name: 1 }, /^agro\.json: name must be a string$/],
-    ["runtime", { runtime: "podman" }, /^agro\.json: runtime must be one of docker, openshell$/],
+    ["runtime", { runtime: "podman" }, /^agro\.json: runtime must be one of docker$/],
     ["repo", { repo: 7 }, /^agro\.json: repo must be a string$/],
     ["checkout", { checkout: 7 }, /^agro\.json: checkout must be a string$/],
     ["timezone", { timezone: true }, /^agro\.json: timezone must be a string$/],
@@ -240,7 +250,7 @@ describe("validateAgroConfig", () => {
     expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "runtime")).toEqual({
       path: "runtime",
       type: "enum",
-      values: ["docker", "openshell"],
+      values: ["docker"],
     });
     expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "repo")).toEqual({
       path: "repo",

@@ -13,7 +13,7 @@
 
 Use this route for one command on the host running `agro`.
 Use Docker when the command needs services or an egress allowlist.
-For persistent Docker or OpenShell workspaces, use the public
+For persistent Docker workspaces, use the public
 [lifecycle commands](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md).
 
 ## Prerequisites
@@ -79,7 +79,7 @@ With services and open egress, the per-run network also permits internet access.
 
 With `access.egress: "allowlist"`, the command and services use an internal network.
 A Squid proxy connects that network to a separate outbound network.
-The proxy permits OpenShell policy hosts plus `access.egressAllow`.
+The proxy permits the hosts in `.devcontainer/egress-policy.yaml` plus `access.egressAllow`.
 The command gets upper/lowercase HTTP proxy variables, `NO_PROXY`/`no_proxy`, and `NODE_USE_ENV_PROXY=1`.
 `NO_PROXY` includes localhost, 127.0.0.1, and service names.
 Clients that ignore the proxy cannot reach the internet.

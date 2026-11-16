@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1652-retire-openshell-runtime",
+  "description": "Retire the OpenShell runtime: remove agro sandbox install openshell, the OpenShell execution target, docs, validation journey, and tests; keep the agro run default image under defaultImage(config).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the OpenShell runtime from the CLI and the image",
+      "description": "As an operator, I want the CLI and the sandbox image to hold no OpenShell code. Then Docker is the only persistent sandbox runtime.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/execution/openshell-target.ts`, `.agro/cli/src/__tests__/openshell-target.test.ts`, `.agro/cli/src/__tests__/openshell-runtime-contract.test.ts`, `.devcontainer/openshell-main.sh`, and `.devcontainer/agro-image-env.sh` do not exist.",
+        "The worker renames `.devcontainer/openshell-policy.yaml` to `.devcontainer/egress-policy.yaml`. The new file holds only the `version` key and the `network_policies` section. `egressAllowHosts({ version: 1 })` returns the same host list as before the rename.",
+        "`lib/execution/index.ts` exports `defaultImage(config)` in place of `openshellImage(config)`. `defaultImage` returns `image.ref` when `image.ref` is not empty, and `officialImageRef(AGRO_VERSION)` otherwise. `agro run` container mode uses `defaultImage` when `--image` is absent.",
+        "`RUNTIME_CATALOG` holds `docker` and `microsandbox` only. `SANDBOX_RUNTIMES` equals `[\"docker\"]`. The agro.json `runtime` field accepts only `\"docker\"`.",
+        "`agro sandbox install openshell` exits 1 and prints `unknown runtime \"openshell\"`.",
+        "The worker deletes each code path that only a non-docker runtime reaches. The paths are the OpenShell branches in `commands/sandbox.ts`, `lib/execution/index.ts`, `lib/registry.ts`, `commands/egress.ts`, and `lib/runtimes/verbs.ts`, plus the OpenShell lines of the `controllers/sandbox.ts` help text.",
+        "`git grep -n -i openshell -- .agro/cli .devcontainer` prints nothing.",
+        "`agro run -- pnpm run typecheck` exits 0.",
+        "`agro run -- pnpm test` exits 0.",
+        "Repair 1: agro.json `runtime: \"openshell\"` parses as a retired value. `agro sandbox list` lists such an entry and does not throw.",
+        "Repair 1: on an entry with the retired `openshell` runtime, `agro shell`, `stop`, `restart`, `logs`, `ps`, `destroy`, `compose config`, `sandbox upgrade`, and `egress` exit 1 with one line that names `openshell sandbox delete <name>` and the removal of the entry. Each verb spawns nothing and keeps the registry entry.",
+        "Repair 1: `materialize()` writes no file into an entry with the retired `openshell` runtime.",
+        "Repair 1: `lifecycle.test.ts` again covers docker verb routing and docker sandbox naming, as the deleted tests did before `b9e9100d`.",
+        "Repair 1: the missing-binary error of `agro shell` names the binary of the resolved target, not a hard-coded `docker`.",
+        "Repair 1: `docs/configuration.md` describes the retired `openshell` value of `runtime`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Round 1 (code review of PR #1653, findings 1-7) at 57125724. Original criteria 1-6 and 8 still hold; criterion 7 (empty grep in .agro/cli) is superseded: the CLI now names the retired openshell value on purpose, and install still refuses it. Repair criteria: R1 executed: agro-config and sandbox tests parse the retired value and list it (text and --json). R2 executed: retired-runtime.test.ts asserts exit 1, one refusal line, zero spawns, and an unchanged entry for shell, stop, restart, logs, ps, destroy (with and without --yes), compose config, sandbox upgrade, egress log/reload. R3 executed: registry.test.ts asserts materialize writes nothing. R4 executed: lifecycle.test.ts docker verb routing and ambient-first naming tests pass. R5 executed: shell missing-binary test names zsh in a sandbox. R6 executed: ste-check docs/configuration.md exit 0. Gates: agro run -- pnpm run typecheck exit 0; agro run -- pnpm test exit 0, 127 files, 3473 tests (first run had a 5 s timeout in standard-skills-link.test.ts, untouched by this PR; it passed alone twice and in the rerun).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src",
+        ".devcontainer",
+        "docs/configuration.md"
+      ],
+      "commit": "57125724",
+      "rounds": 1
+    },
+    {
+      "id": "US-002",
+      "title": "Remove OpenShell from the docs, the sandbox skill, and the changelog",
+      "description": "As an operator, I want the docs and the sandbox skill to describe only the Docker runtime. Then no instruction routes work to a removed runtime.",
+      "acceptanceCriteria": [
+        "`docs/runtimes/openshell.md` and `.agro/skills/sandbox/checks/openshell-journey.sh` do not exist.",
+        "`.agro/skills/sandbox/references/validation.md` has no OpenShell journey scenario, and its contents list has no link to that scenario.",
+        "Routing case R8 in `.agro/scripts/__tests__/fixtures/sandbox-routing/cases.json` asks for a persistent Docker workspace. The R8 oracle stays `{ \"route\": \"lifecycle\", \"owners\": [\"lifecycle\", \"herdr\", \"worktrees\"] }`.",
+        "`instructionFiles` in `.agro/scripts/__tests__/helpers/sandbox-routing.ts` does not list `docs/runtimes/openshell.md`. The provenance test in `.agro/scripts/__tests__/sandbox-routing.test.ts` names only existing documents.",
+        "`CHANGELOG.md` `## [Unreleased]` has a `### Removed` entry for `agro sandbox install openshell` and the OpenShell runtime.",
+        "`git grep -n -i openshell -- ':!.agro/tasks' ':!CHANGELOG.md' ':!.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json'` prints nothing.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file in `docs/` and `.agro/skills/sandbox/`.",
+        "`docs/configuration.md` and `docs/security-considerations.md` link `.devcontainer/egress-policy.yaml`, and `agro run -- pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` exits 0.",
+        "Repair 2: the `CHANGELOG.md` OpenShell entry states that `runtime: \"openshell\"` stays readable as a retired value, that each acting verb refuses such an entry with the removal steps, and that `agro sandbox list` lists it."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Round 1 extended files with sandbox-skill.test.ts (heading and checks counts); repair commit 6b0cae68. 1 executed: test -e on both paths, neither exists; git grep openshell-journey matches only CHANGELOG. 2 executed: grep -c -i openshell validation.md = 0; worker renumbered Third..Fifth and anchors; sandbox-skill.test.ts passes. 3 executed: R8 prompt says persistent Docker workspace; jq shows oracle unchanged. 4 executed: grep openshell in helper and routing test prints nothing. 5 executed: CHANGELOG Unreleased has ### Removed entry linking #1652. 6 executed: git grep with the three exclusions exit 1. 7 executed: ste-check.sh exit 0 on all 9 changed Markdown files. 8 executed: both docs link ../.devcontainer/egress-policy.yaml; docs-reference.test.ts passes in full run. Full run: agro run -- pnpm test exit 1, 3439/3440 pass; the one failure is the stale observed replay in sandbox-routing.test.ts that US-003 re-records. Round 2 (review follow-up after repair 1) at fb3fd4b3: repair criterion executed: the CHANGELOG OpenShell entry now states the retired runtime value stays readable, acting verbs refuse with the removal steps, and sandbox list lists it; git diff HEAD~1 touches one line; ste-check reports no finding on the changed line. Round 1 and original criteria still hold after the rebase onto 980dc6e2 (CHANGELOG conflict merged with the #1651 entries under one ### Removed).",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs",
+        ".agro/skills/sandbox",
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json",
+        ".agro/scripts/__tests__/helpers/sandbox-routing.ts",
+        ".agro/scripts/__tests__/sandbox-routing.test.ts",
+        ".agro/scripts/__tests__/sandbox-skill.test.ts"
+      ],
+      "commit": "fb3fd4b3",
+      "rounds": 2
+    },
+    {
+      "id": "US-003",
+      "title": "Record the sandbox routing replay again",
+      "description": "As a maintainer, I want the routing replay to match the new instruction files so that the routing test proves the current sandbox skill.",
+      "acceptanceCriteria": [
+        "Seventeen fresh decision-only agents record one decision each for R1 to R17 against the final instruction files and `cases.json`.",
+        "Each record in `.agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json` matches its oracle.",
+        "The provenance in `decisions.json` comes from `sourceProvenance()`.",
+        "`agro run -- pnpm exec vitest run .agro/scripts/__tests__/sandbox-routing.test.ts` exits 0.",
+        "`agro run -- pnpm test` exits 0.",
+        "Repair 1: the replay is recorded again after the rebase onto `980dc6e2`."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1 executed: the advisor ran 17 fresh general-purpose decision-only agents (claude-opus-5-5), one per case, against the instruction files at 47d36875; each read only the 9 instruction files and executed nothing. 2 executed: an advisor-side check found route and required owners match the oracle for R1..R17; the grader in sandbox-routing.test.ts confirms. 3 executed: the worker built provenance by importing sourceProvenance() from the helper; the grader stale-source check passes. 4 reasoned from 5: sandbox-routing.test.ts is part of the full run and passes (the worker also ran it alone, 33/33). 5 executed: agro run -- pnpm test exit 0, 126 files, 3440 tests. Round 1 (rebase onto 980dc6e2, which changed docs/lifecycle-commands.md and decisions.json) at 1a01678b: the advisor ran 17 new fresh decision-only agents (handles replay9-R1..R17, claude-opus-5-5) against the rebased instruction files; 17/17 match their oracles. The worker rebuilt decisions.json with provenance from sourceProvenance(). Executed: agro run -- pnpm exec vitest run sandbox-routing.test.ts exit 0 (33/33, worker); agro run -- pnpm test exit 0, 126 files, 3457 tests (advisor).",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "commit": "1a01678b",
+      "rounds": 1
+    },
+    {
+      "id": "US-004",
+      "title": "Capture the manual review transcript",
+      "description": "As a reviewer, I want a command transcript from the branch CLI so that I can see the removed runtime. The transcript also shows the kept `agro run` default image.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/retire-openshell-runtime/evidence/manual-review.md` holds the commands and the observed output.",
+        "The transcript builds the branch CLI with `agro run -- pnpm run build:harness`.",
+        "The transcript shows `node .agro/cli/dist/agro.js sandbox install openshell` exits 1 with `unknown runtime \"openshell\"`.",
+        "The transcript shows `node .agro/cli/dist/agro.js sandbox install --help` lists no `openshell` runtime.",
+        "The transcript creates a new temp git project, and the project does not exist before the run. The project agro.json sets `image.ref` to `alpine:3.20`. In the project, `node <worktree>/.agro/cli/dist/agro.js run -- cat /etc/alpine-release` exits 0 and prints the Alpine version. The transcript deletes the temp project at the end."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "1 executed: manual-review.md holds 11 steps with commands, output, and exit status; ste-check exit 0. 2 executed: step 1 build exit 0 (dist/agro.js 428.6kb). 3 executed: advisor reran node .agro/cli/dist/agro.js sandbox install openshell, exit 1 with unknown runtime \"openshell\"; registry empty before and after. 4 executed: advisor reran install --help | grep -ci openshell = 0. 5 executed: worker transcript shows a new temp git project with image.ref alpine:3.20; agro run -- cat /etc/alpine-release exit 0, printed 3.20.10; temp dir deleted (advisor ls /tmp/agro-us004-* finds nothing); no alpine container left. The public alpine:3.20 image stays in the local cache.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/retire-openshell-runtime/evidence/manual-review.md"
+      ],
+      "commit": "fc0ff1a9"
+    }
+  ],
+  "pr": 1653
+}

@@ -94,10 +94,18 @@ export type SandboxRuntime = ProvisionableRuntimeId;
 
 export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = PROVISIONABLE_RUNTIMES;
 
+export const RETIRED_RUNTIMES = ["openshell"] as const;
+
+export type RetiredRuntime = (typeof RETIRED_RUNTIMES)[number];
+
+export function isRetiredRuntime(value: unknown): value is RetiredRuntime {
+  return (RETIRED_RUNTIMES as readonly unknown[]).includes(value);
+}
+
 export interface AgroConfig {
   version: 1;
   name?: string;
-  runtime?: SandboxRuntime;
+  runtime?: SandboxRuntime | RetiredRuntime;
   repo?: string;
   checkout?: string;
   timezone?: string;
@@ -143,12 +151,32 @@ export function defaultAgroConfig(name: string): AgroConfig {
   };
 }
 
-export function entryRuntime(root: string): SandboxRuntime {
-  try {
-    return readAgroConfig(agroConfigPath(root)).runtime ?? "docker";
-  } catch {
-    return "docker";
+export class RetiredRuntimeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RetiredRuntimeError";
   }
+}
+
+export function retiredRuntimeRefusal(root: string): string | undefined {
+  let config: AgroConfig;
+  try {
+    config = readAgroConfig(agroConfigPath(root));
+  } catch {
+    return undefined;
+  }
+  if (!isRetiredRuntime(config.runtime)) return undefined;
+  const entry = resolve(root);
+  const name = config.name !== undefined && config.name !== "" ? config.name : basename(entry);
+  return (
+    `the sandbox ${name} uses the retired openshell runtime; ` +
+    `run \`openshell sandbox delete ${name}\`, then remove the entry ${entry}`
+  );
+}
+
+export function assertActiveRuntime(root: string, command: string): void {
+  const refusal = retiredRuntimeRefusal(root);
+  if (refusal !== undefined) throw new RetiredRuntimeError(`${command}: ${refusal}`);
 }
 
 export function readAgroConfig(path: string): AgroConfig {
@@ -199,7 +227,7 @@ export function validateAgroConfig(value: unknown): AgroConfig {
   }
 
   expectString(record, "name");
-  expectEnum(record, "runtime", "", SANDBOX_RUNTIMES);
+  if (!isRetiredRuntime(record.runtime)) expectEnum(record, "runtime", "", SANDBOX_RUNTIMES);
   expectString(record, "repo");
   expectString(record, "checkout");
   expectString(record, "timezone");

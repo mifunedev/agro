@@ -41,7 +41,7 @@ ssh <name>.exe.xyz '<command>'
 
 Before application execution, prepare the checkout and a supported AGRO sandbox on the VM host.
 Use the public [lifecycle commands](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md)
-for persistent Docker or OpenShell workspaces.
+for persistent Docker workspaces.
 For disposable execution, inspect remote `agro run --help` and use the local route on that VM host:
 
 ```bash

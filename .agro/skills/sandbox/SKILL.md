@@ -6,7 +6,7 @@ description: |
   command, offload work to
   a hand, fork a hand, use agro hands, create an exe.dev VM, validate a fresh
   AGRO install or release, run a hosting matrix, cgroup probe, restart test,
-  OpenShell journey, Hermes home, Docker egress, agro run matrix, or add a
+  Hermes home, Docker egress, agro run matrix, or add a
   validation adapter. Does not own persistent workspace lifecycle,
   interactive process management, or checkout isolation.
 license: MIT
@@ -92,13 +92,13 @@ Do not infer billable authority from a route selection.
 - Adapters: [console](adapters/console.sh), [exedev](adapters/exedev.sh), and
   [vercel](adapters/vercel.sh).
 - Checks: [fresh install](checks/fresh-install.sh), [cgroups](checks/cg-probe.sh),
-  [hosting rows](checks/agro-rows.sh), [OpenShell](checks/openshell-journey.sh),
-  [Hermes home](checks/hermes-home.sh), [Docker egress](checks/docker-egress.sh),
-  and [run matrix](checks/agro-run-matrix.sh).
+  [hosting rows](checks/agro-rows.sh), [Hermes home](checks/hermes-home.sh),
+  [Docker egress](checks/docker-egress.sh), and
+  [run matrix](checks/agro-run-matrix.sh).
 
 ## Boundaries
 
-For persistent Docker or OpenShell workspaces, use the public
+For persistent Docker workspaces, use the public
 [lifecycle commands](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md).
 For interactive agents, tests, or servers, use `/herdr`.
 For checkout isolation, use `/worktrees`.

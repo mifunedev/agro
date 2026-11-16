@@ -87,12 +87,7 @@ agro shell <name>                # attach as the sandbox user
   locally.
   `--repo <dir>` is a deprecated alias. Recipes:
   [Creating a sandbox](deployment-prebuilt-image.md).
-- `docker` and `openshell` are the provisionable runtimes. `openshell` is
-  experimental and interactive-only: `agro sandbox install openshell` never
-  prompts, refuses `--checkout` and `--home-mount`, and needs the host
-  `openshell` CLI. See [NVIDIA OpenShell](runtimes/openshell.md). On an
-  `openshell` entry, `agro stop`, `restart`, `logs`, `ps`, `compose config`,
-  and `sandbox upgrade` exit 1 and print the `openshell` command to run.
+- `docker` is the only provisionable runtime.
 - `agro sandbox install microsandbox` refuses. Inside a sandbox,
   `agro tool install microsandbox` installs the `msb` binary.
 
@@ -291,7 +286,7 @@ route out. This applies with or without services. Each `agro run` does these ste
    If all attempts fail, `agro run` exits 1.
    Then wait for the services and run the command on `agro-run-<id>`.
 
-The proxy permits the OpenShell policy hosts plus the hosts in `access.egressAllow`.
+The proxy permits the hosts in [`.devcontainer/egress-policy.yaml`](../.devcontainer/egress-policy.yaml) plus the hosts in `access.egressAllow`.
 The command gets these environment variables in addition to `run.env`:
 
 - `HTTPS_PROXY`, `HTTP_PROXY`, `https_proxy`, and `http_proxy`: `http://proxy:3128`.
@@ -723,9 +718,9 @@ agro node check                  # check the SSH key and the free tier, create n
   the console SSH keys. The command also reads the free tier eligibility of
   the console account. The command prints one line for each check, for example
   `ok ssh-key <id>` or `fail ssh-key <id>: ...`. Each failure line names a
-  remedy. An account that is not eligible for the free tier gets a line that
-  starts with `warn free-tier: not eligible`. A warn line does not change the
-  exit status. The command exits 1 when a check fails. Otherwise it exits 0.
+  remedy. When the account is not eligible for the free tier, the command
+  prints a line that starts with `warn free-tier: not eligible`. A warn line does not change the
+  exit status. The command exits 1 when a check fails. Otherwise the command exits 0.
 - `--json` on `create` and `list` prints JSON instead of text.
 
 ## Hands from a brain: `agro hands`
@@ -919,7 +914,7 @@ lists `docker-compose.yml` and nothing else. It never runs
 
 - `access.ssh` → no `docker-compose.ssh.yml`, so no sshd and no published SSH port
 - `access.dockerSocket` → no `docker-compose.docker-sock.yml`, so no host Docker socket
-- `composeOverrides[]` → every extra overlay path is ignored
+- `composeOverrides[]` → no extra overlay path applies
 
 Secrets still reach that container: compose auto-loads the `.devcontainer/.env`
 beside the compose file, and that file is a symlink to the root `.env`.
