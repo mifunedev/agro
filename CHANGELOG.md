@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- `agro self-upgrade` runs `npm i -g @mifune/agro@latest` for an npm install under the global npm prefix, replaces an `install.sh` file in place, and refuses every other executable: an npm install under another prefix, a symbolic link, a file in a directory without write access, and a lower release version ([#1651](https://github.com/mifunedev/agro/issues/1651)).
+
+### Removed
+
+- Remove the one-time star prompt after `agro sandbox install` and its `AGRO_NO_STAR_PROMPT` variable ([#1651](https://github.com/mifunedev/agro/issues/1651)).
+
 ## [0.39.0] - 2026-11-15
 
 ### Added

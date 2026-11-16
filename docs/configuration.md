@@ -219,12 +219,6 @@ See [Muse authentication](harnesses/muse-code.md#authentication) for process inj
 `TYPESAFE_API_KEY` serves the optional `typesafe-ai` skill.
 See `.agro/skills/typesafe-ai/SKILL.md`.
 
-## Environment variables
-
-| Variable | Default | What the variable does |
-| --- | --- | --- |
-| `AGRO_NO_STAR_PROMPT` | unset | `1` suppresses the one-time line `⭐ If AGRO helps, star https://github.com/mifunedev/agro` that `agro sandbox install` prints after its first successful install. The line also stays off when `CI` holds a non-empty value, or when stdout is not a TTY. The marker `${AGRO_HOME:-~/.agro}/star-prompt-shown` records the first display. |
-
 ## Retired keys
 
 No setting changes the directory layout. `config-render.ts` refuses to render

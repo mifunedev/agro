@@ -245,25 +245,26 @@ Usage:
 Upgrades exactly one thing: the ${bin} executable that is running. It writes no
 project file — no ${stateNames(bin).controlDir}/, no ${stateNames(bin).configFile}, no .env — and it never asks for sudo.
 
-The upgrade follows whichever mechanism installed this executable:
-  npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/: reads the registry
-                 version with \`npm view\`, then runs
-                 \`npm install -g --prefix <owning prefix> ${AGRO_PRODUCT.packageName}@<version>\`.
-  standalone     a plain file (install.sh): downloads AGRO_JS_URL (default
+The upgrade follows the realpath of the running executable:
+  npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/ in the
+                 global npm prefix (\`npm prefix -g\`): runs
+                 \`npm i -g ${AGRO_PRODUCT.packageName}@latest\`. Another prefix,
+                 such as the npx cache or a project node_modules, is refused.
+  standalone     a regular file named ${bin} (install.sh) in a writable
+                 directory: downloads AGRO_JS_URL (default
                  ${DEFAULT_ARTIFACT_URL})
-                 into the same directory, checks its shebang and \`--version\`,
-                 renames it over the executable, and keeps <path>.prev until the
-                 new file verifies.
+                 into the same directory, checks its #! line and SemVer
+                 \`--version\`, then renames it over the executable. A lower
+                 version is refused; an equal version keeps the executable. A
+                 pinned absolute Node shebang stays in place.
 
-It refuses, with the supported procedure, when the executable is shipped by the
-sandbox image (/opt/agro), is a source checkout's dist/, cannot be resolved,
-sits in a read-only directory, is shadowed by another ${bin} earlier on PATH, or
-does not report the running version. Downgrades are refused. When the installed
-version is already current it changes nothing.
+Every other executable, such as /opt/agro in the sandbox image, a checkout's
+dist/${bin}.js, or a symbolic link, is refused: upgrade it with the mechanism
+that installed it.
 
 Flags:
-  --dry-run       Report the installation kind, target, and versions without
-                  changing anything.
+  --dry-run       Print the planned npm command (after the prefix check) or
+                  download URL without changing anything.
 
 Project payload vendoring (${stateNames(bin).controlDir}/) is \`${bin} vendor\`; its --from,
 --from-remote, --ref and --force flags are not accepted here.
