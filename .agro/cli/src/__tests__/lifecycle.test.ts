@@ -58,6 +58,7 @@ const {
   parseSandboxArgs,
   parseShellArgs,
   printSandboxHelp,
+  runCli,
 } = await import("../cli.js");
 
 
