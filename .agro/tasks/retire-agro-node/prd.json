@@ -105,7 +105,7 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": "Round 1 added docs/lifecycle-commands.md node removal (docs-reference test). C1 executed: both files deleted in 2cd9d293. C2 executed: git grep NODE_VERBS/runNode in .agro/cli matches only self-upgrade.ts (unrelated dep). C3 executed: lifecycle.test.ts runCli([node,list]) exit 1 'unknown command'. C4 executed: git grep commands/node prints nothing; 12 unused console-api exports made private. C5 executed with deferral: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 1 only on sandbox-routing observed replay (stale instructionSha256 from the docs edit), which US-007 re-records; Close reruns the suite.",
       "dependsOn": [
         "US-003"
@@ -121,7 +121,7 @@
         ".agro/cli/src/lib/hands/console-check.ts",
         "docs/lifecycle-commands.md"
       ],
-      "rounds": 1,
+      "rounds": 2,
       "commit": "b70ef8b0"
     },
     {
