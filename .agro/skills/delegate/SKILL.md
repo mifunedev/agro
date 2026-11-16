@@ -59,7 +59,7 @@ the states in this order: `story`, `close`, `push`, `ci`, `ready`, `done`. When
 | `push` | Push the task branch | The remote task branch head equals local `HEAD` | Advisor |
 | `ci` | Wait for CI with `/ci-status` | No PR check is pending | Advisor |
 | `ci-red` | Reopen the story that owns the failing path as a bounded repair (§ Acceptance) | The reopened story has `passes: true` | Advisor; the same worker repairs |
-| `review` | Run the code review, repair each finding, and write `reviewed` (§ Review) | `prd.json` has a non-empty `reviewed`, and no file outside `.agro/tasks` changed after that commit | Advisor; a worker repairs |
+| `review` | Run the code review, repair each finding, and write `reviewed` (§ Review) | `prd.json` has a non-empty `reviewed`, the value is a hex commit SHA, and no task-branch commit after that SHA changes a file outside `.agro/tasks`. Merges of the base branch do not count | Advisor; a worker repairs |
 | `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
 | `ready` | Run `gh pr ready` (`/git` § Ready for review) | The PR is not a draft | Advisor |
 | `done` | Stop | The run ends | Operator merges |
@@ -226,11 +226,10 @@ cannot check out the task branch. Do these steps from the main checkout:
 
 A failed story check, a red CI check (`ci-red`), or a review finding
 (§ Review) starts a repair. The advisor
-reopens the story whose `files` hold the failing path: write `passes: false`.
-For a failed story check or `ci-red`, also add 1 to `rounds`. A repair for a
-review finding does not change `rounds`. When `review` is `true`, a change
-outside `.agro/tasks` after the `reviewed` commit sends the task back to
-`review`. The same worker repairs the story as a bounded repair.
+reopens the story whose `files` hold the failing path: write `passes: false`
+and add 1 to `rounds`. When `review` is `true`, a task-branch commit after the
+`reviewed` SHA that changes a file outside `.agro/tasks` sends the task back
+to `review`. Merges of the base branch do not count. The same worker repairs the story as a bounded repair.
 The advisor does not repair. Dependents of a reopened story wait. Before a repair
 in a worktree, the worker merges the current task branch into the worker branch.
 
@@ -285,18 +284,19 @@ A per-dispatch model overrides the default.
    Pi, or another harness, pick an option from the "Compare ways to get a
    review" table at `https://code.claude.com/docs/en/code-review`. That page
    is the reference for the review options.
-2. Write each finding with its outcome in `## Lessons` of `prd.md`. The
-   outcome rules of § Close step 3 apply. A late review pass can follow Close,
-   and Close does not run again.
-3. Repair each finding with a required fix per § Repair. A repair for a
-   review finding does not change `rounds`. After a reopened story, `next.sh`
-   prints these states in order: `story`, `push`, `ci`, `review`.
-4. For a finding in a path with no owning story, apply § Close step 3: fold
+2. Repair each finding with a required fix per § Repair. After a reopened
+   story, `next.sh` prints these states in order: `story`, `push`, `ci`,
+   `review`.
+3. For a finding in a path with no owning story, apply § Close step 3: fold
    the finding into the PR only under the conditions of that step. Otherwise,
    propose an issue, or drop the finding with the reason. This finding does
    not block the task.
-5. When a review pass leaves no finding to repair, write the SHA of the
+4. When a review pass leaves no finding to repair, write the SHA of the
    reviewed commit to `reviewed` in `prd.json`.
+
+Close runs after `review` and writes the review findings to `## Lessons`
+(§ Close step 3). When `## Lessons` already has content at a review pass, add
+the findings of that pass to the same `## Lessons` section.
 
 The managed Code Review service skips draft pull requests. The PR is a draft
 at `review`, so the advisor does not wait for that service.
@@ -315,7 +315,8 @@ When `review` is `true`, start Close after `review`. When every story has
    a job type, a command, or a file. When the evidence covers a different
    subject, mark the criterion `unmet`. When any criterion is `unmet`, do not
    report the task as done.
-3. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
+3. Write or extend `## Lessons` at the end of `prd.md`. Keep one
+   `## Lessons` section. Give each lesson a claim,
    evidence, and exactly one outcome:
    - fixed in this PR;
    - issue #N; or

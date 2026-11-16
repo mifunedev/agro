@@ -340,10 +340,9 @@ Do these steps in this sequence:
 - Every story passes:
   `jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<slug>/prd.json`
   exits 0.
-- When `review` is `true`, `prd.json` has a non-empty `reviewed`. The
-  `reviewed` value names a commit, and no file outside `.agro/tasks` changed
-  after that commit. This command exits 0:
-  `jq -e '.review != true' .agro/tasks/<slug>/prd.json || git diff --quiet "$(jq -r '.reviewed // ""' .agro/tasks/<slug>/prd.json)^{commit}" HEAD -- . ':!.agro/tasks'`
+- When `review` is `true`, `prd.json` has a non-empty `reviewed`, and
+  `bash .agro/skills/delegate/scripts/next.sh` does not print `review`.
+  `next.sh` is the only source of the review rule.
 - `prd.md` ends with a non-empty `## Lessons` section. "None" is a valid body:
   `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
   exits 0.
