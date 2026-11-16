@@ -170,8 +170,11 @@
         ".agro/skills/sandbox/references/hands.md",
         ".agro/skills/sandbox/references/providers.md",
         ".agro/skills/sandbox/references/validation.md",
-        "CHANGELOG.md"
-      ]
+        "CHANGELOG.md",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/commands/hands.ts"
+      ],
+      "rounds": 1
     },
     {
       "id": "US-007",
