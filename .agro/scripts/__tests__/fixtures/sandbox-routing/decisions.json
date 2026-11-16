@@ -14,14 +14,14 @@
       "docs/lifecycle-commands.md",
       "docs/runtimes/openshell.md"
     ],
-    "instructionSha256": "3b79887bfbf220fffcf5856d63a98849c3838b4cb48f58483ba2ee5404085eab",
+    "instructionSha256": "298e739c5582dff6661067522facee329a2592bd2a9b1bb078cd98fdf3f95ae6",
     "casesSha256": "fbf49a376feee65efe5744e1c0bc0e70bfde330c452505e5af78e3bd6168fc3b"
   },
   "decisions": [
     {
       "caseId": "R1",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R1",
+      "agentHandle": "replay9-R1",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -31,17 +31,16 @@
           "agro-run"
         ],
         "commands": [
-          "agro --version",
           "agro run --help",
           "agro run -- <verification-command>"
         ],
-        "notes": "The operator asked for one command against this host checkout, in a disposable container. Step 2 of the sandbox skill's Select a route order uses a location the request names, the local host, and the request rules out a persistent workspace and another machine. references/local-docker.md says to use local/docker for one command on the host running agro, from the host, after checking agro run --help."
+        "notes": "The operator named the location, this host checkout, and asked for a disposable container. Step 2 of the sandbox SKILL.md route order uses an explicitly named location, and local-docker.md says to use agro run -- <command> on the host for one command with container isolation."
       }
     },
     {
       "caseId": "R2",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R2",
+      "agentHandle": "replay9-R2",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -55,13 +54,32 @@
           "msb --version",
           "agro run --isolation microvm -- <command>"
         ],
-        "notes": "The sandbox SKILL.md routing table maps one command with a separate kernel on a KVM host to local/msb, and decision step 1 says to use agro run --isolation microvm for a separate kernel. references/local-msb.md prerequisites hold: host, msb 0.7.13, /dev/kvm access, no services or egress allowlist. agro run owns the guest lifecycle and cleanup."
+        "notes": "SKILL.md Select a route maps one command with a separate kernel on a KVM host to local/msb, and step 1 says to use agro run --isolation microvm for a separate kernel. local-msb.md prerequisites hold: msb 0.7.13, /dev/kvm access, no services and no egress allowlist."
       }
     },
     {
       "caseId": "R3",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R3",
+      "agentHandle": "replay9-R3",
+      "freshContext": true,
+      "decisionOnly": true,
+      "executed": false,
+      "response": {
+        "route": "local/docker",
+        "owners": [
+          "agro-run"
+        ],
+        "commands": [
+          "agro run --help",
+          "agro run -- <integration-test-command>"
+        ],
+        "notes": "SKILL.md Select a route step 1 says services select the container runtime, and the operator named this host, so the route is local/docker. local-docker.md says to declare run.services.postgres in agro.json; agro run gives each service a fresh container and removes it after success or failure."
+      }
+    },
+    {
+      "caseId": "R4",
+      "observedModel": "claude-opus-5-5",
+      "agentHandle": "replay9-R4",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -73,35 +91,15 @@
         "commands": [
           "agro --version",
           "agro run --help",
-          "git status --porcelain",
-          "agro run -- <integration test command>"
+          "agro run -- <dependency-verification-command>"
         ],
-        "notes": "The SKILL.md decision order puts isolation first: services use the container runtime, and the operator named this Docker-capable host. local-docker.md says to declare PostgreSQL under run.services in agro.json; each service gets a fresh container and agro run removes recorded services after success or failure."
-      }
-    },
-    {
-      "caseId": "R4",
-      "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R4",
-      "freshContext": true,
-      "decisionOnly": true,
-      "executed": false,
-      "response": {
-        "route": "local/docker",
-        "owners": [
-          "agro-run"
-        ],
-        "commands": [
-          "agro run --help",
-          "agro run -- <dependency verification command>"
-        ],
-        "notes": "The SKILL.md decision order sends services or an egress allowlist to the container runtime, and the route table maps one command with an egress allowlist to local/docker. local-docker.md says agro run follows access.egress allowlist through an internal network and a Squid proxy, and forbids disabling the allowlist or falling back to the raw host."
+        "notes": "SKILL.md Select a route says services or an egress allowlist use the container runtime, and the request names this host, so plain agro run applies the access.egress allowlist through the Squid proxy. local-docker.md forbids disabling the allowlist and any raw-host fallback."
       }
     },
     {
       "caseId": "R5",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R5",
+      "agentHandle": "replay9-R5",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -116,18 +114,18 @@
           "agro hands create --project acme/widget",
           "agro hands exec <hand> --project acme/widget -- agro run --help",
           "agro hands exec <hand> --project acme/widget -- agro run -- <command>",
-          "agro hands exec <hand> --project acme/widget -- git commit -am '<message>'",
+          "agro hands exec <hand> --project acme/widget -- git commit -am \"<message>\"",
           "agro hands fetch <hand> --project acme/widget",
           "agro hands destroy <hand> --yes",
           "agro hands list"
         ],
-        "notes": "SKILL.md Select a route maps offloading a project from a brain to a hand to the hands route, and the operator authorized the billable create and the teardown. hands.md says application work on a hand names both owners: agro hands for selection, transport, and git movement, and agro run for application execution."
+        "notes": "hands.md says a request to create a new hand for a project, with authority to create and destroy it, selects the hands route. A hand request that runs application work names both owners: agro hands for transport and git movement, and agro run on the hand for isolated execution."
       }
     },
     {
       "caseId": "R6",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R6",
+      "agentHandle": "replay9-R6",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -142,13 +140,13 @@
           "ssh review-box.exe.xyz '<bounded read-only inspection command>'",
           "ssh exe.dev ls --json"
         ],
-        "notes": "The sandbox skill routes use of an approved exe.dev VM through the SSH command API, not as a hand, to exedev. exedev.md records review-box as borrowed, forbids billable create without authority, and says not to delete borrowed VMs; verify confirms the VM remains."
+        "notes": "The sandbox SKILL.md sends use of an approved exe.dev VM through the SSH command API, not as a hand, to exedev. references/exedev.md records review-box as borrowed, selects it without new, never runs rm on a borrowed VM, and confirms it remains at the end."
       }
     },
     {
       "caseId": "R7",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R7",
+      "agentHandle": "replay9-R7",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -162,13 +160,13 @@
           "setsid nohup bash .agro/skills/sandbox/scripts/run.sh exedev > run.out 2>&1 < /dev/null &",
           "cat run.out"
         ],
-        "notes": "SKILL.md Validation and supporting resources sends fresh-install checks to references/validation.md. The validation driver creates one agro-matrix VM through the exedev adapter, runs checks/fresh-install.sh, and destroys only that VM; the run preflights first and starts detached."
+        "notes": "SKILL.md sends fresh-install checks to references/validation.md. That procedure runs checks/fresh-install.sh through scripts/run.sh exedev after the preflight, as a detached run; the driver creates one agro-matrix VM and destroys it on exit."
       }
     },
     {
       "caseId": "R8",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R8",
+      "agentHandle": "replay9-R8",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -183,15 +181,15 @@
           "agro sandbox install openshell --name <name>",
           "agro shell <name>",
           "agro tool install herdr && herdr",
-          "git worktree add -b feat/<n>-<slug> \"$WORKTREES_ROOT/feat/<n>-<slug>\" \"$BASE\""
+          "/worktrees create <branch>"
         ],
-        "notes": "The sandbox skill does not own persistent workspace lifecycle, interactive processes, or checkout isolation. Its Boundaries section sends persistent OpenShell workspaces to the lifecycle commands, interactive servers to /herdr, and checkout isolation to /worktrees; docs/runtimes/openshell.md gives the install, shell, and herdr loop."
+        "notes": "The sandbox SKILL.md does not own persistent workspace lifecycle, interactive process management, or checkout isolation. Its Boundaries section sends persistent OpenShell workspaces to the lifecycle commands, interactive servers to /herdr, and checkout isolation to /worktrees."
       }
     },
     {
       "caseId": "R9",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R9",
+      "agentHandle": "replay9-R9",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -210,13 +208,13 @@
           "agro hands exec sbx-dev-001 --project mifunedev/widget -- git commit -am \"<message>\"",
           "agro hands fetch sbx-dev-001 --project mifunedev/widget"
         ],
-        "notes": "hands.md Choose when lists this request as a hands route request; hands.provider exedev chooses the provider inside that route, not the separate exedev route. hands.md assigns agro hands for transport and git movement and agro run on the hand for pnpm test, following Put a project on an existing hand."
+        "notes": "references/hands.md lists this request under the requests that select the hands route, and says a hand request that runs application work names both owners, agro hands and agro run. Read hands.provider from the host config, and stop and report on a guard refusal."
       }
     },
     {
       "caseId": "R10",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R10",
+      "agentHandle": "replay9-R10",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -226,16 +224,15 @@
           "agro-hands"
         ],
         "commands": [
-          "agro hands --help",
           "agro hands list"
         ],
-        "notes": "The route table sends hand requests from a brain to the hands route for both console and exe.dev hands. hands.md names List my hands as a hands route request, and hands.provider exedev picks the provider. Listing runs no application work, so agro hands is the only owner."
+        "notes": "references/hands.md names List my hands as a hands route request, says agro hands owns hand selection, and says to read hands.provider from the host config. The exedev route is only for an exe.dev VM not used as a hand, and no application work runs."
       }
     },
     {
       "caseId": "R11",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R11",
+      "agentHandle": "replay9-R11",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -249,13 +246,13 @@
           "agro hands pause sbx-dev-001",
           "agro hands list"
         ],
-        "notes": "hands.md lists Pause hand sbx-dev-001 as a hands route request; hands.provider exedev only picks the provider. The Cleanup section says agro hands pause works for both providers and agro hands list confirms the state. No application work runs, so agro run is not an owner."
+        "notes": "hands.md lists Pause hand sbx-dev-001 as a hands route request and says both providers support agro hands pause. No application work runs, so agro run is not an owner, and agro hands list confirms the paused state."
       }
     },
     {
       "caseId": "R12",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R12",
+      "agentHandle": "replay9-R12",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -266,19 +263,18 @@
           "agro-run"
         ],
         "commands": [
-          "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
           "agro hands list",
-          "agro hands exec agro-sbx-dev-001 -- agro run --help",
           "git -C <harness-root>/projects/mifunedev/widget push hand-agro-sbx-dev-001 HEAD",
-          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run -- <project test command>"
+          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --help",
+          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run -- <test-command>"
         ],
-        "notes": "The request names no location, so the SKILL.md Select a route order applies: with a clean checkout, step 5 uses a running hand that holds the project, and step 6 pushes the branch to hand-<vm>, confirms HEAD, and runs agro hands exec with agro run. hands.md names both owners for application work on a hand."
+        "notes": "SKILL.md Select a route steps 5 and 6 apply: a running hand holds the project, so the flow pushes the branch to hand-<vm>, confirms HEAD, and runs agro hands exec with agro run. hands.md names both owners for application work on a hand."
       }
     },
     {
       "caseId": "R13",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R13",
+      "agentHandle": "replay9-R13",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -290,16 +286,15 @@
         "commands": [
           "git -C projects/mifunedev/widget status --porcelain",
           "agro hands list",
-          "agro run --help",
-          "agro run -- <project test command>"
+          "agro run -- <test-command>"
         ],
-        "notes": "SKILL.md Select a route step 5 uses a hand only when its status is running and it holds the project; any other status does not count. The only hand is paused, so step 7 routes to local/docker, and the default never resumes or creates a hand."
+        "notes": "Step 5 of SKILL.md Select a route uses a hand only if its status is running and it holds the project; a paused hand does not count, so the run goes to local/docker. The default never resumes or creates a hand."
       }
     },
     {
       "caseId": "R14",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R14",
+      "agentHandle": "replay9-R14",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -310,17 +305,17 @@
         ],
         "commands": [
           "git -C projects/mifunedev/widget status --porcelain",
-          "agro run --help",
           "agro hands list",
-          "agro run -- <project test command>"
+          "agro run --help",
+          "agro run -- <test-command>"
         ],
-        "notes": "The request names no location and no isolation need, so the SKILL.md default order applies. Step 5 says to use local/docker when no running hand holds the project, and the default never resumes or creates a hand; hands.md requires explicit authority for a billable create."
+        "notes": "Under SKILL.md Select a route steps 4, 5, and 7, no running hand holds the project, so the run goes to local/docker with agro run. The default never resumes or creates a hand."
       }
     },
     {
       "caseId": "R15",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R15",
+      "agentHandle": "replay9-R15",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -333,13 +328,13 @@
           "agro run --help",
           "agro run -- <widget test command>"
         ],
-        "notes": "Step 2 of the sandbox skill's Select a route order uses an explicit location, and the operator said on this host, so the hand checks in steps 4 to 6 do not apply although a hand is running. local-docker.md covers one command on the host running agro with the form agro run -- pnpm test from the project directory."
+        "notes": "Sandbox SKILL.md Select a route step 2 uses an explicitly named location, and the operator said on this host, so the run stays local through agro run. The running hand is not used, because step 2 decides before the hand checks in steps 4 to 6."
       }
     },
     {
       "caseId": "R16",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R16",
+      "agentHandle": "replay9-R16",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -350,20 +345,19 @@
           "agro-run"
         ],
         "commands": [
-          "agro hands --help && agro run --help",
           "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
           "agro hands list",
           "git -C <harness-root>/projects/mifunedev/widget push hand-agro-sbx-dev-001 HEAD",
           "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --help",
           "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --isolation microvm -- <command>"
         ],
-        "notes": "SKILL.md Select a route step 1 maps a separate guest kernel to agro run --isolation microvm, and steps 4 to 6 pick the running hand that holds the project when the checkout is clean and HEADs match. hands.md Choose when keeps the step 1 runtime on the hand and names both owners, agro hands and agro run."
+        "notes": "Under SKILL.md Select a route, step 1 maps a separate kernel to agro run --isolation microvm, and step 5 uses the running hand that holds the project. hands.md says a hand run keeps the step 1 runtime and names both owners, agro hands and agro run."
       }
     },
     {
       "caseId": "R17",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay8-R17",
+      "agentHandle": "replay9-R17",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -377,7 +371,7 @@
           "agro run --help",
           "agro run -- <test command>"
         ],
-        "notes": "The request names no location or isolation need, so step 3 of Select a route decides: a non-empty git status --porcelain selects local/docker before the hand checks. A hand moves commits only, so it would not see the uncommitted edits, and the default never resumes or creates a hand."
+        "notes": "The request does not ask to run on the hand, so step 2 does not apply. Step 3 of SKILL.md Select a route uses local/docker when git status --porcelain is not empty, and a hand would not see uncommitted edits because pushes and fetches move commits only."
       }
     }
   ]
