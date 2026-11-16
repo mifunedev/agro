@@ -12,6 +12,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Add optional `aws` and `gws` tool installers for AWS CLI v2 and Google Workspace CLI without a sandbox rebuild ([#1610](https://github.com/mifunedev/agro/issues/1610)).
 
+### Changed
+
+- Make `/delegate` run an opt-in code review before Close when prd.json sets `"review": true` (off by default), and mark the PR ready only after the retro ([#1658](https://github.com/mifunedev/agro/issues/1658)).
+
 ## [0.34.0] - 2026-11-11
 
 ### Added

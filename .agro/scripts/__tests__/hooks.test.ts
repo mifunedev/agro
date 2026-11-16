@@ -472,7 +472,7 @@ function withStopFixture(test: (f: ReturnType<typeof stopFixture>) => void): () 
 }
 
 describe("task lifecycle stop hook (task-next-stop.sh)", () => {
-  it.each(["story US-003", "close", "push", "ci", "ci-red", "ready"])("blocks the stop at %s", (state) =>
+  it.each(["story US-003", "close", "push", "ci", "ci-red", "review", "ready"])("blocks the stop at %s", (state) =>
     withStopFixture((f) => {
       const result = f.stop(state);
       expect(result.status).toBe(0);
