@@ -78,8 +78,8 @@
         "`agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: HANDS_VERBS has check; test asserts. C2 executed: tests assert GET-only call list and node-identical lines with agro hands check prefix. C3 executed: warn-only exit 0, fail exit 1 tests. C4 executed: hands-exedev.test.ts check refused with no calls; refusal precedes exedevPreflight (hands.ts:801). C5 executed: 15 ported runHands check cases. C6 executed: agro run -- pnpm typecheck exit 0; agro run -- pnpm test exit 0 (128 files, 3624 tests).",
       "dependsOn": [
         "US-002"
       ],
@@ -90,7 +90,8 @@
         ".agro/cli/src/command-table.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts",
         ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
-      ]
+      ],
+      "commit": "99b106f8"
     },
     {
       "id": "US-004",
@@ -115,7 +116,9 @@
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/command-table.ts",
         ".agro/cli/src/lib/console-api.ts",
-        ".agro/cli/src/__tests__/"
+        ".agro/cli/src/__tests__/",
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/lib/hands/console-check.ts"
       ]
     },
     {
