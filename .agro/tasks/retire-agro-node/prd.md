@@ -12,7 +12,7 @@ Status: DRAFT
 
 - [ ] `agro hands` accepts `--provider console` and `--provider exedev` (also `--provider=<id>`) before or after the verb, and the flag overrides `hands.provider` in the host config.
 - [ ] `agro hands list --provider desktop` exits 1 with an error that names `console` and `exedev`.
-- [ ] For the console provider without `--operator`, the token source order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. A token from `AGRO_CONSOLE_TOKEN` or the brain token file gives brain authority, and the URL comes from `AGRO_CONSOLE_URL`, then the brain console URL file. A token from the credentials file gives operator authority, and the URL comes from the credentials file, then `https://console.mifune.dev`.
+- [ ] Without `--operator`, the console token order is `AGRO_CONSOLE_TOKEN`, then the brain token file, then the credentials file that `agro auth login` writes. A token from `AGRO_CONSOLE_TOKEN` or the brain token file gives brain authority, and the URL comes from `AGRO_CONSOLE_URL`, then the brain console URL file. A token from the credentials file gives operator authority, and the URL comes from the credentials file, then `https://console.mifune.dev`.
 - [ ] `--operator` gives operator authority. The verb then resolves the token and URL with `resolveConsoleConfig`, in the same order as `agro auth`, and ignores the brain token file.
 - [ ] A `--provider` token that follows a value flag of the verb stays the value of that flag.
 - [ ] With no token from any source, a console verb exits 2. The message names the brain token path and `agro auth login`.
@@ -45,7 +45,7 @@ Status: DRAFT
 - [ ] `HANDS_VERBS` in `.agro/cli/src/command-table.ts` includes `check`.
 - [ ] For the console provider, `agro hands check` sends only `GET` requests. It prints the same `ok`, `warn`, and `fail` lines as `agro node check` on `ef52a983`, with `agro hands check` in place of `agro node check`.
 - [ ] `agro hands check` exits 0 only when no line starts with `fail `.
-- [ ] With brain authority, `check` reads `GET /api/nodes` and finds each `--ssh-key` id. It does not check the local key, the free tier, or the credit. With operator authority, `check` sends its three reads in parallel and prints the lines in a fixed order.
+- [ ] With brain authority, `check` reads `GET /api/nodes` and finds each `--ssh-key` id. With brain authority, `check` skips the local key, free tier, and credit checks. With operator authority, `check` sends its three reads in parallel and prints the lines in a fixed order.
 - [ ] With the exedev provider, `agro hands check` exits 1 with `check applies only to console hands`.
 - [ ] Each `agro node check` case of `.agro/cli/src/__tests__/node.test.ts` passes as a `runHands(["check", ...])` case in `.agro/cli/src/commands/__tests__/hands.test.ts`.
 - [ ] `agro run -- pnpm typecheck` exits 0 and `agro run -- pnpm test` exits 0.
