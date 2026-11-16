@@ -57,8 +57,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed by advisor: git grep of shim symbols exit 1 (no match); agro run -- pnpm run typecheck exit 0; agro run -- pnpm test exit 0 (125 files, 3461 tests). Tests (executed in the suite): sandbox.test.ts list skips an openshell entry and a malformed-JSON entry with one `agro sandbox list: skipped <name>: <error>` line, probes only the healthy entry, --json valid with healthy rows only, key order name/checkout/repo/status, no runtime column; invalid-entry.test.ts: 11 verbs via runCli exit 1 with validation error plus `fix <path>/agro.json, or remove the entry <root>` remedy, zero runner calls, entry holds only unchanged agro.json; cwd scan skips the invalid entry and resolves the healthy one; registry.test.ts: materialize throws on invalid entry and writes nothing (no runtime check, safeReadAgroConfig fallback deleted).",
       "dependsOn": [
         "US-001"
       ],
@@ -75,7 +75,8 @@
         ".agro/cli/src/__tests__/sandbox.test.ts",
         ".agro/cli/src/lib/__tests__/registry.test.ts",
         ".agro/cli/src/lib/__tests__/agro-config.test.ts"
-      ]
+      ],
+      "commit": "90377912"
     },
     {
       "id": "US-003",
