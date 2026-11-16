@@ -20,7 +20,7 @@
         "`pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs` exits 0."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Executed: pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs exit 0 (107 passed) by advisor. AC1-7,9 executed via 24 new cases in describe(\"review opt-in\"); AC6 asserts exact action string. AC8: 12 new-behavior cases failed against old next.sh (worker red run 12 failed/95 passed); 12 regression-guard cases (review false/string/reviewed set) cannot fail before by design - reasoned. fixture.mjs unchanged: default review absent keeps prior states. Worker also ran pnpm test (3252 passed) and pnpm typecheck exit 0. Review repair round 1 (1cbb5969): pr_draft and err_file declared top-level, final case reads pr_draft; new reopen-after-review test. Executed: next.test.mjs exit 0 (111 passed). Review repair round 2 (8958dec5): review_is_current requires reviewed to resolve to a commit and git diff --quiet <commit> HEAD -- . :!.agro/tasks. Executed: next.test.mjs exit 0 (121 passed).",
       "dependsOn": [],
       "files": [
@@ -124,7 +124,7 @@
         "`.agro/skills/delegate/scripts/next.sh` has no change in this story."
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": "Advisor diff review of b0f17093: AC1 reasoned tracker.md:11,62 (--no-review writes false, default true); AC2 executed grep finds no --review; AC3 reasoned tracker.md:24 schema has \"review\": true; AC4 reasoned delegate/SKILL.md:29-36; AC5 reasoned CHANGELOG #1658 entry says default on; AC6 executed ste-check exit 0 on both; AC7 executed git diff --quiet next.sh exit 0. Executed: vitest hermes-links, standard-skills-link, next, hooks exit 0 (362 passed). Review repair round 1 (4542aee2): § Review runs /code-review <pr>; § Repair clears reviewed on reopen; diagram label set at conversion; review loop described; prd SKILL §7 names --no-review. Executed: ste-check delegate/SKILL.md and prd/SKILL.md exit 0; hermes-links + standard-skills-link tests exit 0. Review repair round 2 (3efc74bd): manual reviewed delete removed; review repairs keep rounds; findings go to Lessons at review time; unowned findings follow Close step 3; tracker and git Ready check describe the stale-review rule. Executed: ste-check exit 0 on delegate/SKILL.md, tracker.md, git/SKILL.md; related vitest exit 0.",
       "dependsOn": [
         "US-002",
@@ -142,6 +142,5 @@
     }
   ],
   "pr": 1659,
-  "review": true,
-  "blocked": "Review pass 3 found regressions from pass-2 fixes; further repair exceeds the 2-round cap. Operator decision needed on the simplification proposal."
+  "review": true
 }
