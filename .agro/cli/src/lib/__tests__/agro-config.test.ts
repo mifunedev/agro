@@ -11,6 +11,7 @@ import {
   agroConfigPath,
   readAgroConfig,
   setAgroConfigValue,
+  isRetiredRuntime,
   validateAgroConfig,
   writeAgroConfig,
   type AgroConfig,
@@ -108,6 +109,15 @@ describe("round trip", () => {
 });
 
 describe("validateAgroConfig", () => {
+  it("accepts the retired openshell runtime that a previous release wrote", () => {
+    expect(validateAgroConfig({ version: 1, runtime: "openshell" }).runtime).toBe("openshell");
+    expect(isRetiredRuntime("openshell")).toBe(true);
+    expect(isRetiredRuntime("docker")).toBe(false);
+    expect(() => setAgroConfigValue({ version: 1 }, "runtime", "openshell")).toThrow(
+      "agro.json: runtime must be one of docker",
+    );
+  });
+
   const cases: Array<[string, unknown, RegExp]> = [
     ["name", { name: 1 }, /^agro\.json: name must be a string$/],
     ["runtime", { runtime: "podman" }, /^agro\.json: runtime must be one of docker$/],

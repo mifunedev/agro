@@ -9,7 +9,7 @@ import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
 import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, agroConfigPath, readAgroConfig, type AgroConfig } from "./agro-config.js";
+import { configCheckout, agroConfigPath, isRetiredRuntime, readAgroConfig, type AgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
 import { egressAllowHosts } from "./egress-policy.js";
 import { isDirectory } from "./project.js";
@@ -129,6 +129,7 @@ function dockerFiles(entry: string, opts: MaterializeOptions, config: AgroConfig
 export function materialize(root: string, opts: MaterializeOptions = {}): void {
   const entry = resolve(root);
   const config = safeReadAgroConfig(entry);
+  if (isRetiredRuntime(config.runtime)) return;
   const files = dockerFiles(entry, opts, config);
   for (const file of files) {
     const dest = resolve(file.dest);

@@ -20,6 +20,10 @@ vi.mock("node:os", async (importOriginal) => {
 });
 import { dirname, join } from "node:path";
 import {
+  composeVerbs,
+  destroyConfirmationPhrase,
+  resolveSandboxTarget,
+  runComposeConfig,
   runComposeVerb,
   runDestroy,
   runGateway,
@@ -639,6 +643,16 @@ describe("runShell", () => {
     );
   });
 
+  it("names the binary of the local target when it is not on PATH (ENOENT)", () => {
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "local");
+    makeRepo();
+    const { calls, run } = makeRunner([{ status: null, error: { code: "ENOENT" } }]);
+    expect(() => runShell({ bin: "agro", ...entry, run }, makeIo().io)).toThrow(
+      "zsh is required for `agro shell` but was not found on PATH",
+    );
+    expect(calls[0].cmd).toBe("zsh");
+  });
+
   it("errors listing the registered names when no sandbox matches", () => {
     const root = makeRepo();
     writeOhJson(root, { name: "one" });
@@ -1068,5 +1082,64 @@ describe("lifecycle inside the sandbox", () => {
     expect(runComposeVerb(verb, { bin: "agro", ...entry, run })).toBe(0);
     expect(calls.length).toBe(1);
     expect(calls[0].cmd).toBe("bash");
+  });
+});
+
+
+describe("docker verb routing", () => {
+  const COMPOSE_ARGS = {
+    stop: ["stop"],
+    restart: ["restart"],
+    logs: ["logs", "-f"],
+    ps: ["ps"],
+    destroy: ["down", "-v"],
+  } as const;
+
+  it("routes every compose verb through the entry's docker-compose.sh", () => {
+    vi.stubEnv("SANDBOX_NAME", "");
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "docker-compose");
+    const root = makeRepo();
+    writeOhJson(root, { name: "configured", runtime: "docker" });
+    const script = join(root, ".agro", "scripts", "docker-compose.sh");
+
+    expect(composeVerbs().sort()).toEqual(Object.keys(COMPOSE_ARGS).sort());
+    for (const verb of composeVerbs()) {
+      const { calls, run } = makeRunner([{ status: 0 }]);
+      expect(runComposeVerb(verb, { bin: "agro", ...entry, run }, ["--extra"])).toBe(0);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].cmd).toBe("bash");
+      expect(calls[0].args[0]).toBe(script);
+      expect(calls[0].args.slice(-COMPOSE_ARGS[verb].length - 1)).toEqual([...COMPOSE_ARGS[verb], "--extra"]);
+    }
+  });
+
+  it("routes compose config and shell for a docker entry", () => {
+    vi.stubEnv("SANDBOX_NAME", "");
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "docker-compose");
+    const root = makeRepo();
+    writeOhJson(root, { name: "configured", runtime: "docker" });
+
+    const config = makeRunner([{ status: 0 }]);
+    expect(runComposeConfig({ bin: "agro", ...entry, run: config.run })).toBe(0);
+    expect(config.calls.map((c) => [c.cmd, c.args.at(-1)])).toEqual([["bash", "config"]]);
+
+    const shell = makeRunner([{ status: 0 }]);
+    expect(runShell({ bin: "agro", ...entry, run: shell.run }, makeIo().io)).toBe(0);
+    expect(shell.calls.map((c) => [c.cmd, ...c.args])).toEqual([
+      ["docker", "exec", "-it", "-u", "sandbox", "configured", "zsh"],
+    ]);
+  });
+
+  it("leaves docker sandbox naming to the ambient-first docker rules", () => {
+    vi.stubEnv("SANDBOX_NAME", "other");
+    const root = makeRepo();
+    writeOhJson(root, { name: "configured", runtime: "docker" });
+
+    expect(resolveSandboxTarget(entry, "agro shell").container).toBe("other");
+    expect(destroyConfirmationPhrase(root)).toBe("other");
+
+    vi.stubEnv("SANDBOX_NAME", "");
+    expect(resolveSandboxTarget(entry, "agro shell").container).toBe("configured");
+    expect(destroyConfirmationPhrase(root)).toBe("configured");
   });
 });

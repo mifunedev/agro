@@ -10,13 +10,14 @@ import {
 } from "../lib/execution/index.js";
 import {
   assertSpawned,
+  messageOf,
   requireLifecycleScript,
   spawnRunner,
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/runner.js";
 import { renderComposeEnv } from "../lib/config-render.js";
-import { getAgroConfigValue, agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
+import { assertActiveRuntime, getAgroConfigValue, agroConfigPath, readAgroConfig, type AgroConfig } from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { DEFAULT_SANDBOX_NAME, agroEnvPair, agroEnvValue } from "../lib/layout.js";
 import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.js";
@@ -93,8 +94,9 @@ export interface SandboxOptions extends LifecycleOptions {
   printArgv?: boolean;
 }
 
-function sandboxRoot(opts: Pick<SandboxTargetOptions, "name" | "cwd">): string {
+function sandboxRoot(opts: Pick<SandboxTargetOptions, "name" | "cwd">, command: string): string {
   const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
+  assertActiveRuntime(root, command);
   if (existsSync(agroConfigPath(root))) {
     const repo = configuredString(root, "repo");
     materialize(root, repo === undefined ? {} : { repo });
@@ -240,21 +242,24 @@ export interface SandboxTarget {
   container: string;
 }
 
-export function resolveSandboxTarget(opts: Pick<SandboxTargetOptions, "name" | "cwd">): SandboxTarget {
-  const root = sandboxRoot(opts);
+export function resolveSandboxTarget(
+  opts: Pick<SandboxTargetOptions, "name" | "cwd">,
+  command: string,
+): SandboxTarget {
+  const root = sandboxRoot(opts, command);
   return { root, container: sandboxName(root) };
 }
 
 export function runShell(opts: SandboxTargetOptions, io: LifecycleIO): number {
   const run = opts.run ?? spawnRunner;
-  const { root, container: name } = resolveSandboxTarget(opts);
+  const { root, container: name } = resolveSandboxTarget(opts, `${opts.bin} shell`);
   const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
   let code: number;
   try {
     code = target.attach({ argv: ["zsh"], user: "sandbox" });
   } catch (err) {
     if (err instanceof ExecutionSpawnError && err.code === "ENOENT") {
-      throw new Error(`docker is required for \`${opts.bin} shell\` but was not found on PATH`);
+      throw new Error(`${err.binary} is required for \`${opts.bin} shell\` but was not found on PATH`);
     }
     throw err;
   }
@@ -294,7 +299,7 @@ export function runComposeVerb(
     return 1;
   }
   const run = opts.run ?? spawnRunner;
-  const root = sandboxRoot(opts);
+  const root = sandboxRoot(opts, `${opts.bin} ${verb}`);
   const script = requireLifecycleScript(root, "docker-compose.sh");
   return withComposeEnvFile(root, (extraArgs) => {
     const r = run("bash", [script, ...extraArgs, ...COMPOSE_VERBS[verb], ...extra], {
@@ -307,7 +312,7 @@ export function runComposeVerb(
 
 export function runComposeConfig(opts: SandboxTargetOptions, extra: string[] = []): number {
   const run = opts.run ?? spawnRunner;
-  const root = sandboxRoot(opts);
+  const root = sandboxRoot(opts, `${opts.bin} compose config`);
   const script = requireLifecycleScript(root, "docker-compose.sh");
   return withComposeEnvFile(root, (extraArgs) => {
     const r = run("bash", [script, ...extraArgs, "config", ...extra], { stdio: "inherit" });
@@ -348,7 +353,14 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     io.stderr(hostOnlyRefusal(opts.bin, "destroy"));
     return 1;
   }
-  const root = sandboxRoot(opts);
+  const root = sandboxRoot(opts, `${opts.bin} destroy`);
+  let config: AgroConfig;
+  try {
+    config = readAgroConfig(agroConfigPath(root));
+  } catch (err) {
+    io.stderr(`${opts.bin} destroy: ${messageOf(err)}\n`);
+    return 1;
+  }
   const name = destroyConfirmationPhrase(root);
 
   if (opts.yes !== true) {
@@ -361,7 +373,7 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
       return 1;
     }
 
-    const homePath = readAgroConfig(agroConfigPath(root)).storage?.homePath;
+    const homePath = config.storage?.homePath;
     io.stdout(`\n${prompt.bold(`${opts.bin} destroy — ${name}`)}\n\n`);
 
     if (homePath !== undefined && homePath !== "") {

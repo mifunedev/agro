@@ -41,6 +41,7 @@ import { runAuth } from "./commands/auth.js";
 import { runNode } from "./commands/node.js";
 import { runHands } from "./commands/hands.js";
 import { PromptInterruptedError } from "./lib/prompt.js";
+import { RetiredRuntimeError } from "./lib/agro-config.js";
 export { isHelpFlag, parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
 export type { ParseResult, SandboxArgs } from "./controllers/sandbox.js";
 import {
@@ -1555,6 +1556,10 @@ export async function runCli(argv: string[]): Promise<number> {
   try {
     return await main(argv);
   } catch (err) {
+    if (err instanceof RetiredRuntimeError) {
+      process.stderr.write(`${err.message}\n`);
+      return 1;
+    }
     if (err instanceof PromptInterruptedError) return 130;
     throw err;
   }

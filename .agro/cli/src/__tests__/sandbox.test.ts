@@ -853,6 +853,28 @@ describe("agro sandbox list", () => {
     );
   });
 
+  it("lists an entry with the retired openshell runtime without probing it", async () => {
+    registry();
+    seed("alpha");
+    seed("old-box", { runtime: "openshell", checkout: "/srv/old" });
+    const { calls, run } = makeRunner();
+    const text = makeIo();
+    expect(await runSandboxList({ bin: "agro", run }, text.io)).toBe(0);
+    expect(text.out.join("")).toBe(
+      "alpha    docker               failed   -\n" +
+        "old-box  openshell (retired)  retired  /srv/old\n",
+    );
+    expect(text.err).toEqual([]);
+    expect(calls.map((c) => c.args.at(-1))).toEqual(["alpha"]);
+
+    const json = makeIo();
+    expect(await runSandboxList({ bin: "agro", json: true, run }, json.io)).toBe(0);
+    expect(JSON.parse(json.out.join(""))).toEqual([
+      { name: "alpha", runtime: "docker", checkout: "-", repo: "-", status: "failed" },
+      { name: "old-box", runtime: "openshell (retired)", checkout: "/srv/old", repo: "/srv/old", status: "retired" },
+    ]);
+  });
+
   it("points at the install verb when the registry is empty", async () => {
     registry();
     const { out, io } = makeIo();

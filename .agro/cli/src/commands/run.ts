@@ -288,7 +288,7 @@ async function runInSandbox(
   run: LifecycleRunner,
   env: NodeJS.ProcessEnv,
 ): Promise<number> {
-  const { root, container } = resolveSandboxTarget({ name: sandbox });
+  const { root, container } = resolveSandboxTarget({ name: sandbox }, `${opts.bin} run`);
   const target = resolveExecutionTarget({ projectRoot: root, container, run, env });
   if ((await target.status()) !== "ready") {
     io.stderr(`${opts.bin} run: sandbox ${sandbox} is not running — start it with \`${opts.bin} restart ${sandbox}\`\n`);
