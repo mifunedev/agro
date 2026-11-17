@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-11-17
+
 ### Added
 
 - `agro hands` manages console VMs. `--operator` selects operator authority with the `agro auth login` credentials. `agro hands` adds `--provider` and the `create` flags `--profile`, `--docker`, `--t3`, `--code-server`, `--ssh-key`, and `--json` ([#1654](https://github.com/mifunedev/agro/issues/1654)).
