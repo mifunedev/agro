@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Security
+
+- Ignore GHSA-fc5q-39xc-vjpf (`picomatch` ReDoS through `vitest`) in `pnpm audit` until a patched `picomatch` release exists. The package is a test-only dependency, and no patched version is published.
+
 ## [0.40.0] - 2026-11-17
 
 ### Added
