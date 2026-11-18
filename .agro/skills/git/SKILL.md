@@ -80,13 +80,15 @@ give that command to the operator.
 
 The examples in this skill use `gh`. When `$FORGE` is `glab`, use the matching
 `glab` command. A GitLab merge request (MR) follows every PR rule in this skill.
+GitLab stores draft state as a `Draft:` title prefix, so a new title without
+`--draft` marks the MR ready.
 
 | `gh` | `glab` |
 |---|---|
 | `gh issue create --title <t> --body-file <f>` | `glab issue create --title <t> --description "$(cat <f>)"` |
 | `gh issue close <N>` | `glab issue close <N>` |
 | `gh pr create --draft --base <b> --title <t> --body-file <f>` | `glab mr create --draft --target-branch <b> --title <t> --description "$(cat <f>)"` |
-| `gh pr edit <N> --base <b> --title <t>` | `glab mr update <N> --target-branch <b> --title <t>` |
+| `gh pr edit <N> --base <b> --title <t>` | `glab mr update <N> --target-branch <b> --title <t>`; add `--draft` while the MR is a draft |
 | `gh pr ready <N>` | `glab mr update <N> --ready` |
 | `gh pr view <N> --json state -q .state` (`MERGED`) | `glab mr view <N> --output json \| jq -r .state` (`merged`) |
 
