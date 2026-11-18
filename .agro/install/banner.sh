@@ -72,6 +72,13 @@ if _agro_has_binary gh && gh auth status -h github.com >/dev/null 2>&1; then
   fi
 fi
 
+glab_status=""
+glab_detail=""
+if _agro_has_binary glab && glab auth status >/dev/null 2>&1; then
+  glab_status="$status_ok"
+  glab_detail="authenticated"
+fi
+
 claude_status="$status_x"
 claude_detail="not installed — run: ${cli_bin} harness install claude"
 if _agro_has_binary claude; then
@@ -189,6 +196,9 @@ printf '  Overlays:  %s\n' "$overlays"
 printf '\n'
 printf '  Onboarding:\n'
 printf '    %-6s %-11s %s\n' "$gh_status"         "gh"          "$gh_detail"
+if [ -n "$glab_status" ]; then
+  printf '    %-6s %-11s %s\n' "$glab_status"     "glab"        "$glab_detail"
+fi
 printf '    %-6s %-11s %s\n' "$claude_status"     "claude"      "$claude_detail"
 printf '    %-6s %-11s %s\n' "$codex_status"      "codex"       "$codex_detail"
 printf '    %-6s %-11s %s\n' "$opencode_status"   "opencode"    "$opencode_detail"

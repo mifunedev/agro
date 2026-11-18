@@ -16,7 +16,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the thirteen known tools", () => {
+  it("lists the fourteen known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -24,6 +24,7 @@ describe("tool catalog shape", () => {
       "microsandbox",
       "docker-cli",
       "gh",
+      "glab",
       "tailscale",
       "code-server",
       "ffmpeg",
@@ -159,6 +160,7 @@ describe("tool catalog shape", () => {
       "microsandbox",
       "docker-cli",
       "gh",
+      "glab",
       "tailscale",
       "code-server",
       "ffmpeg",

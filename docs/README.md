@@ -30,7 +30,7 @@ Start with the guides below.
 
 ## Integrations
 
-- [Herdr](integrations/herdr.md) · [GitHub](integrations/github.md) · [Slack](integrations/slack.md)
+- [Herdr](integrations/herdr.md) · [GitHub](integrations/github.md) · [GitLab](integrations/gitlab.md) · [Slack](integrations/slack.md)
 - [Langfuse](integrations/langfuse.md) · [DebugMCP](integrations/debugmcp.md)
 - [SSHD](integrations/sshd.md) · [Pi fff file search](integrations/pi-fff.md)
 - [Browser recording](integrations/agent-browser.md)

@@ -40,7 +40,7 @@ after that, the entry is authoritative. The CLI writes nothing else into a check
 credential with the input hidden and writes it to `.env`, and `agro secret list`
 shows which keys hold a value with the values redacted. Both accept
 `--sandbox <name>` to act on a registry entry instead of the project.
-`agro secret set --sandbox` accepts only `GH_TOKEN`, `SANDBOX_PASSWORD`,
+`agro secret set --sandbox` accepts only `GH_TOKEN`, `GITLAB_TOKEN`, `SANDBOX_PASSWORD`,
 `TYPESAFE_API_KEY`, and `XAI_API_KEY`, because Compose passes only these keys to
 the container. For
 any other key, the command exits with status 1. Container processes read
@@ -207,7 +207,7 @@ The allow-list in `.agro/cli/src/lib/secrets.ts` is the complete set of keys the
 root `.env` may hold. The tracked `.example.env` documents each key, commented
 out:
 
-`GH_TOKEN`, `SANDBOX_PASSWORD`, `XAI_API_KEY`, `META_API_KEY`, `PI_SLACK_APP_TOKEN`,
+`GH_TOKEN`, `GITLAB_TOKEN`, `SANDBOX_PASSWORD`, `XAI_API_KEY`, `META_API_KEY`, `PI_SLACK_APP_TOKEN`,
 `PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`,
 `TYPESAFE_API_KEY`.
 

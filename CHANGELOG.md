@@ -12,6 +12,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- The sandbox image installs the GitLab CLI (`glab`) 1.126.0. When `GITLAB_TOKEN` is set, the entrypoint runs `glab auth login` for `gitlab.com` and registers `glab` as the Git HTTPS credential helper. `agro secret set GITLAB_TOKEN`, `agro tool list`, and the attach banner know `glab`. The git skill's `scripts/forge.sh` selects `gh` or `glab` from the `origin` remote and the authenticated CLI, with `gh` first as the fallback ([docs](docs/integrations/gitlab.md)).
 - `agro hands` manages console VMs. `--operator` selects operator authority with the `agro auth login` credentials. `agro hands` adds `--provider` and the `create` flags `--profile`, `--docker`, `--t3`, `--code-server`, `--ssh-key`, and `--json` ([#1654](https://github.com/mifunedev/agro/issues/1654)).
 - `agro hands check [--ssh-key <uuid>]...` makes no change and exits 0 only without a `fail` line. With brain authority, `check` reads the console and SSH key checks. With operator authority, `check` reads the SSH key, free tier, and credit checks ([#1654](https://github.com/mifunedev/agro/issues/1654)).
 

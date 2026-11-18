@@ -62,6 +62,35 @@ Detect via `git show-ref --verify --quiet refs/heads/<name>` (or remote `refs/re
 ## Git Authentication
 
 Inside sandbox, run `gh auth login && gh auth setup-git` during onboarding. GitHub CLI installs credential helper — `git push` / `git fetch` use your GitHub token — no SSH keys required.
+For a gitlab.com repository, run `glab auth login --hostname gitlab.com --setup-git-credential-helper` instead.
+
+## Forge CLI
+
+Before the first issue, PR, or CI command in a repository, select the forge CLI:
+
+```bash
+FORGE="$(bash .agro/skills/git/scripts/forge.sh)"
+```
+
+The script prints `gh` or `glab`. A `github.com` remote selects `gh`, and a
+`gitlab.com` remote selects `glab`. When `origin` names neither host, the script
+selects the first authenticated CLI in the order `gh`, `glab`. When the selected
+CLI is not authenticated, the script exits 1 and names the login command. Stop and
+give that command to the operator.
+
+The examples in this skill use `gh`. When `$FORGE` is `glab`, use the matching
+`glab` command. A GitLab merge request (MR) follows every PR rule in this skill.
+GitLab stores draft state as a `Draft:` title prefix, so a new title without
+`--draft` marks the MR ready.
+
+| `gh` | `glab` |
+|---|---|
+| `gh issue create --title <t> --body-file <f>` | `glab issue create --title <t> --description "$(cat <f>)"` |
+| `gh issue close <N>` | `glab issue close <N>` |
+| `gh pr create --draft --base <b> --title <t> --body-file <f>` | `glab mr create --draft --target-branch <b> --title <t> --description "$(cat <f>)"` |
+| `gh pr edit <N> --base <b> --title <t>` | `glab mr update <N> --target-branch <b> --title <t>`; add `--draft` while the MR is a draft |
+| `gh pr ready <N>` | `glab mr update <N> --ready` |
+| `gh pr view <N> --json state -q .state` (`MERGED`) | `glab mr view <N> --output json \| jq -r .state` (`merged`) |
 
 ## PR Titles
 

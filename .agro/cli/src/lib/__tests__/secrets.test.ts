@@ -34,6 +34,7 @@ describe("allow-list", () => {
   it("holds every key the sandbox treats as a credential", () => {
     expect([...SECRET_KEYS]).toEqual([
       "GH_TOKEN",
+      "GITLAB_TOKEN",
       "XAI_API_KEY",
       "META_API_KEY",
       "SANDBOX_PASSWORD",
@@ -59,6 +60,7 @@ describe("allow-list", () => {
     expect([...new Set(passed)].sort()).toEqual([...COMPOSE_SECRET_KEYS].sort());
     expect([...COMPOSE_SECRET_KEYS]).toEqual([
       "GH_TOKEN",
+      "GITLAB_TOKEN",
       "SANDBOX_PASSWORD",
       "TYPESAFE_API_KEY",
       "XAI_API_KEY",
