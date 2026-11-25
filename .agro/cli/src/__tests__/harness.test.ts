@@ -441,6 +441,77 @@ describe("agro harness — inside the sandbox", () => {
 });
 
 
+describe("Claude settings installation", () => {
+  const isConfigure = (args: string[]) => args.includes("--input-type=module");
+  const writesMarker = (call: RecordedCall) => call.args.includes('mkdir -p "$(dirname "$1")" && : > "$1"');
+
+  it.each([false, true])("configures the host with a running sandbox (already installed: %s)", async (installed) => {
+    const state = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(state));
+    const { calls, run } = makeRunner((cmd, args) => {
+      if (isInspect(cmd, args)) return running;
+      if (cmd === "claude") return { status: installed ? 0 : 1, stdout: "", stderr: "" };
+      if (isConfigure(args)) return { status: 0, stdout: `configured ${user.dir}/.claude/settings.json\n`, stderr: "" };
+      return undefined;
+    });
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("claude", { bin: "agro", cwd: makeRepo(), host: true, env: state.env, homedir: user.homedir, run }, io)).toBe(0);
+    expect(calls.some(c => c.cmd === "docker")).toBe(false);
+    const configuration = calls.find(c => isConfigure(c.args))!;
+    expect(configuration.cmd).toBe("node");
+    expect(configuration.args.at(-2)).toBe(user.dir);
+    expect(JSON.parse(configuration.args.at(-1)!)).toMatchObject({ permissions: { defaultMode: "bypassPermissions", denyInsteadOfPrompting: true } });
+    expect(calls.some(c => c.cmd === "npm")).toBe(!installed);
+    if (!installed) expect(calls.indexOf(configuration)).toBeGreaterThan(calls.findIndex(c => c.cmd === "npm"));
+    expect(text(out)).toContain(`${user.dir}/.claude/settings.json`);
+  });
+
+  it.each([false, true])("does not record host success when configuration fails (already installed: %s)", async (installed) => {
+    const state = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(state));
+    const { run } = makeRunner((cmd, args) => {
+      if (cmd === "claude") return { status: installed ? 0 : 1, stdout: "", stderr: "" };
+      if (isConfigure(args)) return { status: 9, stdout: "", stderr: "repair the Claude settings\n" };
+      return undefined;
+    });
+    const { io, out, err } = makeIo();
+    expect(await runHarnessInstall("claude", { bin: "agro", cwd: makeRepo(), host: true, env: state.env, homedir: user.homedir, run }, io)).toBe(9);
+    expect(existsSync(hostConfigFile(state.dir))).toBe(false);
+    expect(text(out)).not.toContain("claude: installed");
+    expect(text(out)).not.toContain("claude: already installed");
+    expect(text(err)).toContain("repair");
+  });
+
+  it.each(["local", "docker-compose"])("configures sandbox settings before recording success through %s", async (target) => {
+    const { calls, run } = makeRunner((cmd, args) => isInspect(cmd, args) ? running : undefined);
+    expect(await runHarnessInstall("claude", { bin: "agro", cwd: makeRepo(), run, env: { AGRO_EXECUTION_TARGET: target } }, makeIo().io)).toBe(0);
+    const configured = calls.find(c => isConfigure(c.args))!;
+    expect(configured).toBeDefined();
+    expect(configured.args.at(-2)).toBe("/home/sandbox");
+    expect(configured.args.at(-1)).toContain('"defaultMode": "bypassPermissions"');
+    if (target === "docker-compose") expect(configured.args.slice(0, 3)).toEqual(["exec", "-u", "sandbox"]);
+    expect(calls.indexOf(configured)).toBeGreaterThan(calls.findIndex(c => c.args.includes("@anthropic-ai/claude-code")));
+    expect(calls.indexOf(configured)).toBeLessThan(calls.findIndex(writesMarker));
+  });
+
+  it.each(["npm", "configuration"])("does not mark a sandbox install successful after %s fails", async (failure) => {
+    const { calls, run } = makeRunner((cmd, args) => {
+      if (isInspect(cmd, args)) return running;
+      if ((failure === "npm" && args.includes("@anthropic-ai/claude-code")) || (failure === "configuration" && isConfigure(args))) {
+        return { status: 7, stdout: "", stderr: "repair required\n" };
+      }
+      return undefined;
+    });
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("claude", { bin: "agro", cwd: makeRepo(), run, env: { AGRO_EXECUTION_TARGET: "docker-compose" } }, io)).toBe(7);
+    expect(calls.some(writesMarker)).toBe(false);
+    expect(text(out)).not.toContain("claude: installed");
+    if (failure === "npm") expect(calls.some(c => isConfigure(c.args))).toBe(false);
+  });
+});
+
 describe("runHarnessInstall on the host when the sandbox is not running", () => {
   it.each(["default", "recorded", "path", "workspace"].flatMap(selection => [false, true].map(installed => ({ selection, installed }))))("configures Hermes in the $selection selected host workspace (installed=$installed)", async ({ selection, installed }) => {
     const repo = makeRepo();
@@ -922,7 +993,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     const home = emptyStateHome();
     const user = fakeHome();
     seedWorkspace(defaultRoot(home));
-    const { run } = hostRunner((cmd) => {
+    const { calls, run } = hostRunner((cmd) => {
       if (cmd === "claude") return { status: 1, stdout: "", stderr: "not found" };
       if (cmd === "npm") return { status: 7, stdout: "", stderr: "network unreachable" };
       return undefined;
@@ -937,6 +1008,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       ),
     ).toBe(7);
     expect(text(err)).toContain("agro harness: installing claude failed (exit 7).");
+    expect(calls.some(c => c.args.includes("--input-type=module"))).toBe(false);
     expect(text(out)).not.toContain("from the AGRO workspace");
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
@@ -1369,7 +1441,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
 
-  it("still installs into /home/sandbox/.local when the sandbox is reachable", async () => {
+  it("installs into /home/sandbox/.local without --host when the sandbox is reachable", async () => {
     const root = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
@@ -1390,7 +1462,6 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
           env: home.env,
           homedir: user.homedir,
           interactive: true,
-          host: true,
         },
         io,
       ),

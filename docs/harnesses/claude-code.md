@@ -10,6 +10,7 @@ Claude Code is Anthropic's terminal-based AI coding agent. Claude Code reads the
 
 ```bash
 agro harness install claude
+agro harness install claude --host   # install and configure the current host user
 ```
 
 The verb installs the `@anthropic-ai/claude-code` package into the persistent home volume as the `sandbox` user:
@@ -17,6 +18,15 @@ The verb installs the `@anthropic-ai/claude-code` package into the persistent ho
 ```bash
 npm --prefix /home/sandbox/.local install -g @anthropic-ai/claude-code
 ```
+
+Both install commands merge AGRO's unattended defaults into the target user's
+`~/.claude/settings.json`: `permissions.defaultMode: "bypassPermissions"`,
+`permissions.denyInsteadOfPrompting: true`, and `skipDangerousModePermissionPrompt: true`.
+The sandbox target is `/home/sandbox`; `--host` selects the current host user's
+home even when a sandbox is running. These user settings apply to bare `claude`
+across that user's projects, including shells without aliases. Existing hooks,
+permission rules, and unrelated settings are preserved. Invalid JSON or an invalid
+`permissions` object causes installation to report failure without overwriting it.
 
 Verify the install:
 
@@ -69,9 +79,9 @@ Run interactive sessions in Herdr so the session survives a disconnect: `agro to
 
 ## Unattended supervisors and advisors
 
-The `claude` alias loads `.agro/install/claude-settings.json` from
+The installer sets the user defaults. The `claude` alias also loads `.agro/install/claude-settings.json` from
 `${AGRO_PROJECT_ROOT:-$HOME/harness}`, even outside the harness directory.
-For a launch that does not expand aliases, pass the settings explicitly from the AGRO root:
+The supervisor passes that same policy explicitly from the AGRO root:
 
 ```bash
 claude --dangerously-skip-permissions --settings .agro/install/claude-settings.json
@@ -89,21 +99,25 @@ start with an approved brief outside plan mode. Report denied operations as
 blockers when they prevent completion. External programs can still prompt.
 
 Restart existing sessions with the command above; append `--resume <session-id>`
-to resume or `-p "<approved task>"` for a headless run. Settings apply only to
-that invocation. See the upstream [`denyInsteadOfPrompting` reference](https://code.claude.com/docs/en/settings-reference#permissions-denyinsteadofprompting).
+to resume or `-p "<approved task>"` for a headless run. The explicit `--settings`
+applies to that invocation; installed user defaults also apply to subsequent launches.
+See the upstream [`denyInsteadOfPrompting` reference](https://code.claude.com/docs/en/settings-reference#permissions-denyinsteadofprompting).
 
-### Update existing shell aliases
+### Configure existing installations
 
-Upgrading the checkout or image does not replace persisted `~/.bashrc` or
-`~/.zshrc`. Replace the existing Claude alias in each shell configuration you use:
+After updating AGRO, rerun the install command for the target you use:
 
 ```bash
-alias claude='claude --dangerously-skip-permissions --settings "${AGRO_PROJECT_ROOT:-$HOME/harness}/.agro/install/claude-settings.json"'
+agro harness install claude
+agro harness install claude --host
 ```
 
-Reopen the shell or source its configuration (`source ~/.bashrc` in Bash,
-`source ~/.zshrc` in Zsh), then restart Claude. To run an attended session without
-this alias, use `command claude --permission-mode default`.
+The installer configures existing binaries too. No shell-alias edit is needed;
+restart running Claude sessions to load the settings. To restore attended prompts,
+remove or set `permissions.denyInsteadOfPrompting` to `false` in the user settings
+and bypass the alias with `command claude --permission-mode default`. Any other
+settings source that enables denial, including an explicit `--settings` file,
+must also stop enabling it.
 
 ## Task lifecycle Stop hook
 

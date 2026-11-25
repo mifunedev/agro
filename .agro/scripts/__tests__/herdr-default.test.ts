@@ -53,7 +53,7 @@ console.log(JSON.stringify({ args, settings: JSON.parse(fs.readFileSync(args[arg
       expect(result.status, result.stderr).toBe(0);
       expect(JSON.parse(result.stdout)).toEqual({
         args: ["--dangerously-skip-permissions", "--settings", settingsPath, "-p", "approved task"],
-        settings: { skipDangerousModePermissionPrompt: true, permissions: { denyInsteadOfPrompting: true } },
+        settings: { skipDangerousModePermissionPrompt: true, permissions: { defaultMode: "bypassPermissions", denyInsteadOfPrompting: true } },
       });
     } finally {
       rmSync(home, { recursive: true, force: true });

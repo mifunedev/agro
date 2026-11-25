@@ -14,7 +14,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
-- Apply unattended settings to Bash/Zsh Claude aliases and supervisor launches so approval-required calls are denied instead of waiting ([#1669](https://github.com/mifunedev/agro/issues/1669)).
+- Configure unattended Claude user settings on sandbox and `--host` installs, with the same policy in shell aliases and supervisor launches ([#1669](https://github.com/mifunedev/agro/issues/1669)).
 
 ## [0.40.0] - 2026-11-17
 

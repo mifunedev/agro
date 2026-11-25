@@ -12,12 +12,12 @@ export default defineConfig({
       name: "agro-bundled-text-assets",
       enforce: "pre",
       resolveId(id: string) {
-        return id.startsWith(ASSET_PREFIX) ? id : null;
+        return id.startsWith(ASSET_PREFIX) ? `${id}.js` : null;
       },
       load(id: string) {
         if (!id.startsWith(ASSET_PREFIX)) return null;
         const assetRoot = process.env.AGRO_ASSET_ROOT ?? repoRoot;
-        const file = resolve(assetRoot, id.slice(ASSET_PREFIX.length));
+        const file = resolve(assetRoot, id.slice(ASSET_PREFIX.length, -3));
         return `export default ${JSON.stringify(readFileSync(file, "utf8"))};`;
       },
     },

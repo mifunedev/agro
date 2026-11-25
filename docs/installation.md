@@ -183,9 +183,13 @@ codex   → codex --dangerously-bypass-approvals-and-sandbox
 agy     → agy --dangerously-skip-permissions
 ```
 
-The Claude settings require version 2.1.319 or later. They deny approval-required
-calls instead of waiting and remove question/plan tools from the main session.
-Existing persisted shell files need an [alias update](harnesses/claude-code.md#update-existing-shell-aliases).
+`agro harness install claude` and `agro harness install claude --host` also merge
+these defaults into the target user's `~/.claude/settings.json`, preserving
+unrelated settings and rules. They apply to bare Claude across that user's
+projects. Claude 2.1.319 or later denies approval-required calls instead of waiting
+and removes question/plan tools from the main session. For existing machines,
+[rerun the installer and restart Claude](harnesses/claude-code.md#configure-existing-installations);
+no manual alias edit is needed.
 
 ### Tools
 

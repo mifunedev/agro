@@ -109,6 +109,7 @@ RUN npm install -g cc-safety-net@2.6.8 --prefix /usr/local \
 
 COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/egress-policy.yaml /opt/agro-assets/.devcontainer/
 COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/install/configure-claude.mjs .agro/install/claude-settings.json /opt/agro-assets/.agro/install/
 COPY .agro/cli/package.json .agro/cli/package-lock.json /opt/agro/
 RUN cd /opt/agro && npm install --ignore-scripts --no-audit --no-fund \
  && npm cache clean --force \

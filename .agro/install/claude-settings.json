@@ -1,6 +1,7 @@
 {
   "skipDangerousModePermissionPrompt": true,
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "denyInsteadOfPrompting": true
   }
 }
