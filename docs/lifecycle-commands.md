@@ -768,7 +768,7 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   seconds until `rdpListening` is true. If xrdp does not listen, the command
   prints `warning: hand <id> is running but xrdp is not listening after 120 s; check with agro hands exec <id> -- systemctl status xrdp`
   to stderr and exits 0. The command then prints a `desktop:` line and `next:`
-  lines: SSH to the hand, run `sudo tailscale up` and `sudo passwd sandbox`,
+  lines: SSH to the hand, run `tailscale up` and `sudo passwd sandbox`,
   then download the `.rdp` file from the Connect card of the hand in the
   console. `create --desktop --json` adds
   `desktop: {rdpListening, tailnetName, rdpAddress}`. `rdpAddress` is

@@ -1480,7 +1480,7 @@ describe("agro hands create --desktop", () => {
   };
   const NEXT_LINES =
     "next: ssh sandbox@hand-7.example\n" +
-    "next: sudo tailscale up\n" +
+    "next: tailscale up\n" +
     "next: sudo passwd sandbox\n" +
     "next: open the Connect card of the hand in the console and download the .rdp file\n";
   const RUNNING_LINES = "index: 7\nalias: calm-lynx\nssh host: hand-7.example\n";

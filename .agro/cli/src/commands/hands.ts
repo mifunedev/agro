@@ -217,7 +217,7 @@ SPEC_TOO_SMALL_FOR_TOOL, and HTTP 503 DESKTOP_IMAGE_UNAVAILABLE when the
 region has no desktop image. After \`running\`, \`create\` waits up to 120
 seconds for rdpListening. If xrdp does not listen, \`create\` prints a
 warning and exits 0. \`create\` then prints a desktop line and the next
-steps: \`sudo tailscale up\` and \`sudo passwd sandbox\` on the hand, then the
+steps: \`tailscale up\` and \`sudo passwd sandbox\` on the hand, then the
 .rdp file from the Connect card of the hand in the console. With \`--json\`,
 the line adds desktop with rdpListening, tailnetName, and rdpAddress
 (<tailnet name or address>:${RDP_PORT}, or null).
@@ -462,7 +462,7 @@ function printDesktop(io: HandsIO, hand: Hand, state: DesktopState): void {
   io.stdout(
     `desktop: ${state.rdpListening ? `xrdp listening${address === null ? "" : ` on ${address}`}` : "xrdp not listening"}\n` +
       `next: ssh ${hand.sshDest ?? "into the hand"}\n` +
-      "next: sudo tailscale up\n" +
+      "next: tailscale up\n" +
       "next: sudo passwd sandbox\n" +
       "next: open the Connect card of the hand in the console and download the .rdp file\n",
   );
