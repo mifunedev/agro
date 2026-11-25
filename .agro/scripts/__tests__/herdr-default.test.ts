@@ -16,6 +16,51 @@ function expectBefore(text: string, earlier: string, later: string): void {
   expect(earlierAt).toBeLessThan(laterAt);
 }
 
+describe("Claude aliases", () => {
+  it.each([
+    { shell: "bash", customRoot: false }, { shell: "bash", customRoot: true },
+    { shell: "zsh", customRoot: false }, { shell: "zsh", customRoot: true },
+  ])("loads unattended settings in $shell outside the harness (custom root: $customRoot)", ({ shell, customRoot }) => {
+    const home = mkdtempSync(path.join(tmpdir(), "agro-claude-alias-"));
+    try {
+      const root = path.join(home, customRoot ? "custom harness" : "harness");
+      mkdirSync(path.join(root, ".agro/install"), { recursive: true });
+      const settingsPath = path.join(root, ".agro/install/claude-settings.json");
+      writeFileSync(settingsPath, readRepoFile(".agro/install/claude-settings.json"));
+      const bin = path.join(home, "bin");
+      mkdirSync(bin);
+      writeFileSync(path.join(bin, "claude"), `#!${process.execPath}
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+console.log(JSON.stringify({ args, settings: JSON.parse(fs.readFileSync(args[args.indexOf("--settings") + 1], "utf8")) }));
+`, { mode: 0o755 });
+      let declaration = readRepoFile(".agro/install/.zshrc").match(/^alias claude=.*$/m)![0];
+      if (shell === "bash") {
+        const echo = readRepoFile(".devcontainer/Dockerfile").match(/&& (echo .*alias claude=.*) >> \/home\/sandbox\/\.bashrc/)![1];
+        const rendered = spawnSync("/bin/sh", ["-c", echo], {
+          encoding: "utf8", env: { HOME: "/build-home", AGRO_PROJECT_ROOT: "/build-root" },
+        });
+        expect(rendered.status, rendered.stderr).toBe(0);
+        declaration = rendered.stdout;
+      }
+      const rc = path.join(home, "alias.rc");
+      writeFileSync(rc, declaration);
+      const result = spawnSync(shell, ["-c", `${shell === "bash" ? "shopt -s expand_aliases; " : ""}source "$1"; eval 'claude -p "approved task"'`, "alias-test", rc], {
+        cwd: home, encoding: "utf8", timeout: 10_000,
+        env: { HOME: home, ZDOTDIR: home, PATH: `${bin}:/usr/bin:/bin`, ...(customRoot ? { AGRO_PROJECT_ROOT: root } : {}) },
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.status, result.stderr).toBe(0);
+      expect(JSON.parse(result.stdout)).toEqual({
+        args: ["--dangerously-skip-permissions", "--settings", settingsPath, "-p", "approved task"],
+        settings: JSON.parse(readRepoFile(".agro/install/claude-settings.json")),
+      });
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("Pi clipboard defaults in the canonical zshrc", () => {
   function sourceZshrc(interactive: boolean, variables: Record<string, string>): string {
     const home = mkdtempSync(path.join(tmpdir(), "agro-pi-clipboard-"));

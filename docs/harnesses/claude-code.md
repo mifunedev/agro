@@ -10,6 +10,7 @@ Claude Code is Anthropic's terminal-based AI coding agent. Claude Code reads the
 
 ```bash
 agro harness install claude
+agro harness install claude --host   # install and configure the current host user
 ```
 
 The verb installs the `@anthropic-ai/claude-code` package into the persistent home volume as the `sandbox` user:
@@ -17,6 +18,16 @@ The verb installs the `@anthropic-ai/claude-code` package into the persistent ho
 ```bash
 npm --prefix /home/sandbox/.local install -g @anthropic-ai/claude-code
 ```
+
+Both install commands merge AGRO's unattended defaults into the target user's
+`~/.claude/settings.json`: `permissions.defaultMode: "bypassPermissions"`,
+`permissions.denyInsteadOfPrompting: false`, `skipDangerousModePermissionPrompt: true`,
+and a `PermissionRequest` hook that denies tool approvals without interrupting the turn.
+The sandbox target is `/home/sandbox`; `--host` selects the current host user's
+home even when a sandbox is running. These user settings apply to bare `claude`
+across that user's projects, including shells without aliases. Existing hooks,
+permission rules, and unrelated settings are preserved. Invalid JSON or malformed
+permission/hook structures cause configuration to fail without overwriting them.
 
 Verify the install:
 
@@ -53,10 +64,12 @@ agro harness uninstall claude
 
 ## Common usage
 
-The sandbox alias pre-passes `--dangerously-skip-permissions` so Claude Code can read and write files without prompting on each operation:
+The sandbox Bash and Zsh aliases pass `--dangerously-skip-permissions` and the
+unattended settings below: permitted operations run, while tool approvals reaching
+`PermissionRequest` are denied so the turn can continue. This requires Claude Code 2.1.319 or later.
 
 ```bash
-# Start an interactive session (alias: skips permission prompts)
+# Start a session with unattended permissions
 claude
 
 # Ask a one-shot question without entering the interactive loop
@@ -64,6 +77,59 @@ claude -p "Explain the structure of the packages/ directory"
 ```
 
 Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `claude` in a pane.
+
+## Unattended supervisors and advisors
+
+The installer sets the user defaults. The `claude` alias also loads `.agro/install/claude-settings.json` from
+`${AGRO_PROJECT_ROOT:-$HOME/harness}`, even outside the harness directory.
+The supervisor passes that same policy explicitly from the AGRO root:
+
+```bash
+claude --dangerously-skip-permissions --settings .agro/install/claude-settings.json
+```
+
+The supervisor uses the same settings for its Claude advisors. The permission
+hook excludes `AskUserQuestion`, `EnterPlanMode`, and `ExitPlanMode`, preserving
+those interactive tools for explicit operator requests. It denies other tool
+approval requests that reach the hook. Existing deny rules and safety hooks remain.
+
+During unattended Herdr work, the supervisor and delegate instructions tell the
+advisor to follow its recommended approach for routine decisions within the
+approved contract, record the rationale, and continue. Workers return uncertainty
+to the advisor. Explicit requests for questions can use `AskUserQuestion` in the
+same interactive session. This is workflow guidance, not automatic answers or a
+guarantee that Claude never asks. Scope changes and required approvals remain
+blocked for operator direction; a recommendation does not grant permission.
+
+Start approved work outside plan mode unless the operator asks for planning.
+Complete authentication, workspace trust, and project MCP approval before leaving.
+Native sandbox network prompts do not fire `PermissionRequest`; MCP elicitation
+and external programs can also prompt. Report denied operations as blockers when
+they prevent completion. Native `-p` restrictions on interactive tools still apply.
+
+Restart existing sessions with the command above; append `--resume <session-id>`
+to resume or `-p "<approved task>"` for a headless run. The explicit `--settings`
+applies to that invocation; installed user defaults also apply to subsequent launches.
+See the upstream [PermissionRequest hook reference](https://code.claude.com/docs/en/hooks#permissionrequest).
+
+### Configure existing installations
+
+After updating AGRO, rerun the install command for the target you use:
+
+```bash
+agro harness install claude
+agro harness install claude --host
+```
+
+The installer configures existing binaries too and migrates the old user-level
+`denyInsteadOfPrompting: true` to `false`. No alias edit is needed; restart Claude
+once after configuration. A managed or other settings source that still sets the
+key to `true` will still remove question and plan tools; `false` cannot override it.
+
+To restore attended tool approvals, remove only AGRO's `PermissionRequest` group
+from the user settings, preserving other hooks, and bypass the alias's explicit
+settings with `command claude --permission-mode default`. Rerunning the installer
+or passing AGRO's settings explicitly reinstates the hook.
 
 ## Task lifecycle Stop hook
 

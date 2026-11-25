@@ -59,6 +59,8 @@ import {
   type HarnessEntry,
 } from "../lib/harnesses/catalog.js";
 import { configuredContainerName, DEFAULT_CONTAINER_NAME } from "./lifecycle.js";
+import configureClaudeScript from "agro-asset:.agro/install/configure-claude.mjs";
+import claudeSettings from "agro-asset:.agro/install/claude-settings.json";
 
 
 export interface HarnessIO {
@@ -296,6 +298,25 @@ function hermesEnv(root: string): Record<string, string> {
   return { ...agroEnvPair("PROJECT_ROOT", root), HERMES_HOME: `${root}/.hermes` };
 }
 
+async function configureClaude(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  user: InstallUser,
+  home: string,
+): Promise<number> {
+  const result = await target.exec({
+    argv: ["node", "--input-type=module", "-e", configureClaudeScript, "--", home, claudeSettings],
+    ...(user ? { user } : {}),
+    stdio: "capture",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(result.stderr || `agro harness: could not configure Claude settings (exit ${result.exitCode}); no installation success reported.\n`);
+  } else if (result.stdout) {
+    io.stdout(result.stdout);
+  }
+  return result.exitCode;
+}
+
 async function runWorkspaceScript(
   target: ExecutionTarget,
   io: HarnessIO,
@@ -521,6 +542,10 @@ async function installOnHost(
   }
   const present = await probeInstalled(target, entry, prefix, undefined, installEnv) === true;
   if (present && !hasReceipt && !hostBinaryUnderPrefix(entry, prefix)) {
+    if (entry.id === "claude") {
+      const code = await configureClaude(target, io, undefined, home);
+      if (code !== 0) return code;
+    }
     if (hermes) {
       const code = await configureHermes(target, io, bin, undefined, root);
       if (code !== 0) return code;
@@ -554,6 +579,11 @@ async function installOnHost(
   if (r.exitCode !== 0) {
     io.stderr(`${bin} harness: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
     return r.exitCode;
+  }
+
+  if (entry.id === "claude") {
+    const code = await configureClaude(target, io, undefined, home);
+    if (code !== 0) return code;
   }
 
   if (hermes) {
@@ -674,6 +704,8 @@ export async function runHarnessInstall(
   const entry = resolveHarness(name, io, opts.bin);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
+  if (opts.host) return await installOnHost(entry, opts, io, run, "unknown");
+
   const target = targetFor(root, opts.cwd, run, opts.env);
   const status = await resolveTargetStatus(target);
 
@@ -720,6 +752,11 @@ export async function runHarnessInstall(
   if (r.exitCode !== 0) {
     io.stderr(`${opts.bin} harness: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
     return r.exitCode;
+  }
+
+  if (entry.id === "claude") {
+    const code = await configureClaude(target, io, "sandbox", "/home/sandbox");
+    if (code !== 0) return code;
   }
 
   if (hermes) {

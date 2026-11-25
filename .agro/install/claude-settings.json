@@ -1,0 +1,20 @@
+{
+  "skipDangerousModePermissionPrompt": true,
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "denyInsteadOfPrompting": false
+  },
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "^(?!AskUserQuestion$|EnterPlanMode$|ExitPlanMode$).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PermissionRequest\",\"decision\":{\"behavior\":\"deny\",\"interrupt\":false,\"message\":\"Approval-required operation denied. The advisor must choose an authorized alternative within the contract or report a blocker; do not retry or bypass the guard.\"}}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -109,6 +109,7 @@ RUN npm install -g cc-safety-net@2.6.8 --prefix /usr/local \
 
 COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/docker-compose.egress.yml .devcontainer/egress-policy.yaml /opt/agro-assets/.devcontainer/
 COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/install/configure-claude.mjs .agro/install/claude-settings.json /opt/agro-assets/.agro/install/
 COPY .agro/cli/package.json .agro/cli/package-lock.json /opt/agro/
 RUN cd /opt/agro && npm install --ignore-scripts --no-audit --no-fund \
  && npm cache clean --force \
@@ -153,7 +154,7 @@ RUN cat /tmp/path-env.sh >> /home/sandbox/.profile \
  && cat /tmp/path-env.sh >> /home/sandbox/.zprofile \
  && rm -f /tmp/path-env.sh \
  && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile \
- && echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
+ && echo "alias claude='claude --dangerously-skip-permissions --settings \"\${AGRO_PROJECT_ROOT:-\$HOME/harness}/.agro/install/claude-settings.json\"'" >> /home/sandbox/.bashrc \
  && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc \
  && echo "alias agy='agy --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
  && mkdir -p /home/sandbox/.gemini/antigravity-cli \

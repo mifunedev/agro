@@ -101,9 +101,9 @@ root, in bypass permissions mode. Three conditions hold together.
 - **The harness root.** A tab that opens in a project clone puts the advisor
   below the sandbox boundary, where the advisor edits application code outside
   its worktree.
-- **Bypass permissions.** An advisor runs unattended. A manual permission prompt
-  blocks the advisor on a person who is not watching, and the run stalls with no
-  signal to the supervisor.
+- **Unattended permissions.** Bypass mode can still wait on a safety prompt.
+  For Claude Code 2.1.319 or later, pass the settings file below to deny tool
+  approvals reaching `PermissionRequest` while keeping question and plan tools.
 - **Tab names.** Prefix every created tab with its purpose. Use an `agent-*` name
   for an agent tab. Use a `dev-*` name for a development environment tab. Put
   the prefix in the tab name or label.
@@ -133,12 +133,26 @@ The creation payload reports the requested `--cwd`. The creation payload proves
 no resolved working directory. Only `herdr pane get <pane>` reports the pane
 state the shell resolved.
 
-Launch the coding harness in bypass permissions mode. Use the same sanitized
-command on every restart.
+Launch Claude Code with unattended settings. Use the same sanitized command on every restart.
 
 ```bash
-herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions"
+herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions --settings .agro/install/claude-settings.json"
 ```
+
+Pass the same `--settings` file when starting the supervisor itself; sandbox
+shell aliases include it, but noninteractive launches must pass it explicitly.
+It applies only to that invocation; restart existing sessions with it, adding
+`--resume <session-id>` when needed. Complete authentication, workspace trust,
+and project MCP approval while the operator is present.
+
+These settings leave `AskUserQuestion`, `EnterPlanMode`, and `ExitPlanMode`
+available in interactive sessions. Start approved work outside plan mode unless
+the operator explicitly requests planning. Use the advisor's recommended approach
+for routine authorized decisions and record the rationale. Ask operator questions
+when explicitly requested; never fabricate answers. A denied operation is not
+completed work; escalate scope changes and required approvals under Duty 5.
+Startup, native sandbox network, MCP elicitation, and external-program prompts
+can still require attention. Existing deny rules and safety hooks remain in effect.
 
 Submit this finite readiness command through the bounded monitor, not inline
 Bash. Record its handle as Duty 3 requires. Inspect the mode before briefing.
@@ -212,13 +226,18 @@ You are the advisor. Assign every tracked edit to a bounded worker through
 /delegate. Keep goal interpretation, verification, and acceptance. Run each
 gate command yourself.
 
+For routine decisions within the approved contract, follow your recommended
+approach, record the decision and rationale, and continue. Workers return
+uncertainty to you. Ask the operator questions when explicitly requested; never
+invent answers or approval. Pass this policy to each worker.
+
 You and your workers must not send Herdr messages back to the supervisor.
 Do not use direct sends, /escalate --supervisor, AGRO_SUPERVISOR_PANE,
 other inherited destinations, or relays. Do not invoke /escalate to notify
 this supervisor. Do not bypass the supervisor through Slack.
 Workers report to you through native worker output only. Report progress,
 blockers, and decisions in prd.json, the PR body, and your normal output.
-Required decisions remain blocked until supervisor direction. The supervisor
+Scope changes and required approvals remain blocked until supervisor direction. The supervisor
 owns operator escalation.
 ```
 
@@ -399,13 +418,15 @@ six items:
 - the contract path;
 - the current story and its criteria;
 - the invariants;
-- the decisions since the last compaction;
+- the decisions and their rationale since the last compaction;
 - the open deviations;
 - the communication boundary: workers report to advisors through native worker
   output only. Advisors report in `prd.json`, the PR body, and normal output.
   Both roles must not use reverse Herdr sends, `/escalate --supervisor`,
-  inherited destinations, relays, or a Slack bypass. Required decisions remain
-  blocked until supervisor direction. The supervisor owns operator escalation.
+  inherited destinations, relays, or a Slack bypass. Routine authorized choices
+  follow the advisor's recommendation, with the rationale recorded. Scope changes
+  and required approvals remain blocked until supervisor direction. The
+  supervisor owns operator escalation.
 
 The compaction drops tool output and file dumps. Re-anchor the advisor
 afterward by pointing at the files. A file read costs less than a file dump

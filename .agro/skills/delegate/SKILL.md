@@ -87,6 +87,19 @@ phases share substantial context or need iterative refinement.
 | Verbose disposable output: logs, search dumps, test runs | Iterative refinement against operator feedback |
 | Disjoint owned paths with no shared mutable state | `prd.json`, `prd.md`, and the PR body |
 
+## Routine decisions and operator questions
+
+During unattended work, follow the advisor's recommended approach for routine
+decisions already authorized by the contract. Workers return uncertainty to the
+advisor through native worker output. The advisor records the decision and its
+rationale in the task notes, then continues within the contract.
+
+Keep the interactive question tool available when the operator explicitly asks
+for questions. Do not fabricate an answer or infer approval from silence. Start
+approved work outside plan mode unless the operator explicitly requests planning.
+For a scope change or required approval, use the existing blocked and escalation
+procedure; an advisor recommendation does not supply operator authorization.
+
 ## Input
 
 Resolve the input from the arguments:
