@@ -461,7 +461,7 @@ describe("Claude settings installation", () => {
     const configuration = calls.find(c => isConfigure(c.args))!;
     expect(configuration.cmd).toBe("node");
     expect(configuration.args.at(-2)).toBe(user.dir);
-    expect(JSON.parse(configuration.args.at(-1)!)).toMatchObject({ permissions: { defaultMode: "bypassPermissions", denyInsteadOfPrompting: true } });
+    expect(JSON.parse(configuration.args.at(-1)!)).toMatchObject({ permissions: { defaultMode: "bypassPermissions", denyInsteadOfPrompting: false }, hooks: { PermissionRequest: [expect.objectContaining({ hooks: [expect.objectContaining({ type: "command" })] })] } });
     expect(calls.some(c => c.cmd === "npm")).toBe(!installed);
     if (!installed) expect(calls.indexOf(configuration)).toBeGreaterThan(calls.findIndex(c => c.cmd === "npm"));
     expect(text(out)).toContain(`${user.dir}/.claude/settings.json`);

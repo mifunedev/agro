@@ -186,8 +186,10 @@ agy     → agy --dangerously-skip-permissions
 `agro harness install claude` and `agro harness install claude --host` also merge
 these defaults into the target user's `~/.claude/settings.json`, preserving
 unrelated settings and rules. They apply to bare Claude across that user's
-projects. Claude 2.1.319 or later denies approval-required calls instead of waiting
-and removes question/plan tools from the main session. For existing machines,
+projects. On Claude 2.1.319 or later, the permission hook denies tool approvals
+that reach it and preserves interactive question/plan tools. Unattended routines
+follow the advisor's recommendation within the approved contract; explicit
+operator requests can still ask questions. For existing machines,
 [rerun the installer and restart Claude](harnesses/claude-code.md#configure-existing-installations);
 no manual alias edit is needed.
 

@@ -10,13 +10,20 @@ try {
   if (!home || !isObject(defaults) || !isObject(defaults.permissions)
     || typeof defaults.skipDangerousModePermissionPrompt !== "boolean"
     || typeof defaults.permissions.defaultMode !== "string"
-    || typeof defaults.permissions.denyInsteadOfPrompting !== "boolean") {
+    || typeof defaults.permissions.denyInsteadOfPrompting !== "boolean"
+    || !isObject(defaults.hooks) || !Array.isArray(defaults.hooks.PermissionRequest)
+    || defaults.hooks.PermissionRequest.length !== 1) {
     throw new Error("invalid defaults");
   }
   const existing = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {};
-  if (!isObject(existing) || (existing.permissions !== undefined && !isObject(existing.permissions))) {
+  if (!isObject(existing) || (existing.permissions !== undefined && !isObject(existing.permissions))
+    || (existing.hooks !== undefined && !isObject(existing.hooks))
+    || (existing.hooks?.PermissionRequest !== undefined && !Array.isArray(existing.hooks.PermissionRequest))) {
     throw new Error("invalid settings");
   }
+  const defaultRequest = defaults.hooks.PermissionRequest[0];
+  const requests = [...(existing.hooks?.PermissionRequest ?? [])];
+  if (!requests.some(group => JSON.stringify(group) === JSON.stringify(defaultRequest))) requests.push(defaultRequest);
   const merged = {
     ...existing,
     skipDangerousModePermissionPrompt: defaults.skipDangerousModePermissionPrompt,
@@ -25,6 +32,7 @@ try {
       defaultMode: defaults.permissions.defaultMode,
       denyInsteadOfPrompting: defaults.permissions.denyInsteadOfPrompting,
     },
+    hooks: { ...existing.hooks, PermissionRequest: requests },
   };
   if (JSON.stringify(merged) === JSON.stringify(existing)) {
     process.stdout.write(`current ${settingsPath}\n`);
@@ -34,6 +42,6 @@ try {
     process.stdout.write(`configured ${settingsPath}\n`);
   }
 } catch {
-  process.stderr.write(`Could not configure ${settingsPath}; repair file permissions or invalid JSON (settings and permissions must be objects), then rerun agro harness install claude.\n`);
+  process.stderr.write(`Could not configure ${settingsPath}; repair file permissions or invalid JSON (settings, permissions, and hooks must be objects; PermissionRequest must be an array), then rerun agro harness install claude.\n`);
   process.exitCode = 1;
 }
