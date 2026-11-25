@@ -18,7 +18,12 @@ import {
 } from "../lib/console-api.js";
 import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-auth.js";
 import { consoleCheckLines, parseCheck } from "../lib/hands/console-check.js";
-import { createConsoleProvider, type LocalSshKey } from "../lib/hands/console-provider.js";
+import {
+  createConsoleProvider,
+  type DesktopState,
+  type DesktopWait,
+  type LocalSshKey,
+} from "../lib/hands/console-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
@@ -49,6 +54,7 @@ const CONSOLE_ONLY_CREATE_FLAGS = [
   "--docker",
   "--t3",
   "--code-server",
+  "--desktop",
   "--ssh-key",
   "--json",
 ] as const;
@@ -58,6 +64,12 @@ export const HAND_MISSING =
   "no <hand> given — an unquoted #<index> starts a shell comment; write the bare index (4) or quote '#4'";
 
 export type HandsIO = ConsoleIO;
+
+const RDP_PORT = 3389;
+const DESKTOP_READY_TIMEOUT_MS = 120 * 1000;
+const DESKTOP_POLL_INTERVAL_MS = 5000;
+
+type AwaitDesktop = (id: string, wait: DesktopWait) => Promise<DesktopState>;
 
 export interface HandsDeps extends ConsolePollDeps {
   env: Record<string, string | undefined>;
@@ -70,6 +82,8 @@ export interface HandsDeps extends ConsolePollDeps {
   exists: (path: string) => boolean;
   hostname: () => string;
   inContainer: () => boolean;
+  desktopPollMs: number;
+  desktopTimeoutMs: number;
 }
 
 export interface ProjectSlug {
@@ -130,6 +144,8 @@ function defaultDeps(): HandsDeps {
     exists: (path) => existsSync(path),
     hostname: () => hostname(),
     inContainer: () => existsSync(DOCKERENV_FILE) || existsSync(SANDBOX_MARKER_FILE),
+    desktopPollMs: DESKTOP_POLL_INTERVAL_MS,
+    desktopTimeoutMs: DESKTOP_READY_TIMEOUT_MS,
   };
 }
 
@@ -138,7 +154,7 @@ export function handsHelp(bin: string): string {
 
 Usage:
   ${bin} hands list [--json]
-  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
+  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
   ${bin} hands fork <hand> [--spec <spec>] [--name <name>]
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
@@ -193,6 +209,20 @@ agro-cli@<host name>, and sends its id. When the file does not exist,
 \`create\` exits 1 and creates no hand. With brain authority, \`create\`
 sends only the \`--ssh-key\` ids.
 
+\`--desktop\` adds the desktop tool to the hand. It applies to both profiles.
+With \`--docker\`, \`create\` sends the tools docker and desktop. The desktop
+needs at least \`n4\`: the console refuses a smaller spec with HTTP 422
+SPEC_TOO_SMALL_FOR_TOOL, and HTTP 503 DESKTOP_IMAGE_UNAVAILABLE when the
+region has no desktop image. After \`running\`, \`create\` waits up to 120
+seconds for rdpListening. If xrdp does not listen or the hand leaves
+running, \`create\` prints a warning and exits 0. \`create\` then prints a
+desktop line and the next steps, also when the project placement fails, and
+exits with the placement status. The next steps: \`tailscale up\` and
+\`sudo passwd sandbox\` on the hand, then the .rdp file from the Connect
+card of the hand in the console. With \`--json\`,
+the line adds desktop with rdpListening, tailnetName, and rdpAddress
+(<tailnet name or address>:${RDP_PORT} when xrdp listens, else null).
+
 \`--json\` prints one JSON line with id, index, alias, name, status, spec,
 sshHost, and ssh. The ssh field is null unless the status is running.
 When the console returns a hand id and the wait then fails,
@@ -238,8 +268,8 @@ waits up to 15 minutes for the VM to reach \`running\`, then prints its name
 and SSH host. \`fork\` runs \`ssh exe.dev cp <hand> [<name>] --copy-tags\`.
 \`pause\`, \`resume\`, and \`destroy\` run \`ssh exe.dev pause\`, \`resume\`,
 and \`rm\`. \`destroy\` asks for confirmation unless --yes is given.
---spec, --disposable, --profile, --docker, --t3, --code-server, --ssh-key,
-and --json apply only to console hands.
+--spec, --disposable, --profile, --docker, --t3, --code-server, --desktop,
+--ssh-key, and --json apply only to console hands.
 
 Guards: \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 without a
 change when the VM lacks the ${HAND_TAG} tag. Each write verb exits 1 without a
@@ -363,6 +393,7 @@ interface CreateArgs {
   project?: ProjectSlug;
   clone?: ProjectSlug;
   disposable?: boolean;
+  desktop: boolean;
   profile?: HandProfile;
   apps: Set<(typeof APP_FLAGS)[number]>;
   sshKeyIds: string[];
@@ -372,7 +403,7 @@ interface CreateArgs {
 const VALUE_FLAGS = ["--name", "--spec", "--project", "--clone", "--profile", "--ssh-key"] as const;
 
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
-  const args: CreateArgs = { apps: new Set(), sshKeyIds: [], json: false };
+  const args: CreateArgs = { apps: new Set(), sshKeyIds: [], json: false, desktop: false };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     if (token === "--disposable") {
@@ -381,6 +412,10 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
     }
     if (token === "--json") {
       args.json = true;
+      continue;
+    }
+    if (token === "--desktop") {
+      args.desktop = true;
       continue;
     }
     if (isOneOf(APP_FLAGS, token)) {
@@ -418,7 +453,23 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
   return { ok: true, args };
 }
 
-function createdLine(hand: Hand): string {
+function rdpAddress(state: DesktopState): string | null {
+  const host = state.tailnetName ?? state.tailnetAddress;
+  return !state.rdpListening || host === null ? null : `${host}:${RDP_PORT}`;
+}
+
+function printDesktop(io: HandsIO, hand: Hand, state: DesktopState): void {
+  const address = rdpAddress(state);
+  io.stdout(
+    `desktop: ${state.rdpListening ? `xrdp listening${address === null ? "" : ` on ${address}`}` : "xrdp not listening"}\n` +
+      (hand.sshDest === null ? "" : `next: ssh ${hand.sshDest}\n`) +
+      "next: tailscale up\n" +
+      "next: sudo passwd sandbox\n" +
+      "next: open the Connect card of the hand in the console and download the .rdp file\n",
+  );
+}
+
+function createdLine(hand: Hand, desktop?: DesktopState): string {
   return `${JSON.stringify({
     id: hand.id,
     index: hand.index === null ? null : Number(hand.index),
@@ -428,6 +479,9 @@ function createdLine(hand: Hand): string {
     spec: hand.spec,
     sshHost: hand.sshHost,
     ssh: hand.status === "running" && hand.sshDest !== null ? `ssh ${hand.sshDest}` : null,
+    ...(desktop === undefined
+      ? {}
+      : { desktop: { rdpListening: desktop.rdpListening, tailnetName: desktop.tailnetName, rdpAddress: rdpAddress(desktop) } }),
   })}\n`;
 }
 
@@ -493,13 +547,14 @@ async function runCreate(
   providerId: HandProviderId,
   provider: HandProvider,
   prefix: string,
+  awaitDesktop: AwaitDesktop | undefined,
 ) {
   const parsed = parseCreate(tokens);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { name, spec, project, clone, disposable, profile, apps, sshKeyIds, json } = parsed.args;
+  const { name, spec, project, clone, disposable, desktop, profile, apps, sshKeyIds, json } = parsed.args;
   let local: { path: string; branch: string } | undefined;
   if (project !== undefined) {
     const found = brainProject(deps, project);
@@ -524,6 +579,7 @@ async function runCreate(
     docker: apps.has("--docker"),
     t3: apps.has("--t3"),
     codeServer: apps.has("--code-server"),
+    desktop,
     sshKeyIds,
   };
   const created = await provider.create(request, (hand) => {
@@ -535,28 +591,65 @@ async function runCreate(
     return failed(io, prefix, created.error);
   }
   const running = created.value;
+  const waitForDesktop = () =>
+    desktop && awaitDesktop !== undefined ? waitDesktop(io, deps, prefix, running, awaitDesktop) : Promise.resolve(undefined);
   if (json) {
-    io.stdout(createdLine(running));
+    io.stdout(createdLine(running, await waitForDesktop()));
     return 0;
   }
   printRunning(io, running, providerId);
-  const { sshDest, remoteName } = running;
-  const slug = project ?? clone;
+  const placed = placeProject(io, deps, provider, prefix, running, project ?? clone, local);
+  const desktopState = await waitForDesktop();
+  if (desktopState !== undefined) printDesktop(io, running, desktopState);
+  return placed;
+}
+
+async function waitDesktop(
+  io: HandsIO,
+  deps: HandsDeps,
+  prefix: string,
+  hand: Hand,
+  awaitDesktop: AwaitDesktop,
+): Promise<DesktopState> {
+  const startedAt = deps.now();
+  const state = await awaitDesktop(hand.id, { intervalMs: deps.desktopPollMs, timeoutMs: deps.desktopTimeoutMs });
+  const waitedSeconds = Math.round((deps.now() - startedAt) / 1000);
+  if (state.rdpListening) return state;
+  io.stderr(
+    state.apiError !== null
+      ? `${prefix}: warning: hand ${hand.id} desktop state unknown: ${state.apiError}\n`
+      : state.status !== null && state.status !== "running"
+        ? `${prefix}: warning: hand ${hand.id} is ${state.status}; the desktop is not reachable\n`
+        : `${prefix}: warning: hand ${hand.id} is running but xrdp is not listening after ${waitedSeconds} s; check with agro hands exec ${hand.id} -- systemctl status xrdp\n`,
+  );
+  return state;
+}
+
+function placeProject(
+  io: HandsIO,
+  deps: HandsDeps,
+  provider: HandProvider,
+  prefix: string,
+  hand: Hand,
+  slug: ProjectSlug | undefined,
+  local: { path: string; branch: string } | undefined,
+): number {
   if (slug === undefined) return 0;
+  const { sshDest, remoteName } = hand;
   if (sshDest === null || remoteName === null) {
-    io.stderr(`${prefix}: hand ${running.id} has no SSH host or index\n`);
+    io.stderr(`${prefix}: hand ${hand.id} has no SSH host or index\n`);
     return 1;
   }
   io.stdout(`project: ~/${handProjectPath(slug)}\n`);
-  if (local !== undefined) return pushProject(io, deps, provider, prefix, running, sshDest, remoteName, slug, local);
+  if (local !== undefined) return pushProject(io, deps, provider, prefix, hand, sshDest, remoteName, slug, local);
   const cloned = runSsh(
     deps,
     provider,
-    running,
+    hand,
     sshDest,
     `mkdir -p projects/${slug.owner} && git clone -q https://github.com/${slug.owner}/${slug.repo}.git ${handProjectPath(slug)}`,
   );
-  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand ${running.label} failed with status ${cloned}\n`);
+  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand ${hand.label} failed with status ${cloned}\n`);
   return cloned;
 }
 
@@ -827,6 +920,7 @@ export async function runHands(
   const prefix = `${bin} hands ${verb}`;
   let safe: HandsIO;
   let provider: HandProvider;
+  let awaitDesktop: AwaitDesktop | undefined;
   if (providerId === "exedev") {
     if (flag.operator) {
       io.stderr(`${prefix}: --operator applies only to console hands\n`);
@@ -866,10 +960,12 @@ export async function runHands(
       authority === "operator"
         ? { read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
         : undefined;
-    provider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
+    const consoleProvider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
+    provider = consoleProvider;
+    awaitDesktop = consoleProvider.awaitDesktop;
   }
   if (verb === "list") return runList(rest, safe, providerId, provider, prefix);
-  if (verb === "create") return runCreate(rest, safe, deps, providerId, provider, prefix);
+  if (verb === "create") return runCreate(rest, safe, deps, providerId, provider, prefix, awaitDesktop);
   if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);
   if (verb === "fork") return runFork(rest, safe, providerId, provider, prefix);
   if (verb === "exec") return runExec(rest, safe, deps, provider, prefix);
