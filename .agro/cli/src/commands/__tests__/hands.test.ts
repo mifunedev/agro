@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ConsoleCredentials } from "../../lib/console-auth.js";
+import { readConsoleCredentials, type ConsoleCredentials } from "../../lib/console-auth.js";
 import { CONSOLE_CONFIG_MISSING, resolveConsoleConfig } from "../../lib/console-api.js";
 import { HANDS_VERBS } from "../../command-table.js";
 import {
@@ -1004,7 +1004,7 @@ describe("agro hands create profile and app flags", () => {
   it("shows the new flags in the help", () => {
     const help = handsHelp("agro");
     expect(help).toContain(
-      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
+      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
     );
     for (const flag of ["--profile", "--json", "--ssh-key", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
   });
@@ -1457,5 +1457,244 @@ describe("agro hands check", () => {
     expect(await runHands(["check", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
     expect(h.all()).not.toContain(TOKEN);
     expect(h.stdout()).toContain("warn credit: HTTP 500 no code: bad token [redacted]\n");
+  });
+});
+
+describe("agro hands create --desktop", () => {
+  const TAILNET_NAME = "calm-lynx.tail1234.ts.net";
+  const TAILNET_ADDRESS = "100.64.0.7";
+  const DESKTOP_HAND = { ...RUNNING_HAND, desktop: true, rdpListening: false, tailnetName: null, tailnetAddress: null };
+  const DESKTOP_RUNNING: Reply = { status: 200, body: DESKTOP_HAND };
+  const RDP_DOWN: Reply = { status: 200, body: DESKTOP_HAND };
+  const RDP_UP: Reply = {
+    status: 200,
+    body: { ...DESKTOP_HAND, rdpListening: true, tailnetName: TAILNET_NAME, tailnetAddress: TAILNET_ADDRESS },
+  };
+  const SPEC_TOO_SMALL: Reply = {
+    status: 422,
+    body: { error: "The desktop tool needs a larger spec", code: "SPEC_TOO_SMALL_FOR_TOOL" },
+  };
+  const IMAGE_UNAVAILABLE: Reply = {
+    status: 503,
+    body: { error: "No desktop image in this region", code: "DESKTOP_IMAGE_UNAVAILABLE" },
+  };
+  const NEXT_LINES =
+    "next: ssh sandbox@hand-7.example\n" +
+    "next: sudo tailscale up\n" +
+    "next: sudo passwd sandbox\n" +
+    "next: open the Connect card of the hand in the console and download the .rdp file\n";
+  const RUNNING_LINES = "index: 7\nalias: calm-lynx\nssh host: hand-7.example\n";
+  const TIMEOUT_WARNING =
+    "warning: hand u9 is running but xrdp is not listening after 120 s; check with agro hands exec u9 -- systemctl status xrdp";
+
+  it("posts tools with desktop and no docker field", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: ["desktop"] });
+  });
+
+  it("posts tools with docker and desktop and no docker field with --docker", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--docker", "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: ["docker", "desktop"] });
+  });
+
+  it.each([[["--profile", "agro"]], [["--profile", "sandbox"]], [[]]])("accepts --desktop with %j", async (flag) => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, ...flag, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toMatchObject({ tools: ["desktop"] });
+    expect(h.calls[0].body).not.toHaveProperty("docker");
+  });
+
+  it("posts no tools field without --desktop", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--docker"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], docker: true });
+    expect(h.calls).toHaveLength(2);
+  });
+
+  it("keeps tools on the n4 free tier retry", async () => {
+    const h = harness([
+      { status: 402, body: { error: "Add credit", code: "CREDIT_REQUIRED" } },
+      { status: 200, body: { eligible: true } },
+      QUEUED,
+      DESKTOP_RUNNING,
+      RDP_UP,
+    ]);
+    expect(await runHands([...BASE_CREATE, "--spec", "n8", "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[2].body).toEqual({
+      profile: "sandbox",
+      sshKeyIds: ["key-1"],
+      spec: "n4",
+      tools: ["desktop"],
+      freeTier: true,
+    });
+  });
+
+  it("refuses --desktop on exedev hands before any provider call", async () => {
+    const home = mkdtempSync(join(tmpdir(), "agro-hands-desktop-"));
+    try {
+      const runs: string[][] = [];
+      const h = harness([{ status: 200 }], {
+        userHome: () => home,
+        run: (cmd, args) => {
+          runs.push([cmd, ...args]);
+          return { status: 0, stdout: "{}" };
+        },
+      });
+      expect(await runHands(["--provider", "exedev", "create", "--desktop"], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands create: --desktop applies only to console hands\n");
+      expect(runs).toEqual([]);
+      expect(h.calls).toEqual([]);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("prints the spec line and exits 1 on HTTP 422 SPEC_TOO_SMALL_FOR_TOOL", async () => {
+    const h = harness([SPEC_TOO_SMALL]);
+    expect(await runHands([...BASE_CREATE, "--spec", "n2", "--desktop"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.stderr()).toBe(
+      "agro hands create: the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)\n",
+    );
+    expect(h.stdout()).toBe("");
+  });
+
+  it("prints the image line and exits 1 on HTTP 503 DESKTOP_IMAGE_UNAVAILABLE", async () => {
+    const h = harness([IMAGE_UNAVAILABLE]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(1);
+    expect(h.stderr()).toBe("agro hands create: desktop hands are unavailable right now: the desktop image is missing\n");
+    expect(h.stdout()).toBe("");
+  });
+
+  it("polls the node until xrdp listens, then prints the desktop and next lines", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN, RDP_DOWN, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(1).map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://brain-console.example/api/nodes/u9",
+      "GET https://brain-console.example/api/nodes/u9",
+      "GET https://brain-console.example/api/nodes/u9",
+      "GET https://brain-console.example/api/nodes/u9",
+    ]);
+    expect(h.sleeps).toEqual([1000, 5000, 5000]);
+    expect(h.stdout()).toBe(`${RUNNING_LINES}desktop: xrdp listening on ${TAILNET_NAME}:3389\n${NEXT_LINES}`);
+    expect(h.stderr()).not.toContain("warning");
+  });
+
+  it("warns on stderr and exits 0 when xrdp does not listen after 120 s", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.stderr()).toContain(`agro hands create: ${TIMEOUT_WARNING}\n`);
+    expect(h.stdout()).toBe(`${RUNNING_LINES}desktop: xrdp not listening\n${NEXT_LINES}`);
+    expect(h.sleeps.slice(1).reduce((sum, ms) => sum + ms, 0)).toBe(120_000);
+  });
+
+  it("takes the injected desktop poll interval and timeout", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN], { desktopPollMs: 10, desktopTimeoutMs: 30 });
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.sleeps.slice(1)).toEqual([10, 10, 10]);
+    expect(h.calls.slice(2)).toHaveLength(4);
+    expect(h.stderr()).toContain("is running but xrdp is not listening");
+  });
+
+  it("adds the desktop object to the --json line", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop", "--json"], h.io, h.deps)).toBe(0);
+    const lines = h.stdout().split("\n");
+    expect(lines).toHaveLength(2);
+    expect(JSON.parse(lines[0])).toEqual({
+      ...CREATED_JSON,
+      desktop: { rdpListening: true, tailnetName: TAILNET_NAME, rdpAddress: `${TAILNET_NAME}:3389` },
+    });
+  });
+
+  it("takes the tailnet address for rdpAddress without a tailnet name", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 200, body: { ...DESKTOP_HAND, rdpListening: true, tailnetAddress: TAILNET_ADDRESS } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout()).desktop).toEqual({
+      rdpListening: true,
+      tailnetName: null,
+      rdpAddress: `${TAILNET_ADDRESS}:3389`,
+    });
+  });
+
+  it("prints rdpAddress null and the warning when xrdp does not listen with --json", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN]);
+    expect(await runHands([...BASE_CREATE, "--desktop", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout()).desktop).toEqual({ rdpListening: false, tailnetName: null, rdpAddress: null });
+    expect(h.stderr()).toContain(TIMEOUT_WARNING);
+  });
+
+  it("prints no desktop field in the --json line without --desktop", async () => {
+    const h = harness([QUEUED, RUNNING]);
+    expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout())).not.toHaveProperty("desktop");
+  });
+
+  it("clones over SSH with a fresh known_hosts path and pins the host key by the hand uuid", async () => {
+    const home = mkdtempSync(join(tmpdir(), "agro-hands-desktop-known-hosts-"));
+    try {
+      const runs: string[][] = [];
+      const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], {
+        userHome: () => home,
+        run: (cmd, args) => {
+          runs.push([cmd, ...args]);
+          return { status: 0 };
+        },
+      });
+      expect(await runHands([...BASE_CREATE, "--desktop", "--clone", "acme/widget"], h.io, h.deps)).toBe(0);
+      expect(existsSync(join(home, ".ssh", "known_hosts"))).toBe(false);
+      expect(runs).toHaveLength(1);
+      expect(runs[0].slice(0, 5)).toEqual(["ssh", "-o", "StrictHostKeyChecking=accept-new", "-o", "HostKeyAlias=u9"]);
+      expect(runs[0]).toContain("sandbox@hand-7.example");
+      expect(h.stdout()).toContain(`desktop: xrdp listening on ${TAILNET_NAME}:3389\n`);
+      expect(h.stdout()).toContain("project: ~/projects/acme/widget\n");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("registers the local key under a container-like host name", async () => {
+    const h = harness(
+      [{ status: 200, body: { sshKeys: [] } }, { status: 201, body: { id: "new-key" } }, QUEUED, DESKTOP_RUNNING, RDP_UP],
+      {
+        env: {},
+        readFile: brainFiles({ [LOCAL_KEY_PATH]: LOCAL_KEY }).readFile,
+        readCredentials: credentials(TOKEN, "https://console.example/"),
+        hostname: () => "9f3c2a1b7e4d",
+        inContainer: () => true,
+      },
+    );
+    expect(await runHands(["create", "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[1].body).toEqual({ name: "agro-cli@9f3c2a1b7e4d", publicKey: LOCAL_KEY.trim() });
+    expect(h.calls[2].body).toEqual({ profile: "sandbox", sshKeyIds: ["new-key"], tools: ["desktop"] });
+  });
+
+  it("exits 2 through the config error path for a malformed console.json", async () => {
+    const configHome = mkdtempSync(join(tmpdir(), "agro-hands-desktop-config-"));
+    try {
+      mkdirSync(join(configHome, "agro"), { recursive: true });
+      writeFileSync(join(configHome, "agro", "console.json"), "{ not json", "utf8");
+      const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], {
+        readCredentials: () => readConsoleCredentials({ XDG_CONFIG_HOME: configHome }, configHome),
+      });
+      expect(await runHands(["--operator", "create", "--desktop"], h.io, h.deps)).toBe(2);
+      expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
+      expect(h.calls).toEqual([]);
+    } finally {
+      rmSync(configHome, { recursive: true, force: true });
+    }
+  });
+
+  it("documents --desktop in the help", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain("[--code-server] [--disposable] [--desktop]");
+    expect(help).toContain("`--desktop`");
+    expect(help).toContain("SPEC_TOO_SMALL_FOR_TOOL");
+    expect(help).toContain("DESKTOP_IMAGE_UNAVAILABLE");
+    expect(help).toContain("rdpListening");
+    expect(help).toContain("--desktop applies only to console hands");
   });
 });

@@ -12,12 +12,47 @@ import {
   type ConsolePollDeps,
 } from "../console-api.js";
 import { LOCAL_SSH_KEY_MISSING } from "./console-check.js";
-import type { Hand, HandOutcome, HandProvider, HandStatusReport } from "./provider.js";
+import type { Hand, HandOutcome, HandProvider, HandRequest, HandStatusReport } from "./provider.js";
 
 const NO_NODE_ID = "the console response has no node id";
-const DISPOSABLE_PROFILE_UNSUPPORTED_LINE =
-  "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox";
 const DESTROY_ADMIN_LINE = "destroy needs the admin role in agro-console";
+const CREATE_REFUSAL_LINES: readonly { status: number; code: string; line: string }[] = [
+  {
+    status: 422,
+    code: "DISPOSABLE_PROFILE_UNSUPPORTED",
+    line: "only a sandbox node can be disposable: drop --disposable, or use --profile sandbox",
+  },
+  {
+    status: 422,
+    code: "SPEC_TOO_SMALL_FOR_TOOL",
+    line: "the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)",
+  },
+  {
+    status: 503,
+    code: "DESKTOP_IMAGE_UNAVAILABLE",
+    line: "desktop hands are unavailable right now: the desktop image is missing",
+  },
+];
+
+export interface ConsoleHandRequest extends HandRequest {
+  desktop?: boolean;
+}
+
+export interface DesktopState {
+  rdpListening: boolean;
+  tailnetName: string | null;
+  tailnetAddress: string | null;
+}
+
+export interface DesktopWait {
+  intervalMs: number;
+  timeoutMs: number;
+}
+
+export interface ConsoleHandProvider extends HandProvider {
+  create(request: ConsoleHandRequest, onStatus: HandStatusReport): Promise<HandOutcome<Hand>>;
+  awaitDesktop(id: string, wait: DesktopWait): Promise<DesktopState>;
+}
 
 export interface LocalSshKey {
   read: () => string | undefined;
@@ -42,6 +77,21 @@ function refusalMessage(
     : result.message;
 }
 
+function toDesktopState(body: unknown): DesktopState {
+  const outer = asRecord(body);
+  const record = asRecord(outer?.node) ?? outer;
+  return {
+    rdpListening: record?.rdpListening === true,
+    tailnetName: asText(record?.tailnetName),
+    tailnetAddress: asText(record?.tailnetAddress),
+  };
+}
+
+function toolsField(docker: boolean | undefined, desktop: boolean | undefined): Record<string, unknown> {
+  if (desktop === true) return { tools: docker === true ? ["docker", "desktop"] : ["desktop"] };
+  return docker === true ? { docker: true } : {};
+}
+
 function toHand(node: ConsoleNode, fallbackSpec: string | null = null): Hand {
   return {
     id: node.id,
@@ -64,7 +114,7 @@ export function createConsoleProvider(
   config: ConsoleConfig,
   notice: (message: string) => void,
   localKey?: LocalSshKey,
-): HandProvider {
+): ConsoleHandProvider {
   async function defaultSshKeyIds(): Promise<HandOutcome<string[]>> {
     if (localKey === undefined) return { ok: true, value: [] };
     const publicKey = localKey.read()?.trim();
@@ -123,7 +173,7 @@ export function createConsoleProvider(
     },
 
     async create(request, onStatus) {
-      const { name, spec, disposable, profile, docker, t3, codeServer } = request;
+      const { name, spec, disposable, profile, docker, t3, codeServer, desktop } = request;
       const keys = request.sshKeyIds ?? [];
       const resolvedKeys = keys.length > 0 ? { ok: true as const, value: keys } : await defaultSshKeyIds();
       if (!resolvedKeys.ok) return resolvedKeys;
@@ -137,7 +187,7 @@ export function createConsoleProvider(
           ...(name === undefined ? {} : { name }),
           ...(spec === undefined ? {} : { spec }),
           ...(sshKeyIds.length === 0 ? {} : { sshKeyIds }),
-          ...(docker === true ? { docker: true } : {}),
+          ...toolsField(docker, desktop),
           ...(t3 === true ? { t3: true } : {}),
           ...(codeServer === true ? { runtimeSettings: { codeServerEnabled: true } } : {}),
           ...(disposable === true ? { disposable: true } : {}),
@@ -145,8 +195,8 @@ export function createConsoleProvider(
         notice,
       );
       if (!created.ok) {
-        const disposableRefused = created.status === 422 && created.code === "DISPOSABLE_PROFILE_UNSUPPORTED";
-        return { ok: false, error: disposableRefused ? DISPOSABLE_PROFILE_UNSUPPORTED_LINE : created.message };
+        const refusal = CREATE_REFUSAL_LINES.find(({ status, code }) => created.status === status && created.code === code);
+        return { ok: false, error: refusal?.line ?? created.message };
       }
       const node = toNode(created.body);
       if (node === undefined) return { ok: false, error: NO_NODE_ID };
@@ -175,6 +225,18 @@ export function createConsoleProvider(
       if (fork === undefined) return { ok: false, error: NO_NODE_ID };
       const running = await awaitRunning(fork, requestedAt, onStatus, { job });
       return running.ok ? { ok: true, value: { hand: running.value, job } } : running;
+    },
+
+    async awaitDesktop(id, wait) {
+      const deadline = deps.now() + wait.timeoutMs;
+      let state = toDesktopState(undefined);
+      for (;;) {
+        const read = await callApi(deps, config, "GET", handPath(id));
+        if (read.ok) state = toDesktopState(read.body);
+        const remaining = deadline - deps.now();
+        if (state.rdpListening || remaining <= 0) return state;
+        await deps.sleep(Math.min(wait.intervalMs, remaining));
+      }
     },
 
     pause: (ref) => act(ref, "pause"),
