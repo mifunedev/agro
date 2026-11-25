@@ -766,9 +766,12 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   exits 1.
 - After the status `running`, `create --desktop` reads the hand up to 120
   seconds until `rdpListening` is true. If xrdp does not listen, the command
-  prints `warning: hand <id> is running but xrdp is not listening after 120 s; check with agro hands exec <id> -- systemctl status xrdp`
-  to stderr and exits 0. The command then prints a `desktop:` line and `next:`
-  lines: SSH to the hand, run `tailscale up` and `sudo passwd sandbox`,
+  prints `warning: hand <id> is running but xrdp is not listening after <seconds> s; check with agro hands exec <id> -- systemctl status xrdp`
+  to stderr and exits 0. If the last read fails, the command prints
+  `warning: hand <id> desktop state unknown: <API error>` instead. HTTP 401,
+  403, and 404 stop the reads. With `--project` or `--clone`, the command
+  places the project before the reads. The command then prints a `desktop:`
+  line and `next:` lines: SSH to the hand when it has an SSH host, run `tailscale up` and `sudo passwd sandbox`,
   then download the `.rdp` file from the Connect card of the hand in the
   console. `create --desktop --json` adds
   `desktop: {rdpListening, tailnetName, rdpAddress}`. `rdpAddress` is

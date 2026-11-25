@@ -42,6 +42,7 @@ export interface DesktopState {
   rdpListening: boolean;
   tailnetName: string | null;
   tailnetAddress: string | null;
+  apiError: string | null;
 }
 
 export interface DesktopWait {
@@ -84,8 +85,11 @@ function toDesktopState(body: unknown): DesktopState {
     rdpListening: record?.rdpListening === true,
     tailnetName: asText(record?.tailnetName),
     tailnetAddress: asText(record?.tailnetAddress),
+    apiError: null,
   };
 }
+
+const DESKTOP_FATAL_STATUSES = new Set([401, 403, 404]);
 
 function toolsField(docker: boolean | undefined, desktop: boolean | undefined): Record<string, unknown> {
   if (desktop === true) return { tools: docker === true ? ["docker", "desktop"] : ["desktop"] };
@@ -232,7 +236,8 @@ export function createConsoleProvider(
       let state = toDesktopState(undefined);
       for (;;) {
         const read = await callApi(deps, config, "GET", handPath(id));
-        if (read.ok) state = toDesktopState(read.body);
+        state = read.ok ? toDesktopState(read.body) : { ...state, apiError: read.message };
+        if (!read.ok && read.status !== undefined && DESKTOP_FATAL_STATUSES.has(read.status)) return state;
         const remaining = deadline - deps.now();
         if (state.rdpListening || remaining <= 0) return state;
         await deps.sleep(Math.min(wait.intervalMs, remaining));

@@ -1599,6 +1599,89 @@ describe("agro hands create --desktop", () => {
     expect(h.stderr()).toContain("is running but xrdp is not listening");
   });
 
+  it("states the measured wait in the timeout warning", async () => {
+    let clock = 0;
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN], {
+      desktopPollMs: 10_000,
+      desktopTimeoutMs: 30_000,
+      now: () => clock,
+      sleep: async (ms) => {
+        clock += ms + 7000;
+      },
+    });
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.stderr()).toContain(
+      "warning: hand u9 is running but xrdp is not listening after 34 s; check with agro hands exec u9 -- systemctl status xrdp\n",
+    );
+  });
+
+  it("stops polling on HTTP 401 and warns with the API error", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 401, body: { error: "token revoked", code: "UNAUTHORIZED" } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(2)).toHaveLength(1);
+    expect(h.sleeps).toEqual([1000]);
+    expect(h.stderr()).toContain(
+      "agro hands create: warning: hand u9 desktop state unknown: HTTP 401 UNAUTHORIZED: token revoked\n",
+    );
+    expect(h.stderr()).not.toContain("xrdp is not listening");
+  });
+
+  it("warns with the API error when every desktop read fails", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 500, body: { error: "boom" } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.sleeps.slice(1).reduce((sum, ms) => sum + ms, 0)).toBe(120_000);
+    expect(h.stderr()).toContain("agro hands create: warning: hand u9 desktop state unknown: HTTP 500 no code: boom\n");
+    expect(h.stderr()).not.toContain("xrdp is not listening");
+  });
+
+  it("prints no warning after a transient read failure and then xrdp listening", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 500, body: { error: "boom" } }, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.stderr()).not.toContain("warning");
+    expect(h.stdout()).toContain(`desktop: xrdp listening on ${TAILNET_NAME}:3389\n`);
+  });
+
+  it("omits the ssh next line when the hand has no SSH host", async () => {
+    const noHost = { ...DESKTOP_HAND, sshHost: null };
+    const h = harness([QUEUED, { status: 200, body: noHost }, { status: 200, body: { ...noHost, rdpListening: true } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).not.toContain("next: ssh");
+    expect(h.stdout()).toContain("next: tailscale up\n");
+  });
+
+  it("clones the project before it waits for the desktop", async () => {
+    const runAt: number[] = [];
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN, RDP_UP], {
+      run: () => {
+        runAt.push(h.calls.length);
+        return { status: 0 };
+      },
+    });
+    expect(await runHands([...BASE_CREATE, "--desktop", "--clone", "acme/widget"], h.io, h.deps)).toBe(0);
+    expect(runAt).toEqual([2]);
+    expect(h.calls).toHaveLength(4);
+    expect(h.stdout().indexOf("project: ~/projects/acme/widget\n")).toBeLessThan(h.stdout().indexOf("desktop: "));
+  });
+
+  it("pushes the brain project before it waits for the desktop", async () => {
+    const runAt: Array<[string, number]> = [];
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN, RDP_UP], {
+      exists: () => true,
+      run: (cmd, args) => {
+        runAt.push([`${cmd} ${args.includes("symbolic-ref") ? "symbolic-ref" : args.includes("push") ? "push" : ""}`.trim(), h.calls.length]);
+        return args.includes("symbolic-ref") ? { status: 0, stdout: "main\n" } : { status: 0 };
+      },
+    });
+    expect(await runHands([...BASE_CREATE, "--desktop", "--project", "acme/widget"], h.io, h.deps)).toBe(0);
+    expect(runAt).toEqual([
+      ["git symbolic-ref", 0],
+      ["ssh", 2],
+      ["git", 2],
+      ["git push", 2],
+    ]);
+    expect(h.calls).toHaveLength(4);
+  });
+
   it("adds the desktop object to the --json line", async () => {
     const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
     expect(await runHands([...BASE_CREATE, "--desktop", "--json"], h.io, h.deps)).toBe(0);
@@ -1695,6 +1778,7 @@ describe("agro hands create --desktop", () => {
     expect(help).toContain("SPEC_TOO_SMALL_FOR_TOOL");
     expect(help).toContain("DESKTOP_IMAGE_UNAVAILABLE");
     expect(help).toContain("rdpListening");
-    expect(help).toContain("--desktop applies only to console hands");
+    expect(help).toContain("--code-server, --desktop,\n--ssh-key, and --json apply only to console hands.");
+    expect(help).not.toContain("--desktop applies only to console hands");
   });
 });

@@ -210,7 +210,6 @@ agro-cli@<host name>, and sends its id. When the file does not exist,
 sends only the \`--ssh-key\` ids.
 
 \`--desktop\` adds the desktop tool to the hand. It applies to both profiles.
---desktop applies only to console hands.
 With \`--docker\`, \`create\` sends the tools docker and desktop. The desktop
 needs at least \`n4\`: the console refuses a smaller spec with HTTP 422
 SPEC_TOO_SMALL_FOR_TOOL, and HTTP 503 DESKTOP_IMAGE_UNAVAILABLE when the
@@ -461,7 +460,7 @@ function printDesktop(io: HandsIO, hand: Hand, state: DesktopState): void {
   const address = rdpAddress(state);
   io.stdout(
     `desktop: ${state.rdpListening ? `xrdp listening${address === null ? "" : ` on ${address}`}` : "xrdp not listening"}\n` +
-      `next: ssh ${hand.sshDest ?? "into the hand"}\n` +
+      (hand.sshDest === null ? "" : `next: ssh ${hand.sshDest}\n`) +
       "next: tailscale up\n" +
       "next: sudo passwd sandbox\n" +
       "next: open the Connect card of the hand in the console and download the .rdp file\n",
@@ -590,38 +589,64 @@ async function runCreate(
     return failed(io, prefix, created.error);
   }
   const running = created.value;
-  const desktopState =
-    desktop && awaitDesktop !== undefined
-      ? await awaitDesktop(running.id, { intervalMs: deps.desktopPollMs, timeoutMs: deps.desktopTimeoutMs })
-      : undefined;
-  if (desktopState !== undefined && !desktopState.rdpListening) {
-    io.stderr(
-      `${prefix}: warning: hand ${running.id} is running but xrdp is not listening after ${Math.round(deps.desktopTimeoutMs / 1000)} s; check with agro hands exec ${running.id} -- systemctl status xrdp\n`,
-    );
-  }
+  const waitForDesktop = () =>
+    desktop && awaitDesktop !== undefined ? waitDesktop(io, deps, prefix, running, awaitDesktop) : Promise.resolve(undefined);
   if (json) {
-    io.stdout(createdLine(running, desktopState));
+    io.stdout(createdLine(running, await waitForDesktop()));
     return 0;
   }
   printRunning(io, running, providerId);
+  const placed = placeProject(io, deps, provider, prefix, running, project ?? clone, local);
+  if (placed !== 0) return placed;
+  const desktopState = await waitForDesktop();
   if (desktopState !== undefined) printDesktop(io, running, desktopState);
-  const { sshDest, remoteName } = running;
-  const slug = project ?? clone;
+  return 0;
+}
+
+async function waitDesktop(
+  io: HandsIO,
+  deps: HandsDeps,
+  prefix: string,
+  hand: Hand,
+  awaitDesktop: AwaitDesktop,
+): Promise<DesktopState> {
+  const startedAt = deps.now();
+  const state = await awaitDesktop(hand.id, { intervalMs: deps.desktopPollMs, timeoutMs: deps.desktopTimeoutMs });
+  const waitedSeconds = Math.round((deps.now() - startedAt) / 1000);
+  if (state.rdpListening) return state;
+  io.stderr(
+    state.apiError === null
+      ? `${prefix}: warning: hand ${hand.id} is running but xrdp is not listening after ${waitedSeconds} s; check with agro hands exec ${hand.id} -- systemctl status xrdp\n`
+      : `${prefix}: warning: hand ${hand.id} desktop state unknown: ${state.apiError}\n`,
+  );
+  return state;
+}
+
+function placeProject(
+  io: HandsIO,
+  deps: HandsDeps,
+  provider: HandProvider,
+  prefix: string,
+  hand: Hand,
+  slug: ProjectSlug | undefined,
+  local: { path: string; branch: string } | undefined,
+): number {
   if (slug === undefined) return 0;
+  const { sshDest, remoteName } = hand;
   if (sshDest === null || remoteName === null) {
-    io.stderr(`${prefix}: hand ${running.id} has no SSH host or index\n`);
+    io.stderr(`${prefix}: hand ${hand.id} has no SSH host or index\n`);
     return 1;
   }
   io.stdout(`project: ~/${handProjectPath(slug)}\n`);
-  if (local !== undefined) return pushProject(io, deps, provider, prefix, running, sshDest, remoteName, slug, local);
+  if (local !== undefined) return pushProject(io, deps, provider, prefix, hand, sshDest, remoteName, slug, local);
   const cloned = runSsh(
     deps,
     provider,
-    running,
+    hand,
     sshDest,
     `mkdir -p projects/${slug.owner} && git clone -q https://github.com/${slug.owner}/${slug.repo}.git ${handProjectPath(slug)}`,
   );
-  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand ${running.label} failed with status ${cloned}\n`);
+  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand ${hand.label} failed with status ${cloned}\n`);
   return cloned;
 }
 
