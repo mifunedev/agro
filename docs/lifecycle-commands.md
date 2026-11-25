@@ -768,14 +768,19 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   seconds until `rdpListening` is true. If xrdp does not listen, the command
   prints `warning: hand <id> is running but xrdp is not listening after <seconds> s; check with agro hands exec <id> -- systemctl status xrdp`
   to stderr and exits 0. If the last read fails, the command prints
-  `warning: hand <id> desktop state unknown: <API error>` instead. HTTP 401,
-  403, and 404 stop the reads. With `--project` or `--clone`, the command
-  places the project before the reads. The command then prints a `desktop:`
+  `warning: hand <id> desktop state unknown: <API error>` instead. Each HTTP
+  4xx status except 408 and 429 stops the reads. If a read shows a status
+  other than `running`, the reads stop and the command prints
+  `warning: hand <id> is <status>; the desktop is not reachable` and exits 0.
+  With `--project` or `--clone`, the command places the project before the
+  reads. If the placement fails, the command still reads the hand and prints
+  the desktop lines, then exits with the placement status. The command then prints a `desktop:`
   line and `next:` lines: SSH to the hand when it has an SSH host, run `tailscale up` and `sudo passwd sandbox`,
   then download the `.rdp` file from the Connect card of the hand in the
   console. `create --desktop --json` adds
   `desktop: {rdpListening, tailnetName, rdpAddress}`. `rdpAddress` is
-  `<tailnetName or tailnetAddress>:3389`, else `null`.
+  `<tailnetName or tailnetAddress>:3389` when `rdpListening` is true, else
+  `null`. The text `desktop:` line shows the same address.
 - `create --ssh-key <uuid>` adds a console SSH key to the hand. Repeat the flag
   for more keys. Without `--ssh-key` and with operator authority, `create` finds
   `~/.ssh/id_ed25519.pub` in the console SSH keys, or registers the file as

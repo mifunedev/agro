@@ -39,6 +39,7 @@ export interface ConsoleHandRequest extends HandRequest {
 }
 
 export interface DesktopState {
+  status: string | null;
   rdpListening: boolean;
   tailnetName: string | null;
   tailnetAddress: string | null;
@@ -82,6 +83,7 @@ function toDesktopState(body: unknown): DesktopState {
   const outer = asRecord(body);
   const record = asRecord(outer?.node) ?? outer;
   return {
+    status: asText(record?.status),
     rdpListening: record?.rdpListening === true,
     tailnetName: asText(record?.tailnetName),
     tailnetAddress: asText(record?.tailnetAddress),
@@ -89,7 +91,9 @@ function toDesktopState(body: unknown): DesktopState {
   };
 }
 
-const DESKTOP_FATAL_STATUSES = new Set([401, 403, 404]);
+function isDesktopFatal(status: number | undefined): boolean {
+  return status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
 
 function toolsField(docker: boolean | undefined, desktop: boolean | undefined): Record<string, unknown> {
   if (desktop === true) return { tools: docker === true ? ["docker", "desktop"] : ["desktop"] };
@@ -237,7 +241,8 @@ export function createConsoleProvider(
       for (;;) {
         const read = await callApi(deps, config, "GET", handPath(id));
         state = read.ok ? toDesktopState(read.body) : { ...state, apiError: read.message };
-        if (!read.ok && read.status !== undefined && DESKTOP_FATAL_STATUSES.has(read.status)) return state;
+        if (!read.ok && isDesktopFatal(read.status)) return state;
+        if (read.ok && state.status !== null && state.status !== "running") return state;
         const remaining = deadline - deps.now();
         if (state.rdpListening || remaining <= 0) return state;
         await deps.sleep(Math.min(wait.intervalMs, remaining));

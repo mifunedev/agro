@@ -1710,6 +1710,51 @@ describe("agro hands create --desktop", () => {
     expect(h.stderr()).toContain(TIMEOUT_WARNING);
   });
 
+  it("prints the desktop and next lines and returns the clone status when the clone fails", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], { run: () => ({ status: 128 }) });
+    expect(await runHands([...BASE_CREATE, "--desktop", "--clone", "acme/widget"], h.io, h.deps)).toBe(128);
+    expect(h.stderr()).toContain("git clone on hand");
+    expect(h.stdout()).toBe(
+      `${RUNNING_LINES}project: ~/projects/acme/widget\ndesktop: xrdp listening on ${TAILNET_NAME}:3389\n${NEXT_LINES}`,
+    );
+  });
+
+  it("stops polling and warns when the hand leaves running", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_DOWN, { status: 200, body: { ...DESKTOP_HAND, status: "stopped" } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(2)).toHaveLength(2);
+    expect(h.stderr()).toContain("agro hands create: warning: hand u9 is stopped; the desktop is not reachable\n");
+    expect(h.stderr()).not.toContain("xrdp is not listening");
+    expect(h.stdout()).toBe(`${RUNNING_LINES}desktop: xrdp not listening\n${NEXT_LINES}`);
+  });
+
+  it("stops polling on HTTP 400", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 400, body: { error: "bad id", code: "BAD_REQUEST" } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(2)).toHaveLength(1);
+    expect(h.stderr()).toContain("agro hands create: warning: hand u9 desktop state unknown: HTTP 400 BAD_REQUEST: bad id\n");
+  });
+
+  it.each([408, 429])("keeps polling after HTTP %i", async (status) => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status, body: { error: "later" } }, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(2)).toHaveLength(2);
+    expect(h.stderr()).not.toContain("warning");
+    expect(h.stdout()).toContain(`desktop: xrdp listening on ${TAILNET_NAME}:3389\n`);
+  });
+
+  it("prints rdpAddress null in --json when a tailnet name exists but xrdp does not listen", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 200, body: { ...DESKTOP_HAND, tailnetName: TAILNET_NAME } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop", "--json"], h.io, h.deps)).toBe(0);
+    expect(JSON.parse(h.stdout()).desktop).toEqual({ rdpListening: false, tailnetName: TAILNET_NAME, rdpAddress: null });
+  });
+
+  it("prints no address in text when a tailnet name exists but xrdp does not listen", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, { status: 200, body: { ...DESKTOP_HAND, tailnetName: TAILNET_NAME } }]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe(`${RUNNING_LINES}desktop: xrdp not listening\n${NEXT_LINES}`);
+  });
+
   it("prints no desktop field in the --json line without --desktop", async () => {
     const h = harness([QUEUED, RUNNING]);
     expect(await runHands(["create", "--json"], h.io, h.deps)).toBe(0);
@@ -1778,6 +1823,7 @@ describe("agro hands create --desktop", () => {
     expect(help).toContain("SPEC_TOO_SMALL_FOR_TOOL");
     expect(help).toContain("DESKTOP_IMAGE_UNAVAILABLE");
     expect(help).toContain("rdpListening");
+    expect(help).toContain(":3389 when xrdp listens, else null");
     expect(help).toContain("--code-server, --desktop,\n--ssh-key, and --json apply only to console hands.");
     expect(help).not.toContain("--desktop applies only to console hands");
   });

@@ -214,12 +214,14 @@ With \`--docker\`, \`create\` sends the tools docker and desktop. The desktop
 needs at least \`n4\`: the console refuses a smaller spec with HTTP 422
 SPEC_TOO_SMALL_FOR_TOOL, and HTTP 503 DESKTOP_IMAGE_UNAVAILABLE when the
 region has no desktop image. After \`running\`, \`create\` waits up to 120
-seconds for rdpListening. If xrdp does not listen, \`create\` prints a
-warning and exits 0. \`create\` then prints a desktop line and the next
-steps: \`tailscale up\` and \`sudo passwd sandbox\` on the hand, then the
-.rdp file from the Connect card of the hand in the console. With \`--json\`,
+seconds for rdpListening. If xrdp does not listen or the hand leaves
+running, \`create\` prints a warning and exits 0. \`create\` then prints a
+desktop line and the next steps, also when the project placement fails, and
+exits with the placement status. The next steps: \`tailscale up\` and
+\`sudo passwd sandbox\` on the hand, then the .rdp file from the Connect
+card of the hand in the console. With \`--json\`,
 the line adds desktop with rdpListening, tailnetName, and rdpAddress
-(<tailnet name or address>:${RDP_PORT}, or null).
+(<tailnet name or address>:${RDP_PORT} when xrdp listens, else null).
 
 \`--json\` prints one JSON line with id, index, alias, name, status, spec,
 sshHost, and ssh. The ssh field is null unless the status is running.
@@ -453,7 +455,7 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
 
 function rdpAddress(state: DesktopState): string | null {
   const host = state.tailnetName ?? state.tailnetAddress;
-  return host === null ? null : `${host}:${RDP_PORT}`;
+  return !state.rdpListening || host === null ? null : `${host}:${RDP_PORT}`;
 }
 
 function printDesktop(io: HandsIO, hand: Hand, state: DesktopState): void {
@@ -597,10 +599,9 @@ async function runCreate(
   }
   printRunning(io, running, providerId);
   const placed = placeProject(io, deps, provider, prefix, running, project ?? clone, local);
-  if (placed !== 0) return placed;
   const desktopState = await waitForDesktop();
   if (desktopState !== undefined) printDesktop(io, running, desktopState);
-  return 0;
+  return placed;
 }
 
 async function waitDesktop(
@@ -615,9 +616,11 @@ async function waitDesktop(
   const waitedSeconds = Math.round((deps.now() - startedAt) / 1000);
   if (state.rdpListening) return state;
   io.stderr(
-    state.apiError === null
-      ? `${prefix}: warning: hand ${hand.id} is running but xrdp is not listening after ${waitedSeconds} s; check with agro hands exec ${hand.id} -- systemctl status xrdp\n`
-      : `${prefix}: warning: hand ${hand.id} desktop state unknown: ${state.apiError}\n`,
+    state.apiError !== null
+      ? `${prefix}: warning: hand ${hand.id} desktop state unknown: ${state.apiError}\n`
+      : state.status !== null && state.status !== "running"
+        ? `${prefix}: warning: hand ${hand.id} is ${state.status}; the desktop is not reachable\n`
+        : `${prefix}: warning: hand ${hand.id} is running but xrdp is not listening after ${waitedSeconds} s; check with agro hands exec ${hand.id} -- systemctl status xrdp\n`,
   );
   return state;
 }
