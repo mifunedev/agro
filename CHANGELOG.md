@@ -8,9 +8,13 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- `agro hands create --desktop` requests a console hand with the desktop tool, waits up to 120 seconds for xrdp, and prints the desktop state and the next steps. `--json` adds `desktop` with `rdpListening`, `tailnetName`, and `rdpAddress` ([#1667](https://github.com/mifunedev/agro/issues/1667)).
+
 ### Fixed
 
-- Prevent unattended Claude supervisor and advisor runs from waiting on permission prompts with a version-checked launcher that denies approval-required calls ([#1669](https://github.com/mifunedev/agro/issues/1669)).
+- Apply unattended settings to Bash/Zsh Claude aliases and supervisor launches so approval-required calls are denied instead of waiting ([#1669](https://github.com/mifunedev/agro/issues/1669)).
 
 ## [0.40.0] - 2026-11-17
 

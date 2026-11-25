@@ -101,10 +101,9 @@ root, in bypass permissions mode. Three conditions hold together.
 - **The harness root.** A tab that opens in a project clone puts the advisor
   below the sandbox boundary, where the advisor edits application code outside
   its worktree.
-- **Unattended permissions.** An advisor runs unattended. Bypass permissions alone
-  can still leave a safety prompt waiting. For Claude Code, use
-  `.agro/scripts/claude-unattended.sh` to deny calls that require approval and
-  continue the turn. The launcher requires Claude Code 2.1.319 or later.
+- **Unattended permissions.** Bypass mode can still wait on a safety prompt.
+  For Claude Code 2.1.319 or later, pass the settings file below to deny calls
+  that require approval and continue the turn.
 - **Tab names.** Prefix every created tab with its purpose. Use an `agent-*` name
   for an agent tab. Use a `dev-*` name for a development environment tab. Put
   the prefix in the tab name or label.
@@ -134,23 +133,22 @@ The creation payload reports the requested `--cwd`. The creation payload proves
 no resolved working directory. Only `herdr pane get <pane>` reports the pane
 state the shell resolved.
 
-Launch Claude Code through the unattended launcher. Use the same sanitized command on every restart.
+Launch Claude Code with unattended settings. Use the same sanitized command on every restart.
 
 ```bash
-herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE bash .agro/scripts/claude-unattended.sh"
+herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions --settings .agro/install/claude-settings.json"
 ```
 
-Start the supervisor itself through this launcher before leaving it unattended.
-Complete authentication, workspace trust, and project MCP approval while the
-operator is present. An already-running session needs a restart through the
-launcher; append `--resume <session-id>` to resume its conversation.
+Pass the same `--settings` file when starting the supervisor itself; sandbox
+shell aliases include it, but noninteractive launches must pass it explicitly.
+It applies only to that invocation; restart existing sessions with it, adding
+`--resume <session-id>` when needed. Complete authentication, workspace trust,
+and project MCP approval while the operator is present.
 
-The launcher applies settings to this session only. It removes `AskUserQuestion`,
-`EnterPlanMode`, and `ExitPlanMode` from Claude's tools and cancels unanswered MCP
-elicitation. Brief an approved contract before leaving. Keep required decisions
-blocked and escalate them under Duty 5; a denied operation is not completed work.
-Keep existing deny rules and safety hooks. Never answer a remaining prompt with
-automatic keystrokes. Treat a startup prompt or failed version check as a blocker.
+These settings remove `AskUserQuestion`, `EnterPlanMode`, and `ExitPlanMode` from
+the main session's tools. Start with an approved contract outside plan mode.
+A denied operation is not completed work; escalate required decisions under
+Duty 5. Existing deny rules and safety hooks remain in effect.
 
 Submit this finite readiness command through the bounded monitor, not inline
 Bash. Record its handle as Duty 3 requires. Inspect the mode before briefing.

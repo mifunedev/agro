@@ -175,13 +175,17 @@ install command again and installs the latest version.
 `agro destroy` removes the home volume and every install in it. See the
 [harnesses overview](harnesses/overview.md).
 
-`.zshrc` sets these aliases:
+The sandbox's `.bashrc` and `.zshrc` set these aliases:
 
 ```
-claude  → claude --dangerously-skip-permissions
+claude  → claude --dangerously-skip-permissions --settings "${AGRO_PROJECT_ROOT:-$HOME/harness}/.agro/install/claude-settings.json"
 codex   → codex --dangerously-bypass-approvals-and-sandbox
 agy     → agy --dangerously-skip-permissions
 ```
+
+The Claude settings require version 2.1.319 or later. They deny approval-required
+calls instead of waiting and remove question/plan tools from the main session.
+Existing persisted shell files need an [alias update](harnesses/claude-code.md#update-existing-shell-aliases).
 
 ### Tools
 

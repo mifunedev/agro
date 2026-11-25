@@ -56,7 +56,7 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -755,6 +755,32 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
 - `create --profile agro|sandbox` sets the profile. `--docker`, `--t3`, and
   `--code-server` turn on Docker, T3, and code-server. Each of the three flags
   requires `--profile agro`.
+- `create --desktop` adds the desktop tool to the hand with either profile.
+  The request sends `tools: ["desktop"]`, or `tools: ["docker", "desktop"]`
+  with `--docker`, and no `docker` field. The desktop needs at least `n4`. If
+  the console returns HTTP 422 `SPEC_TOO_SMALL_FOR_TOOL`, the command prints
+  `the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)`
+  and exits 1. If the console returns HTTP 503 `DESKTOP_IMAGE_UNAVAILABLE`, the
+  command prints
+  `desktop hands are unavailable right now: the desktop image is missing` and
+  exits 1.
+- After the status `running`, `create --desktop` reads the hand up to 120
+  seconds until `rdpListening` is true. If xrdp does not listen, the command
+  prints `warning: hand <id> is running but xrdp is not listening after <seconds> s; check with agro hands exec <id> -- systemctl status xrdp`
+  to stderr and exits 0. If the last read fails, the command prints
+  `warning: hand <id> desktop state unknown: <API error>` instead. Each HTTP
+  4xx status except 408 and 429 stops the reads. If a read shows a status
+  other than `running`, the reads stop and the command prints
+  `warning: hand <id> is <status>; the desktop is not reachable` and exits 0.
+  With `--project` or `--clone`, the command places the project before the
+  reads. If the placement fails, the command still reads the hand and prints
+  the desktop lines, then exits with the placement status. The command then prints a `desktop:`
+  line and `next:` lines: SSH to the hand when it has an SSH host, run `tailscale up` and `sudo passwd sandbox`,
+  then download the `.rdp` file from the Connect card of the hand in the
+  console. `create --desktop --json` adds
+  `desktop: {rdpListening, tailnetName, rdpAddress}`. `rdpAddress` is
+  `<tailnetName or tailnetAddress>:3389` when `rdpListening` is true, else
+  `null`. The text `desktop:` line shows the same address.
 - `create --ssh-key <uuid>` adds a console SSH key to the hand. Repeat the flag
   for more keys. Without `--ssh-key` and with operator authority, `create` finds
   `~/.ssh/id_ed25519.pub` in the console SSH keys, or registers the file as
@@ -785,8 +811,8 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   keys. Without `--ssh-key`, `check` finds `~/.ssh/id_ed25519.pub` there. The
   command prints one line for the SSH key check, the free tier eligibility, and
   the org credit. The credit line never changes the exit status.
-- `--profile`, `--docker`, `--t3`, `--code-server`, `--disposable`,
-  `--ssh-key`, `--json` on `create`, and the `check` verb apply only to console
+- `--profile`, `--docker`, `--t3`, `--code-server`, `--desktop`,
+  `--disposable`, `--ssh-key`, `--json` on `create`, and the `check` verb apply only to console
   hands. The exe.dev provider refuses them and exits 1.
 
 ### exe.dev hands

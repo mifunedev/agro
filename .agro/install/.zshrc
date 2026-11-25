@@ -27,7 +27,7 @@ setopt HIST_IGNORE_DUPS SHARE_HISTORY
 
 bindkey -e
 
-alias claude='claude --dangerously-skip-permissions'
+alias claude='claude --dangerously-skip-permissions --settings "${AGRO_PROJECT_ROOT:-$HOME/harness}/.agro/install/claude-settings.json"'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
 alias agy='agy --dangerously-skip-permissions'
 

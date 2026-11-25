@@ -153,7 +153,7 @@ RUN cat /tmp/path-env.sh >> /home/sandbox/.profile \
  && cat /tmp/path-env.sh >> /home/sandbox/.zprofile \
  && rm -f /tmp/path-env.sh \
  && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile \
- && echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
+ && echo "alias claude='claude --dangerously-skip-permissions --settings \"\${AGRO_PROJECT_ROOT:-\$HOME/harness}/.agro/install/claude-settings.json\"'" >> /home/sandbox/.bashrc \
  && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc \
  && echo "alias agy='agy --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
  && mkdir -p /home/sandbox/.gemini/antigravity-cli \

@@ -53,10 +53,12 @@ agro harness uninstall claude
 
 ## Common usage
 
-The sandbox alias pre-passes `--dangerously-skip-permissions` so Claude Code can read and write files without prompting on each operation:
+The sandbox Bash and Zsh aliases pass `--dangerously-skip-permissions` and the
+unattended settings below: permitted operations run, while approval-required
+calls are denied so the turn can continue. This requires Claude Code 2.1.319 or later.
 
 ```bash
-# Start an interactive session (alias: skips permission prompts)
+# Start a session with unattended permissions
 claude
 
 # Ask a one-shot question without entering the interactive loop
@@ -67,65 +69,41 @@ Run interactive sessions in Herdr so the session survives a disconnect: `agro to
 
 ## Unattended supervisors and advisors
 
-Bypass mode still has exceptions that can stop an overnight run at a yes/no
-prompt. Start unattended sessions with the canonical launcher from the AGRO root:
+The `claude` alias loads `.agro/install/claude-settings.json` from
+`${AGRO_PROJECT_ROOT:-$HOME/harness}`, even outside the harness directory.
+For a launch that does not expand aliases, pass the settings explicitly from the AGRO root:
 
 ```bash
-bash .agro/scripts/claude-unattended.sh
+claude --dangerously-skip-permissions --settings .agro/install/claude-settings.json
 ```
 
-Use this command for the supervisor itself. The supervisor procedure uses it for
-each Claude advisor it starts or restarts. Keep interactive unattended sessions
-in Herdr and persistent headless services in named tmux sessions.
+The supervisor uses the same settings for its Claude advisors. The explicit
+`--settings` file skips the initial bypass warning and sets
+`permissions.denyInsteadOfPrompting`: calls requiring approval are denied so the
+turn can continue. Existing deny rules and safety hooks remain in effect.
 
-The launcher requires **Claude Code 2.1.319 or later**. It checks `claude --version`
-and refuses an older, prerelease, or unrecognized version before starting a
-session. Run `claude update` or `agro harness install claude`, then retry.
+Check `claude --version` and run `claude update` if needed. Complete authentication,
+workspace trust, and project MCP approval before leaving. These settings remove
+`AskUserQuestion`, `EnterPlanMode`, and `ExitPlanMode` from the main session's tools;
+start with an approved brief outside plan mode. Report denied operations as
+blockers when they prevent completion. External programs can still prompt.
 
-It sets `bypassPermissions` and passes these settings through `--settings` for
-this invocation:
+Restart existing sessions with the command above; append `--resume <session-id>`
+to resume or `-p "<approved task>"` for a headless run. Settings apply only to
+that invocation. See the upstream [`denyInsteadOfPrompting` reference](https://code.claude.com/docs/en/settings-reference#permissions-denyinsteadofprompting).
 
-```json
-{
-  "skipDangerousModePermissionPrompt": true,
-  "permissions": {
-    "denyInsteadOfPrompting": true
-  }
-}
-```
+### Update existing shell aliases
 
-Operations permitted by the mode still run. Calls that would wait for permission
-are denied, and Claude can continue the turn. Existing deny rules and safety
-hooks remain in effect. The launcher does not enable the destructive-delete
-bypass or rewrite user or project settings. Ordinary `claude` launches keep
-their existing behavior.
-
-This policy also removes `AskUserQuestion`, `EnterPlanMode`, and `ExitPlanMode`
-from the main session's tools and cancels unanswered MCP elicitation. Start with
-an approved brief outside plan mode. A denied operation can still prevent task
-completion; require the agent to report that blocker instead of treating denial
-as success. The policy does not answer prompts from external programs.
-
-Complete authentication, workspace trust, and project MCP server approval before
-leaving the run unattended. Those startup dialogs can still wait for an operator.
-Do not automate yes/no keystrokes to dismiss them.
-
-After updating AGRO, restart existing sessions with the launcher; changing the
-checkout does not change a running process. Resume a saved conversation or pass
-a prompt for a headless run:
+Upgrading the checkout or image does not replace persisted `~/.bashrc` or
+`~/.zshrc`. Replace the existing Claude alias in each shell configuration you use:
 
 ```bash
-bash .agro/scripts/claude-unattended.sh --resume <session-id>
-bash .agro/scripts/claude-unattended.sh -p "Run the approved task and report blockers"
+alias claude='claude --dangerously-skip-permissions --settings "${AGRO_PROJECT_ROOT:-$HOME/harness}/.agro/install/claude-settings.json"'
 ```
 
-Arguments, stdin, the working directory, and Claude's exit status are preserved.
-The launcher reserves `--settings` and `--permission-mode`; conflicting options
-exit with an error. Use normal Claude settings files for unrelated configuration,
-or invoke `claude` directly for another permission policy.
-
-See the upstream [permission-mode exceptions](https://code.claude.com/docs/en/permission-modes#actions-no-mode-auto-approves)
-and [`denyInsteadOfPrompting` reference](https://code.claude.com/docs/en/settings-reference#permissions-denyinsteadofprompting).
+Reopen the shell or source its configuration (`source ~/.bashrc` in Bash,
+`source ~/.zshrc` in Zsh), then restart Claude. To run an attended session without
+this alias, use `command claude --permission-mode default`.
 
 ## Task lifecycle Stop hook
 
