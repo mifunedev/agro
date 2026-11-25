@@ -65,6 +65,68 @@ claude -p "Explain the structure of the packages/ directory"
 
 Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `claude` in a pane.
 
+## Unattended supervisors and advisors
+
+Bypass mode still has exceptions that can stop an overnight run at a yes/no
+prompt. Start unattended sessions with the canonical launcher from the AGRO root:
+
+```bash
+bash .agro/scripts/claude-unattended.sh
+```
+
+Use this command for the supervisor itself. The supervisor procedure uses it for
+each Claude advisor it starts or restarts. Keep interactive unattended sessions
+in Herdr and persistent headless services in named tmux sessions.
+
+The launcher requires **Claude Code 2.1.319 or later**. It checks `claude --version`
+and refuses an older, prerelease, or unrecognized version before starting a
+session. Run `claude update` or `agro harness install claude`, then retry.
+
+It sets `bypassPermissions` and passes these settings through `--settings` for
+this invocation:
+
+```json
+{
+  "skipDangerousModePermissionPrompt": true,
+  "permissions": {
+    "denyInsteadOfPrompting": true
+  }
+}
+```
+
+Operations permitted by the mode still run. Calls that would wait for permission
+are denied, and Claude can continue the turn. Existing deny rules and safety
+hooks remain in effect. The launcher does not enable the destructive-delete
+bypass or rewrite user or project settings. Ordinary `claude` launches keep
+their existing behavior.
+
+This policy also removes `AskUserQuestion`, `EnterPlanMode`, and `ExitPlanMode`
+from the main session's tools and cancels unanswered MCP elicitation. Start with
+an approved brief outside plan mode. A denied operation can still prevent task
+completion; require the agent to report that blocker instead of treating denial
+as success. The policy does not answer prompts from external programs.
+
+Complete authentication, workspace trust, and project MCP server approval before
+leaving the run unattended. Those startup dialogs can still wait for an operator.
+Do not automate yes/no keystrokes to dismiss them.
+
+After updating AGRO, restart existing sessions with the launcher; changing the
+checkout does not change a running process. Resume a saved conversation or pass
+a prompt for a headless run:
+
+```bash
+bash .agro/scripts/claude-unattended.sh --resume <session-id>
+bash .agro/scripts/claude-unattended.sh -p "Run the approved task and report blockers"
+```
+
+Arguments, stdin, the working directory, and Claude's exit status are preserved.
+The launcher reserves `--settings` and `--permission-mode`; conflicting options
+exit with an error. Use normal Claude settings files for unrelated configuration,
+or invoke `claude` directly for another permission policy.
+
+See the upstream [permission-mode exceptions](https://code.claude.com/docs/en/permission-modes#actions-no-mode-auto-approves)
+and [`denyInsteadOfPrompting` reference](https://code.claude.com/docs/en/settings-reference#permissions-denyinsteadofprompting).
+
 ## Task lifecycle Stop hook
 
 The `Stop` entry in `.claude/settings.json` runs `.claude/hooks/task-next-stop.sh` when the session tries to stop. The hook runs `bash .agro/skills/delegate/scripts/next.sh` in the session directory and reads the state on the first line:

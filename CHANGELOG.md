@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevent unattended Claude supervisor and advisor runs from waiting on permission prompts with a version-checked launcher that denies approval-required calls ([#1669](https://github.com/mifunedev/agro/issues/1669)).
+
 ## [0.40.0] - 2026-11-17
 
 ### Added

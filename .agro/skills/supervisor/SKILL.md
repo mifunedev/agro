@@ -101,9 +101,10 @@ root, in bypass permissions mode. Three conditions hold together.
 - **The harness root.** A tab that opens in a project clone puts the advisor
   below the sandbox boundary, where the advisor edits application code outside
   its worktree.
-- **Bypass permissions.** An advisor runs unattended. A manual permission prompt
-  blocks the advisor on a person who is not watching, and the run stalls with no
-  signal to the supervisor.
+- **Unattended permissions.** An advisor runs unattended. Bypass permissions alone
+  can still leave a safety prompt waiting. For Claude Code, use
+  `.agro/scripts/claude-unattended.sh` to deny calls that require approval and
+  continue the turn. The launcher requires Claude Code 2.1.319 or later.
 - **Tab names.** Prefix every created tab with its purpose. Use an `agent-*` name
   for an agent tab. Use a `dev-*` name for a development environment tab. Put
   the prefix in the tab name or label.
@@ -133,12 +134,23 @@ The creation payload reports the requested `--cwd`. The creation payload proves
 no resolved working directory. Only `herdr pane get <pane>` reports the pane
 state the shell resolved.
 
-Launch the coding harness in bypass permissions mode. Use the same sanitized
-command on every restart.
+Launch Claude Code through the unattended launcher. Use the same sanitized command on every restart.
 
 ```bash
-herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions"
+herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE bash .agro/scripts/claude-unattended.sh"
 ```
+
+Start the supervisor itself through this launcher before leaving it unattended.
+Complete authentication, workspace trust, and project MCP approval while the
+operator is present. An already-running session needs a restart through the
+launcher; append `--resume <session-id>` to resume its conversation.
+
+The launcher applies settings to this session only. It removes `AskUserQuestion`,
+`EnterPlanMode`, and `ExitPlanMode` from Claude's tools and cancels unanswered MCP
+elicitation. Brief an approved contract before leaving. Keep required decisions
+blocked and escalate them under Duty 5; a denied operation is not completed work.
+Keep existing deny rules and safety hooks. Never answer a remaining prompt with
+automatic keystrokes. Treat a startup prompt or failed version check as a blocker.
 
 Submit this finite readiness command through the bounded monitor, not inline
 Bash. Record its handle as Duty 3 requires. Inspect the mode before briefing.
