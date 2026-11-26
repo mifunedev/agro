@@ -272,6 +272,43 @@ describe.concurrent("stdin interpreter guard (deny-env-dump.sh)", () => {
   });
 });
 
+const PG_SECRET = "POSTGRES_" + "PASSWORD";
+const GH_SECRET = "GH_" + "TOKEN";
+
+describe.concurrent("remote exec secret guard (deny-env-dump.sh)", () => {
+  const cases: [Decision | "ask", string][] = [
+    ["deny", `docker exec db printenv ${PG_SECRET}`],
+    ["deny", `docker exec -it db printenv ${PG_SECRET}`],
+    ["deny", `podman exec db printenv ${GH_SECRET}`],
+    ["deny", `nerdctl exec db printenv ${GH_SECRET}`],
+    ["deny", `kubectl exec -n prod pod/db -- printenv ${GH_SECRET}`],
+    ["deny", `agro hands exec box -- printenv ${GH_SECRET}`],
+    ["deny", `ssh host printenv ${GH_SECRET}`],
+    ["deny", `ssh host 'printenv ${GH_SECRET}'`],
+    ["deny", `bash -c 'printenv ${GH_SECRET}'`],
+    ["deny", `docker exec db printenv '${PG_SECRET}'`],
+    ["deny", `docker exec db env | grep PASSWORD`],
+    ["deny", `docker exec db sh -c 'echo $${PG_SECRET}'`],
+    ["deny", `docker exec db sh -c 'env'`],
+    ["deny", `kubectl exec pod -- printenv`],
+    ["ask", "printenv HOME"],
+    ["allow", "docker exec db psql -c 'select 1'"],
+    ["ask", `git commit -m "deny docker exec db printenv ${PG_SECRET}"`],
+  ];
+
+  it.each(cases)("%s: %s", async (want, command) => {
+    expect(await commandDecision(command)).toBe(want);
+  });
+
+  it("names the operator remedy in the denial reason", async () => {
+    const result = await runHook(CMD_HOOK, { command: `docker exec db printenv ${PG_SECRET}` });
+    const reason: string = JSON.parse(result.stdout).hookSpecificOutput.permissionDecisionReason;
+    expect(reason).toContain("container or remote exec");
+    expect(reason).toContain("Ask the operator to run the command");
+    expect(reason).toContain("paste only the non-secret value");
+  });
+});
+
 describe.concurrent("docker-inspect env guard (deny-env-dump.sh)", () => {
   const envField = ".Config." + "Env";
   const cases: [Decision, string][] = [

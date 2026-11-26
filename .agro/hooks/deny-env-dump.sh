@@ -75,6 +75,12 @@ SHELL_RUNNER='(^|[[:space:];&|(`/])(sh|bash|zsh|dash|ksh|fish)([[:space:]]+-[^[:
 SHELL_RUNNER+='|(^|[[:space:];&|(`/])su[[:space:]]([^;&|]*[[:space:]])?-[A-Za-z]*c([[:space:]]|$)'
 SHELL_RUNNER+='|(^|[[:space:];&|(`/])(eval|ssh|xargs|watch|tmux|screen)([[:space:]]|$)'
 
+REMOTE_EXEC='\b(docker|podman|nerdctl|kubectl)[[:space:]]+([^|;&]*[[:space:]])?exec([[:space:]]|$)'
+REMOTE_EXEC+='|\bagro[[:space:]]+hands[[:space:]]+exec([[:space:]]|$)'
+REMOTE_EXEC+="|${SHELL_RUNNER}"
+REMOTE_ENV_READ="\\bprintenv[[:space:]]+([^|;&]*[[:space:]])?[\"']?[A-Z0-9_]*${SECRET_NAME}[A-Z0-9_]*"
+REMOTE_ENV_READ+="|(^|[^A-Za-z0-9._/-])(env|printenv)[[:space:]]*[\"'][[:space:]]*([|;>&)]|\$)"
+
 DENY='\bexport[[:space:]]+-p\b'
 DENY+='|\bdeclare[[:space:]]+-[xp]\b'
 DENY+='|\bcompgen[[:space:]]+-[vxAe]'
@@ -255,6 +261,8 @@ emit() {
 
 if grep -qEi -- "$DENY" <<<"$literal_cmd" || grep -qEi -- "$ENV_DUMP" <<<"$dump_cmd"; then
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, agro secret get, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the operator to run the command themselves and paste only the specific non-secret output you need.'
+elif grep -qE -- "$REMOTE_EXEC" <<<"$dump_cmd" && grep -qE -- "$REMOTE_ENV_READ" <<<"$literal_cmd"; then
+  emit deny 'Secret-exposure guard (deny): a container or remote exec (docker/podman/nerdctl/kubectl exec, agro hands exec, ssh, or a shell -c runner) prints a secret-named variable or dumps the environment, which puts the secret in the transcript. Do NOT retry a variant that moves the read to another container, host, shell, script, or encoding. Ask the operator to run the command themselves and paste only the non-secret value you need.'
 elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
   emit deny 'Secret-exposure guard (deny): inline python, perl, ruby, or node code (-c, -e, -p, --eval) reads the process environment (os.environ, getenv, %ENV, $ENV{...}, ENV, process.env), which can print every environment variable, secrets included. Do NOT retry a variant that reaches the environment another way. If you need an environment value, ask the user to paste only that non-secret value.'
 elif [[ -n $STDIN_SCRIPT_ENV_READ ]]; then
