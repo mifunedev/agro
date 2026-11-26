@@ -72,8 +72,8 @@
         "The existing `hands.test.ts`, `hands-exedev.test.ts`, and `hands-project.test.ts` pass with no edit. `pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor reran: pnpm typecheck exit 0; vitest .agro/cli/src/commands/__tests__/ 369/369 pass; existing hands*.test.ts unchanged (git diff empty). 1-3,5-11 executed via hands-boat.test.ts (25 tests: exports, --json capture argv, sshCommand boat vs exedev undefined, boat ssh argv, GIT_SSH_COMMAND+GIT_SSH_VARIANT=simple on fetch, ENOENT->exit 2 names docs URL, unauthorized->exit 2 names boat login, prefix filter, duplicate names, list --json purity, malformed JSON, error event with exit 0, non-zero without event, console-only refusals). 4 partly reasoned: pushProject builds remote as sshDest:folder and boat sshDest is the sandbox id; create --project test deferred to US-004 because create is a stub.",
       "dependsOn": [
         "US-002"
       ],
@@ -83,7 +83,8 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands-boat.test.ts",
         ".agro/cli/src/commands/__tests__/fixtures/boat-list.json"
-      ]
+      ],
+      "commit": "738f35ea"
     },
     {
       "id": "US-004",
