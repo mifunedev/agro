@@ -27,8 +27,12 @@ function readJson(path: string): unknown {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export function firstLine(text: string | undefined): string {
+  return text?.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
 }
 
 export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string, override?: string): HandProviderId {
@@ -102,6 +106,7 @@ export type HandStatusReport = (hand: Hand) => void;
 
 export interface HandProvider {
   remoteCommand(command: string): string;
+  sshCommand?: () => string[];
   list(): Promise<HandOutcome<Hand[]>>;
   resolve(ref: string): Promise<HandOutcome<Hand>>;
   create(request: HandRequest, onStatus: HandStatusReport): Promise<HandOutcome<Hand>>;

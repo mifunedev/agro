@@ -18,8 +18,8 @@ license: MIT
 
 - Use `agro` as the control interface, not as a provider name.
 - Keep provider, runtime, and resource role separate. A hand is a remote
-  resource role, not another provider. The `hands` route serves console and
-  exe.dev hands.
+  resource role, not another provider. The `hands` route serves console,
+  exe.dev, and boat.dev hands.
 - `local` means the host running `agro`, even on a remote VM.
   `msb` means Microsandbox.
 - Run application workloads inside a supported sandbox. Do not continue
@@ -46,7 +46,7 @@ Read the selected execution reference before acting.
 |---|---|---|
 | `local/docker` | Run one command with container isolation, services, or an egress allowlist. | [Docker execution](references/local-docker.md) |
 | `local/msb` | Run one command with a separate kernel on a KVM host. | [Microsandbox execution](references/local-msb.md) |
-| `hands` | Offload a project from a brain to a hand on either provider. | [Hands](references/hands.md) |
+| `hands` | Offload a project from a brain to a hand on any hand provider: console, exe.dev, or boat.dev. | [Hands](references/hands.md) |
 | `exedev` | Use an approved exe.dev VM through the SSH command API, not as a hand. | [exe.dev execution](references/exedev.md) |
 
 Choose the route from the request's intent and the execution environment.

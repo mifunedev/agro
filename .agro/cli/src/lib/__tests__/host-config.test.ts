@@ -233,7 +233,7 @@ describe("validateHostConfig", () => {
     expect(() => validateHostConfig({ version: 2 })).toThrow(/version must be 1/);
   });
 
-  it.each(["console", "exedev"])("accepts hands.provider %s", (provider) => {
+  it.each(["console", "exedev", "boat"])("accepts hands.provider %s", (provider) => {
     expect(validateHostConfig({ hands: { provider } }).hands?.provider).toBe(provider);
   });
 
@@ -243,7 +243,7 @@ describe("validateHostConfig", () => {
 
   it("rejects any other hands.provider value", () => {
     expect(() => validateHostConfig({ hands: { provider: "aws" } })).toThrow(
-      /^config\.json: hands\.provider must be one of console, exedev$/,
+      /^config\.json: hands\.provider must be one of console, exedev, boat$/,
     );
   });
 

@@ -195,7 +195,7 @@ field, and `agro config show` prints its value to stderr.
 
 | Field | Type | Default | What the field does |
 | --- | --- | --- | --- |
-| `hands.provider` | enum: `console`, `exedev` | `console` | Selects the `agro hands` provider. An absent file or field means `console`. Any other value makes `agro hands` exit 1 with an error that names the field. |
+| `hands.provider` | enum: `console`, `exedev`, `boat` | `console` | Selects the `agro hands` provider. An absent file or field means `console`. Any other value makes `agro hands` exit 1 with an error that names the field. |
 
 `agro.json` no longer holds `hands.provider`. When an `agro.json` keeps a `hands`
 section, `agro hands` and `agro config` ignore it and print a notice that names

@@ -24,6 +24,12 @@ import {
   type DesktopWait,
   type LocalSshKey,
 } from "../lib/hands/console-provider.js";
+import {
+  BOAT_PREFIX,
+  BOAT_TRIAL_TTL_SECONDS,
+  boatPreflight,
+  createBoatProvider,
+} from "../lib/hands/boat-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
@@ -111,13 +117,19 @@ function sshOptions(hand: Hand): string[] {
   return ["-o", "StrictHostKeyChecking=accept-new", "-o", `HostKeyAlias=${hand.hostKeyAlias}`];
 }
 
-function gitEnv(deps: HandsDeps, hand: Hand): NodeJS.ProcessEnv {
-  return { ...deps.env, GIT_SSH_COMMAND: ["ssh", ...sshOptions(hand)].join(" ") };
+function gitEnv(deps: HandsDeps, provider: HandProvider, hand: Hand): NodeJS.ProcessEnv {
+  const custom = provider.sshCommand?.();
+  return {
+    ...deps.env,
+    GIT_SSH_COMMAND: (custom ?? ["ssh", ...sshOptions(hand)]).join(" "),
+    ...(custom === undefined ? {} : { GIT_SSH_VARIANT: "simple" }),
+  };
 }
 
 function runSsh(deps: HandsDeps, provider: HandProvider, hand: Hand, sshDest: string, command: string): number {
   const remote = provider.remoteCommand(command);
-  const result = deps.run("ssh", [...sshOptions(hand), "--", sshDest, remote], { stdio: "inherit" });
+  const [cmd, ...args] = provider.sshCommand?.() ?? ["ssh", ...sshOptions(hand), "--"];
+  const result = deps.run(cmd, [...args, sshDest, remote], { stdio: "inherit" });
   return result.status ?? 255;
 }
 
@@ -165,9 +177,10 @@ Usage:
 
 Providers:
   \`hands.provider\` in the host config \${AGRO_HOME:-~/.agro}/config.json
-  selects the provider: \`console\` (the default) or \`exedev\`.
+  selects the provider: \`console\` (the default), \`exedev\`, or \`boat\`.
   Run \`${bin} config set hands.provider exedev\` to select exe.dev hands.
-  \`--provider console|exedev\` selects the provider for one call and
+  Run \`${bin} config set hands.provider boat\` to select boat.dev hands.
+  \`--provider console|exedev|boat\` selects the provider for one call and
   overrides \`hands.provider\`. Put it before or after the verb.
 
 Authority:
@@ -278,12 +291,26 @@ brain is the VM whose name or SSH host label equals the host name. Inside a
 container, \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 when the host
 name matches no VM; run them from the brain host.
 
+boat.dev hands:
+<hand> is the sandbox name without the prefix ${BOAT_PREFIX}, or the sandbox
+id. \`list\` shows only sandboxes whose name starts with ${BOAT_PREFIX}. The
+verbs run the \`boat\` CLI and exit 2 when \`boat list\` fails; run \`boat login\`
+on the brain host first. \`exec\` and git use \`boat ssh <id>\`.
+
+\`create --name <name>\` runs \`boat new --no-env --no-auto-stop\` and \`fork
+<hand> --name <name>\` runs \`boat fork <id> --wait --no-auto-stop\`. When the
+account refuses \`--no-auto-stop\`, \`create\`, \`fork\`, and \`resume\` use
+\`--ttl ${BOAT_TRIAL_TTL_SECONDS}\`. \`pause\`, \`resume\`, and \`destroy\` run \`boat stop\`,
+\`boat resume\`, and \`boat delete\`. Each write verb exits 1 without a change
+when the current name lacks ${BOAT_PREFIX}, when <hand> is \`self\` or BOAT_ID,
+or inside a container without BOAT_ID.
+
 Projects:
 A project lives at ~/projects/<owner>/<repo> on the hand and at
 <harness-root>/projects/<owner>/<repo> on the brain. The harness root is
 \`harnessRoot\` in ~/.agro/config.json, else ~/.agro/workspaces/harness.
 \`create --project\` prepares the hand folder, adds the remote hand-<index>
-(hand-<name> for exe.dev hands) to the brain project, and pushes the current
+(hand-<name> for exe.dev hands, hand-<id> for boat hands) to the brain project, and pushes the current
 branch. \`create --clone\` clones https://github.com/<owner>/<repo>.git on the
 hand with the hand's own git credential. \`exec\` runs the command over SSH,
 in the project folder with --project, and exits with its status. \`fetch\`
@@ -309,8 +336,8 @@ function statusReporter(io: HandsIO, prefix: string): (hand: Hand) => void {
 }
 
 function printRunning(io: HandsIO, hand: Hand, providerId: HandProviderId): void {
-  if (providerId === "exedev") {
-    io.stdout(`name: ${hand.id}\nssh host: ${hand.sshHost ?? "-"}\n`);
+  if (providerId !== "console") {
+    io.stdout(`name: ${hand.name ?? hand.id}\nssh host: ${hand.sshHost ?? "-"}\n`);
     return;
   }
   io.stdout(`index: ${hand.index ?? "-"}\nalias: ${hand.alias ?? "-"}\nssh host: ${hand.sshHost ?? "-"}\n`);
@@ -340,7 +367,7 @@ async function runList(
   const listed = await provider.list();
   if (!listed.ok) return failed(io, prefix, listed.error);
   const hands = listed.value;
-  if (providerId === "exedev") return printExedevList(io, hands, tokens.includes("--json"));
+  if (providerId !== "console") return printNamedList(io, hands, tokens.includes("--json"));
   if (tokens.includes("--json")) {
     const rows = hands.map(({ id, index, alias, name, profile, status, spec, sshHost }) => ({
       id,
@@ -374,15 +401,18 @@ async function runList(
   return 0;
 }
 
-function printExedevList(io: HandsIO, hands: Hand[], json: boolean): number {
+function printNamedList(io: HandsIO, hands: Hand[], json: boolean): number {
   if (json) {
-    io.stdout(`${JSON.stringify(hands.map(({ id, status, sshHost }) => ({ name: id, status, sshHost })))}\n`);
+    io.stdout(`${JSON.stringify(hands.map(({ id, name, status, sshHost }) => ({ name: name ?? id, status, sshHost })))}\n`);
     return 0;
   }
   io.stdout(
     hands.length === 0
       ? "no hands\n"
-      : formatTable(["NAME", "STATUS", "SSH HOST"], hands.map((hand) => [hand.id, hand.status, hand.sshHost ?? "-"])),
+      : formatTable(
+          ["NAME", "STATUS", "SSH HOST"],
+          hands.map((hand) => [hand.name ?? hand.id, hand.status, hand.sshHost ?? "-"]),
+        ),
   );
   return 0;
 }
@@ -530,7 +560,7 @@ function pushProject(
   }
   const pushed = deps.run("git", ["-C", local.path, "push", remote, local.branch], {
     stdio: "inherit",
-    env: gitEnv(deps, hand),
+    env: gitEnv(deps, provider, hand),
   });
   if (pushed.status !== 0) {
     io.stderr(`${prefix}: git push ${remote} ${local.branch} failed with status ${pushed.status ?? "none"}\n`);
@@ -740,7 +770,7 @@ async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, provider
   }
   const fetched = deps.run("git", ["-C", found.path, "fetch", remote], {
     stdio: "inherit",
-    env: gitEnv(deps, resolved.hand),
+    env: gitEnv(deps, provider, resolved.hand),
   });
   if (fetched.status !== 0) {
     io.stderr(`${prefix}: git fetch ${remote} failed with status ${fetched.status ?? "none"}\n`);
@@ -821,7 +851,14 @@ async function runAction(
   return 0;
 }
 
-async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
+async function runDestroy(
+  tokens: string[],
+  io: HandsIO,
+  deps: HandsDeps,
+  providerId: HandProviderId,
+  provider: HandProvider,
+  prefix: string,
+) {
   const parsed = oneHand(tokens, ["--yes", "-y"]);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -829,10 +866,18 @@ async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provid
   }
   const { ref } = parsed;
   const yes = tokens.includes("--yes") || tokens.includes("-y");
-  if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy hand ${ref}?`, subject: `hand ${ref}` }))) {
+  let subject = `hand ${ref}`;
+  let target = ref;
+  if (providerId === "boat" && !yes) {
+    const resolved = await provider.resolve(ref);
+    if (!resolved.ok) return failed(io, prefix, resolved.error);
+    subject = `hand ${resolved.value.name ?? ref} (${resolved.value.id})`;
+    target = resolved.value.id;
+  }
+  if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy ${subject}?`, subject }))) {
     return 1;
   }
-  const deleted = await provider.destroy(ref);
+  const deleted = await provider.destroy(target);
   if (!deleted.ok) return failed(io, prefix, deleted.error);
   io.stdout(`destroyed ${ref}\n`);
   return 0;
@@ -921,7 +966,7 @@ export async function runHands(
   let safe: HandsIO;
   let provider: HandProvider;
   let awaitDesktop: AwaitDesktop | undefined;
-  if (providerId === "exedev") {
+  if (providerId !== "console") {
     if (flag.operator) {
       io.stderr(`${prefix}: --operator applies only to console hands\n`);
       return 1;
@@ -938,13 +983,17 @@ export async function runHands(
       io.stderr(`${prefix}: ${refused} applies only to console hands\n`);
       return 1;
     }
-    const preflight = exedevPreflight(deps.run);
-    if (!preflight.ok) {
-      io.stderr(`${bin} hands: ${preflight.error}\n`);
+    const [preflight, makeProvider] =
+      providerId === "boat"
+        ? [boatPreflight, () => createBoatProvider(deps, (notice) => io.stderr(`${prefix}: ${notice}\n`))]
+        : [exedevPreflight, () => createExedevProvider(deps)];
+    const checked = preflight(deps.run);
+    if (!checked.ok) {
+      io.stderr(`${bin} hands: ${checked.error}\n`);
       return 2;
     }
     safe = io;
-    provider = createExedevProvider(deps);
+    provider = makeProvider();
   } else {
     const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials, flag.operator);
     if (!resolved.ok) {
@@ -966,7 +1015,7 @@ export async function runHands(
   }
   if (verb === "list") return runList(rest, safe, providerId, provider, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, providerId, provider, prefix, awaitDesktop);
-  if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);
+  if (verb === "destroy") return runDestroy(rest, safe, deps, providerId, provider, prefix);
   if (verb === "fork") return runFork(rest, safe, providerId, provider, prefix);
   if (verb === "exec") return runExec(rest, safe, deps, provider, prefix);
   if (verb === "fetch") return runFetch(rest, safe, deps, provider, prefix);

@@ -28,18 +28,20 @@ Get explicit operator authority before a billable create.
 
 One brain uses one provider. `hands.provider` in the host config `${AGRO_HOME:-~/.agro}/config.json` selects the provider:
 
-| | `console` (default) | `exedev` |
-|---|---|---|
-| `<hand>` | index, alias, or uuid | exe.dev VM name |
-| Credential | brain token | brain SSH key on the exe.dev account |
-| Enrollment | `create` only | `create`, or the tag `agro-hand` on an existing VM |
-| Brain remote | `hand-<index>` | `hand-<vm>` |
-| SSH destination | `sandbox@<recorded-ssh-host>` | `<vm>.exe.xyz`, login shell |
-| Authority fence | console token scope | tag guard and brain guard in the CLI |
+| | `console` (default) | `exedev` | `boat` |
+|---|---|---|---|
+| `<hand>` | index, alias, or uuid | exe.dev VM name | sandbox name without `agro-hand-`, or sandbox id |
+| Credential | brain token | brain SSH key on the exe.dev account | `boat login` session on the brain host |
+| Enrollment | `create` only | `create`, or the tag `agro-hand` on an existing VM | `create` only |
+| Brain remote | `hand-<index>` | `hand-<vm>` | `hand-<id>` |
+| SSH destination | `sandbox@<recorded-ssh-host>` | `<vm>.exe.xyz`, login shell | `boat ssh <id>`, login shell |
+| Authority fence | console token scope | tag guard and brain guard in the CLI | name prefix guard and `BOAT_ID` guard in the CLI |
 
 `<harness-root>` is the brain harness root. `agro hands --help` states how the CLI resolves it.
 Do not guess the provider from the host. Read `hands.provider` in the host config.
 To select exe.dev on an exe.dev brain, run `agro config set hands.provider exedev`.
+To select boat.dev, run `agro config set hands.provider boat`.
+No live run has verified the `boat` provider yet. See [boat.dev hands](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md#boatdev-hands).
 
 These operator requests select this route:
 
@@ -74,6 +76,8 @@ A console node from `agro hands create --operator` is not a hand unless a brain 
 - Never read, print, or copy the brain token. `agro hands` reads the token.
 - For `exedev`, the brain SSH key must be on the exe.dev account. `agro hands` checks it with `ssh exe.dev whoami`.
   Send no token, `.env` file, or private key to a hand.
+- For `boat`, the operator runs `boat login` on the brain host. Never run `boat login` or read the `boat` session.
+  If `boat list --json` fails, `agro hands` exits 2 and names the remedy.
 - A fork copies the hand disk, including credentials.
   Fork only when every credential on the source hand can go to the new hand.
 - Use `/worktrees` for checkout isolation.
@@ -182,6 +186,7 @@ For a console hand, run:
 git -C <harness-root>/projects/<owner>/<repo> remote add hand-<index> sandbox@<recorded-ssh-host>:projects/<owner>/<repo>
 ```
 For an exe.dev hand, use `hand-<vm>` and the destination `<vm>.exe.xyz:projects/<owner>/<repo>`.
+For a boat hand, use `hand-<id>` and the destination `<id>:projects/<owner>/<repo>`.
 If an existing remote differs, stop for advisor review; do not overwrite it.
 Then fetch committed results with `agro hands fetch <hand> --project <owner>/<repo>`.
 Do not inspect credentials or bypass lifecycle, guard, or HTTP 403 refusals for this setup.
@@ -206,7 +211,7 @@ agro hands destroy <hand> --yes
 
 If the same task needs the hand again, use `agro hands pause <hand>`.
 Use `agro hands resume <hand>` before continuing that task.
-Both providers support `pause` and `resume`.
+Each provider supports `pause` and `resume`.
 Confirm the resulting state with `agro hands list`.
 Never destroy an unrelated hand or a borrowed VM.
 
@@ -216,6 +221,7 @@ If the console returns HTTP 403, stop. Do not retry.
 Report `BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN` to the operator.
 Do not inspect the token or switch credentials to bypass the refusal.
 The `exedev` provider refuses a write to a VM without the tag `agro-hand` and to the brain itself.
+The `boat` provider refuses a write to a sandbox whose name does not start with `agro-hand-`, to the `BOAT_ID` sandbox, and to `self`.
 If a guard refuses, stop and report the refusal. Do not tag a VM or rename a target to pass the guard.
 If `ssh exe.dev whoami` fails, `agro hands` exits 2.
 Ask the operator to register the brain SSH key with the exe.dev account.

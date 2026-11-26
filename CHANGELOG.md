@@ -11,6 +11,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - `agro hands create --desktop` requests a console hand with the desktop tool, waits up to 120 seconds for xrdp, and prints the desktop state and the next steps. `--json` adds `desktop` with `rdpListening`, `tailnetName`, and `rdpAddress` ([#1667](https://github.com/mifunedev/agro/issues/1667)).
+- `hands.provider` accepts `boat`. `agro hands` manages boat.dev sandboxes whose names start with `agro-hand-` through the `boat` CLI, runs `exec` and git through `boat ssh <id>`, and creates hands with `--no-env` and `--no-auto-stop` ([#1671](https://github.com/mifunedev/agro/issues/1671)).
 
 ### Changed
 

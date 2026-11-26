@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1671-boat-hands",
+  "description": "boat.dev hand provider: add `boat` to hands.provider and implement a CLI-backed HandProvider for boat.dev sandboxes.",
+  "review": true,
+  "pr": 1672,
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the boat CLI and one live sandbox",
+      "description": "As the advisor, I want recorded `boat` output from a live sandbox so that the synthetic fixtures and the transport choice rest on measured behavior.",
+      "acceptanceCriteria": [
+        "Before the probe creates a sandbox, the probe runs `boat limits --json`. If `canStart` is not `true`, the probe creates nothing and stays open.",
+        "The probe creates one `small` sandbox with `boat new --json --no-env --name agro-hand-probe`, records each JSON Lines event, and deletes the sandbox with `boat delete <id> --yes`.",
+        "The probe records `boat info <id> --json` and one `boat list --json` entry for the sandbox, and compares both with the synthetic fixture `.agro/cli/src/commands/__tests__/fixtures/boat-list.json`.",
+        "The probe records the error code that `boat new --no-auto-stop` returns on the trial tier, and the maximum `--ttl` that the trial tier accepts.",
+        "The probe records that `boat ssh <id> 'printf x; exit 3'` prints `x` on stdout with no banner and exits 3.",
+        "The probe records that `git push` and `git fetch` succeed with `GIT_SSH_COMMAND=\"boat ssh\"`, `GIT_SSH_VARIANT=simple`, and the remote `<id>:projects/probe/repo`.",
+        "The probe records that `BOAT_ID` holds the sandbox id inside the sandbox.",
+        "`boat list --json` after the probe shows no sandbox that the probe created.",
+        "The operator adds a card so that `canStart` is `true`. (external)"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "external": true,
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/boat-hands/evidence/probe.md",
+        ".agro/cli/src/commands/__tests__/fixtures/boat-list.json"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add `boat` to the hand provider ids",
+      "description": "As an operator, I want `hands.provider` to accept `boat` so that I select boat.dev hands for one brain.",
+      "acceptanceCriteria": [
+        "`HAND_PROVIDER_IDS` in `.agro/cli/src/lib/host-config.ts` equals `[\"console\", \"exedev\", \"boat\"]`.",
+        "`agro config set hands.provider boat` exits 0 and writes `{ \"hands\": { \"provider\": \"boat\" } }` to the host config.",
+        "`agro config set hands.provider aws` exits 1, and stderr contains `hands.provider must be one of console, exedev, boat`.",
+        "`.agro/cli/src/lib/__tests__/host-config.test.ts` accepts `boat` in the `it.each` case, and the anchored rejection regex ends in `console, exedev, boat$`.",
+        "`docs/configuration.md` § Field reference lists `boat` for `hands.provider`. `.agro/cli/src/__tests__/docs-reference.test.ts` passes."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 executed: grep HAND_PROVIDER_IDS shows [console, exedev, boat]. 2 executed: config-secret.test.ts 'writes hands.provider boat' passes (vitest exit 0). 3 executed: config-secret.test.ts asserts 'must be one of console, exedev, boat', passes. 4 executed: host-config.test.ts it.each and anchored regex include boat, pass. 5 executed: docs/configuration.md row lists boat; docs-reference.test.ts passes (96/96). pnpm typecheck exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/host-config.ts",
+        ".agro/cli/src/lib/__tests__/host-config.test.ts",
+        ".agro/cli/src/__tests__/config-secret.test.ts",
+        "docs/configuration.md"
+      ],
+      "commit": "e59ded4c"
+    },
+    {
+      "id": "US-003",
+      "title": "Read and run on boat hands through `boat ssh`",
+      "description": "As an operator, I want `list`, `exec`, `fetch`, and `create --project` to reach boat hands through `boat ssh`. Then a changed IP or host key never breaks a hand.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/hands/boat-provider.ts` exports `createBoatProvider`, `boatPreflight`, and `BOAT_PREFIX = \"agro-hand-\"`. Each `boat` call goes through `LifecycleRunner` with `--json`.",
+        "`HandProvider` in `.agro/cli/src/lib/hands/provider.ts` gets the optional member `sshCommand?: () => string[]`. The boat provider returns `[\"boat\", \"ssh\"]`. The console and exe.dev providers do not define the member.",
+        "When the provider defines `sshCommand`, `runSsh` in `.agro/cli/src/commands/hands.ts` runs `boat ssh <id> <remote>`, and `gitEnv` sets `GIT_SSH_COMMAND=boat ssh` and `GIT_SSH_VARIANT=simple`. When the provider does not define it, `runSsh` and `gitEnv` produce the same argv and env as before.",
+        "A boat `Hand` has `sshDest` equal to the sandbox id. `pushProject` adds the remote `<id>:projects/<owner>/<repo>`. No boat code path writes to a `known_hosts` file or passes `HostKeyAlias`.",
+        "`boatPreflight` runs `boat list --json`. If `boat` is missing, the preflight exits 2 and names `https://docs.boat.dev/cli-reference`. If the output has `\"code\":\"unauthorized\"`, the preflight exits 2 and names `boat login`.",
+        "`list` returns only sandboxes whose name starts with `agro-hand-`, and shows each name without the prefix. `resolve` accepts a name without the prefix or a sandbox id. If two sandboxes match one name, `resolve` fails and names both ids.",
+        "`agro hands list --json` prints one JSON array on stdout on success and prints nothing on stdout on failure. A malformed `boat list --json` output makes the command exit 1 with `boat list returned invalid JSON`.",
+        "An error event on stdout makes the call fail with the `error` and `code` values, also when `boat` exits 0. A non-zero exit with no error event fails with the exit status.",
+        "The branches `providerId === \"exedev\"` in `printRunning`, `runList`, and the console-only flag refusals in `runHands` apply to each provider that is not `console`. `printExedevList` becomes `printNamedList`.",
+        "`.agro/cli/src/commands/__tests__/fixtures/boat-list.json` holds a synthetic `{\"pageInfo\":{...},\"sandboxes\":[...]}` capture with one marked and one unmarked sandbox. `.agro/cli/src/commands/__tests__/hands-boat.test.ts` covers each criterion above with a fake runner.",
+        "The existing `hands.test.ts`, `hands-exedev.test.ts`, and `hands-project.test.ts` pass with no edit. `pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Advisor reran: pnpm typecheck exit 0; vitest .agro/cli/src/commands/__tests__/ 369/369 pass; existing hands*.test.ts unchanged (git diff empty). 1-3,5-11 executed via hands-boat.test.ts (25 tests: exports, --json capture argv, sshCommand boat vs exedev undefined, boat ssh argv, GIT_SSH_COMMAND+GIT_SSH_VARIANT=simple on fetch, ENOENT->exit 2 names docs URL, unauthorized->exit 2 names boat login, prefix filter, duplicate names, list --json purity, malformed JSON, error event with exit 0, non-zero without event, console-only refusals). 4 partly reasoned: pushProject builds remote as sshDest:folder and boat sshDest is the sandbox id; create --project test deferred to US-004 because create is a stub.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/boat-provider.ts",
+        ".agro/cli/src/lib/hands/provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands-boat.test.ts",
+        ".agro/cli/src/commands/__tests__/fixtures/boat-list.json"
+      ],
+      "commit": "738f35ea"
+    },
+    {
+      "id": "US-004",
+      "title": "Manage the boat hand lifecycle with guards",
+      "description": "As an operator, I want `create`, `fork`, `pause`, `resume`, and `destroy` on boat hands so that I manage the full hand lifecycle from the brain.",
+      "acceptanceCriteria": [
+        "`create` runs `boat new --json --no-env --no-auto-stop --name agro-hand-<name>`. `create` reads the sandbox id from the `ready` event and returns the hand. If the timeout expires after the id is known, `create` fails and prints the id and `agro hands destroy <name> --yes`.",
+        "If `boat new` returns the trial-tier refusal code for `--no-auto-stop`, `create` runs `boat new` again with `--ttl <BOAT_TRIAL_TTL_SECONDS>` and prints `trial tier: hand <name> stops after <hours> hours` on stderr. `fork` and `resume` apply the same fallback. No retry follows a `rate_limited` or HTTP 429 error.",
+        "`fork` runs `boat fork <id> --wait --json --no-auto-stop --name agro-hand-<name>`. `pause` runs `boat stop <id>` and polls `boat info` until the status is `archived` or `stopped`. `resume` runs `boat resume <id> --no-auto-stop`. A poll that reaches `error` fails with the status.",
+        "`destroy` runs `boat delete <id> --yes` only after `confirmDestroy` gets confirmation or `--yes`. The prompt shows the name and the id.",
+        "Before each write verb, the provider runs `boat info <id> --json` and refuses a sandbox whose name does not start with `agro-hand-`.",
+        "When `BOAT_ID` is set in the brain environment, each write verb and the fork source refuse that sandbox id with `refusing to <verb> <name>: it is this brain`. The ref `self` is refused.",
+        "When `inContainer()` is true and `BOAT_ID` is unset, each write verb refuses with `CONTAINER_REFUSAL`. `list`, `exec`, and `fetch` still run.",
+        "`agro hands create` on the boat provider refuses the console-only flags and `--spec`, and exits 1 with `<flag> applies only to console hands`.",
+        "`hands-boat.test.ts` covers each criterion above with a fake runner, a fake clock, and a fake sleep. A test greps `boat-provider.ts` and finds no `BOAT_API_KEY` and no `.config` string.",
+        "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor reran: pnpm typecheck exit 0; vitest commands/__tests__ 415/415. 1 executed: create runs boat new with the no-env, name agro-hand-<name>, and no-auto-stop flags; id from ready event; failure after a known id names the id and the destroy command. 2 executed: trial fallback only on BOAT_TRIAL_REFUSAL_CODE (placeholder no_auto_stop_not_allowed, US-001 confirms) with ttl 7200 and stderr notice; no retry on rate_limited or 429. 3 executed: fork --wait; pause stop then poll info until archived or stopped, error and timeout fail; resume without auto-stop. 4 executed: destroy prompt shows name and id, --yes skips, no aborts with no delete. 5 executed: guard re-reads boat info and refuses a name without agro-hand-. 6 executed: BOAT_ID sandbox and ref self refused for write verbs and fork source. 7 executed: container without BOAT_ID refuses writes with CONTAINER_REFUSAL; list, exec, fetch run. 8 executed: console-only flags refused. 9 executed: credential grep test kept. 10 executed: typecheck and suite pass except baseline. Deferred US-003 criterion 4 executed: create --project adds remote hand-<id> as <id>:projects/acme/widget and pushes through boat ssh. Deviations: create and fork require --name. Review round 1 repair (972d8c91): destroy hint names id and --provider boat; duplicate-name and doubled-prefix refusals; hasMore fails loudly; whole-stdout JSON before JSON Lines; final ready/idle/running record accepted; timeoutMs on every provider boat call; trial notice after successful retry. Advisor reran typecheck exit 0 and vitest 465/465 incl. sandbox-routing. Review round 2 repair (150b43e8): boat list --all keeps stopped hands resolvable; destroy deletes the confirmed id; eventId prefers sandbox.id and skips error records; no trial retry when the refused attempt names a sandbox; names equal to a hand id refused. Advisor reran typecheck exit 0 and pnpm test:scripts 3648 passed, only baseline failure.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/lib/hands/boat-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands-boat.test.ts"
+      ],
+      "commit": "150b43e8",
+      "rounds": 2
+    },
+    {
+      "id": "US-005",
+      "title": "Document boat hands",
+      "description": "As an operator, I want the hands documentation to name the boat provider so that I select and operate it without reading code.",
+      "acceptanceCriteria": [
+        "The `handsHelp` text in `.agro/cli/src/commands/hands.ts` lists `console`, `exedev`, and `boat`, and states that boat hands use `boat ssh`.",
+        "`docs/lifecycle-commands.md` has a `### boat.dev hands` section. The section states `boat login` as the credential, the `agro-hand-` name prefix, `--no-env`, `--no-auto-stop` with the trial fallback, the `boat ssh` transport, and the loss of the Docker build cache on stop and fork. The section states that no live run has verified the provider until US-006 passes.",
+        "`.agro/skills/sandbox/references/hands.md` has a `boat` column in the provider table, and `.agro/skills/sandbox/SKILL.md` names boat hands in the `hands` route.",
+        "`CHANGELOG.md` § `[Unreleased]` has one entry for the boat hand provider.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file under `docs/` and `.agro/skills/`."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor reran: typecheck exit 0; vitest commands/__tests__ plus docs-reference 419/419; link-providers.sh --check Providers OK. 1 executed: handsHelp lists console, exedev, boat and the boat ssh transport; existing help tests pass unedited. 2 executed: docs/lifecycle-commands.md has the boat.dev hands section with boat login, agro-hand- prefix, no-env, no-auto-stop with 2-hour trial fallback, boat ssh transport, Docker build cache loss, and the not-live-verified note; docs-reference passes. 3 executed: references/hands.md boat column; SKILL.md names boat hands in the hands route. 4 reasoned: one Added entry under Unreleased linked to #1671. 5 executed: ste-check exit 0 on docs/lifecycle-commands.md, references/hands.md, SKILL.md. Known follow-on: sandbox-routing.test.ts decisions.json provenance is stale after the instruction edits; the advisor regenerates it after the final doc edit and before push. Round 1 repair (ci-red): decisions.json refreshed from 17 fresh decision-only records; sandbox-routing.test.ts 33/33; pnpm test:scripts 3626 passed, only baseline sandbox-skill failure; typecheck exit 0. Lean-out round 1 (a3b861c3) re-verified: 796/796 CLI tests.",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        "docs/lifecycle-commands.md",
+        ".agro/skills/sandbox/references/hands.md",
+        ".agro/skills/sandbox/SKILL.md",
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "commit": "ae985c25",
+      "rounds": 1
+    },
+    {
+      "id": "US-006",
+      "title": "Record a live review on boat.dev",
+      "description": "As the advisor, I want a command transcript from a live boat account so that the PR manual review section rests on real evidence.",
+      "acceptanceCriteria": [
+        "Before the review creates a sandbox, the review runs `boat limits --json` on the brain host. If `canStart` is not `true`, the review creates nothing and stays open.",
+        "`.agro/tasks/boat-hands/evidence/manual-review.md` records `agro hands create --provider boat --project <owner>/<repo>`, `exec`, `pause`, `resume`, `exec` after the resume, `fork`, `fetch`, and `destroy` of the hand and of the fork.",
+        "`boat list --json` after the review shows no sandbox that the review created.",
+        "The operator approves the billable run and runs it from the brain host. (external)"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "external": true,
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/boat-hands/evidence/manual-review.md"
+      ]
+    }
+  ],
+  "reviewed": "150b43e8"
+}

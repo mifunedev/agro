@@ -1,5 +1,6 @@
 import { messageOf, type LifecycleRunner, type RunResult } from "../execution/runner.js";
 import {
+  firstLine,
   shellQuote,
   type Hand,
   type HandOutcome,
@@ -32,10 +33,6 @@ export interface ExedevDeps {
 
 function exedev(run: LifecycleRunner, args: string[]): RunResult {
   return run("ssh", ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "exe.dev", ...args], { stdio: "capture" });
-}
-
-function firstLine(text: string | undefined): string {
-  return text?.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
 }
 
 function failure(command: string, result: RunResult): string {
