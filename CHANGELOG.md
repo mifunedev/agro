@@ -12,6 +12,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - `agro hands create --desktop` requests a console hand with the desktop tool, waits up to 120 seconds for xrdp, and prints the desktop state and the next steps. `--json` adds `desktop` with `rdpListening`, `tailnetName`, and `rdpAddress` ([#1667](https://github.com/mifunedev/agro/issues/1667)).
 
+### Changed
+
+- `/supervisor` and `/delegate` briefs forbid guard workarounds through stdin scripts, `docker exec`, remote exec, and base64, and require credential-free test databases ([#1673](https://github.com/mifunedev/agro/issues/1673)).
+
 ## [0.40.0] - 2026-11-17
 
 ### Added
