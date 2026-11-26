@@ -158,5 +158,6 @@
       ]
     }
   ],
-  "pr": 1672
+  "pr": 1672,
+  "blocked": "US-001: boat limits reports canStart false (subscription_required); the free trial needs a card. Operator adds a card or reorders US-002 first, then clears this field."
 }
