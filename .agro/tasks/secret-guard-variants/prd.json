@@ -117,7 +117,7 @@
       ],
       "priority": 5,
       "passes": true,
-      "notes": "1 executed: evidence § 1 holds verbose hooks.test.ts output for the stdin, remote exec, and encoded path blocks; summary 266 passed 3 skipped. 2 executed: evidence § 2 holds `corepack pnpm test` summary (7 failed, 3604 passed, 9 skipped) and names the 7 herdr-default failures as the no-zsh baseline. 3 executed: advisor reran `bash .agro/scripts/link-providers.sh --check`, exit 0; evidence § 3 matches. 4 reasoned: evidence § 4 lists only tests, link check, and text filters; no container, live resource, or secret read.",
+      "notes": "1 executed: evidence § 1 holds verbose hooks.test.ts output for the stdin, remote exec, and encoded path blocks; summary 266 passed 3 skipped. 2 executed: evidence § 2 holds `corepack pnpm test` summary (7 failed, 3604 passed, 9 skipped) and names the 7 herdr-default failures as the no-zsh baseline. 3 executed: advisor reran `bash .agro/scripts/link-providers.sh --check`, exit 0; evidence § 3 matches. 4 reasoned: evidence § 4 lists only tests, link check, and text filters; no container, live resource, or secret read. Refreshed twice after review repairs (3699431f, 73cd7627): hooks.test.ts 350 passed 3 skipped; full suite 7 failed (baseline herdr-default) 3688 passed; link check exit 0.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -127,7 +127,7 @@
       "files": [
         ".agro/tasks/secret-guard-variants/evidence/manual-review.md"
       ],
-      "commit": "3699431f"
+      "commit": "73cd7627"
     }
   ],
   "pr": 1675,
