@@ -189,7 +189,14 @@ these rules:
 - Use no bare `git stash` or `git stash pop`. The stash stack is shared with
   other sessions.
 - Never bypass a hook. A rerun of a blocked command through a script file, a
-  heredoc, or another tool is a bypass. Report a blocked action as `BLOCKED`.
+  heredoc, or another tool is a bypass. So is a script on stdin, `docker exec`,
+  remote exec, or base64 text that reaches the blocked effect. You may use a
+  heredoc or file that only carries prose when the guard names it as the remedy.
+  Report a blocked action as `BLOCKED`.
+- Create a local test database only from the credential-free URL that the
+  repository documents. Never read a database URL or password from the
+  environment, a container, or an env file. Without a credential-free route,
+  report the check as `BLOCKED`.
 
 ## Acceptance
 

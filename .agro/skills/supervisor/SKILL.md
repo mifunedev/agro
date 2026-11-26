@@ -200,6 +200,16 @@ protect.
    advisor keeps judgment and acceptance.
 8. Include the communication boundary below. Require the advisor to pass this
    boundary to every worker.
+9. Include the guard rule below. Require the advisor to pass this rule to
+   every worker.
+
+```text
+Do not route around a guard. Do not encode, split, pipe, or relocate text,
+commands, or secret reads to get past a hook. This covers scripts on stdin,
+docker exec, remote exec, and base64. Use only the remedy that the guard
+names, or set blocked with the need and stop. Disclose any earlier
+workaround in your report and in Lessons.
+```
 
 ### The verb selects the role
 
