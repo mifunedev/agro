@@ -91,15 +91,16 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: advisor read the diff; \u00a7 2 now says the hook inspects a script that a heredoc, pipe, or here-string feeds to an interpreter, and ignores a prose heredoc (gh pr create --body-file -, git commit -F -, cat > file). 2 reasoned: \u00a7 2 has bullets for container/remote exec, encoded-path decode, and content-blind decode-to-shell inside remote exec or bash -c. 3 executed: `sed -n 9,24p CHANGELOG.md` shows ### Fixed after ### Changed under ## [Unreleased], linking #1673. 4 executed: advisor ran `bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md`, exit 0, no findings.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         "docs/security-considerations.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "2233b422"
     },
     {
       "id": "US-005",
