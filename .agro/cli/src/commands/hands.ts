@@ -24,6 +24,7 @@ import {
   type DesktopWait,
   type LocalSshKey,
 } from "../lib/hands/console-provider.js";
+import { boatPreflight, createBoatProvider } from "../lib/hands/boat-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
@@ -111,13 +112,17 @@ function sshOptions(hand: Hand): string[] {
   return ["-o", "StrictHostKeyChecking=accept-new", "-o", `HostKeyAlias=${hand.hostKeyAlias}`];
 }
 
-function gitEnv(deps: HandsDeps, hand: Hand): NodeJS.ProcessEnv {
+function gitEnv(deps: HandsDeps, provider: HandProvider, hand: Hand): NodeJS.ProcessEnv {
+  if (provider.sshCommand !== undefined) {
+    return { ...deps.env, GIT_SSH_COMMAND: provider.sshCommand().join(" "), GIT_SSH_VARIANT: "simple" };
+  }
   return { ...deps.env, GIT_SSH_COMMAND: ["ssh", ...sshOptions(hand)].join(" ") };
 }
 
 function runSsh(deps: HandsDeps, provider: HandProvider, hand: Hand, sshDest: string, command: string): number {
   const remote = provider.remoteCommand(command);
-  const result = deps.run("ssh", [...sshOptions(hand), "--", sshDest, remote], { stdio: "inherit" });
+  const [cmd, ...args] = provider.sshCommand?.() ?? ["ssh", ...sshOptions(hand), "--"];
+  const result = deps.run(cmd, [...args, sshDest, remote], { stdio: "inherit" });
   return result.status ?? 255;
 }
 
@@ -309,8 +314,8 @@ function statusReporter(io: HandsIO, prefix: string): (hand: Hand) => void {
 }
 
 function printRunning(io: HandsIO, hand: Hand, providerId: HandProviderId): void {
-  if (providerId === "exedev") {
-    io.stdout(`name: ${hand.id}\nssh host: ${hand.sshHost ?? "-"}\n`);
+  if (providerId !== "console") {
+    io.stdout(`name: ${hand.name ?? hand.id}\nssh host: ${hand.sshHost ?? "-"}\n`);
     return;
   }
   io.stdout(`index: ${hand.index ?? "-"}\nalias: ${hand.alias ?? "-"}\nssh host: ${hand.sshHost ?? "-"}\n`);
@@ -340,7 +345,7 @@ async function runList(
   const listed = await provider.list();
   if (!listed.ok) return failed(io, prefix, listed.error);
   const hands = listed.value;
-  if (providerId === "exedev") return printExedevList(io, hands, tokens.includes("--json"));
+  if (providerId !== "console") return printNamedList(io, hands, tokens.includes("--json"));
   if (tokens.includes("--json")) {
     const rows = hands.map(({ id, index, alias, name, profile, status, spec, sshHost }) => ({
       id,
@@ -374,15 +379,18 @@ async function runList(
   return 0;
 }
 
-function printExedevList(io: HandsIO, hands: Hand[], json: boolean): number {
+function printNamedList(io: HandsIO, hands: Hand[], json: boolean): number {
   if (json) {
-    io.stdout(`${JSON.stringify(hands.map(({ id, status, sshHost }) => ({ name: id, status, sshHost })))}\n`);
+    io.stdout(`${JSON.stringify(hands.map(({ id, name, status, sshHost }) => ({ name: name ?? id, status, sshHost })))}\n`);
     return 0;
   }
   io.stdout(
     hands.length === 0
       ? "no hands\n"
-      : formatTable(["NAME", "STATUS", "SSH HOST"], hands.map((hand) => [hand.id, hand.status, hand.sshHost ?? "-"])),
+      : formatTable(
+          ["NAME", "STATUS", "SSH HOST"],
+          hands.map((hand) => [hand.name ?? hand.id, hand.status, hand.sshHost ?? "-"]),
+        ),
   );
   return 0;
 }
@@ -530,7 +538,7 @@ function pushProject(
   }
   const pushed = deps.run("git", ["-C", local.path, "push", remote, local.branch], {
     stdio: "inherit",
-    env: gitEnv(deps, hand),
+    env: gitEnv(deps, provider, hand),
   });
   if (pushed.status !== 0) {
     io.stderr(`${prefix}: git push ${remote} ${local.branch} failed with status ${pushed.status ?? "none"}\n`);
@@ -740,7 +748,7 @@ async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, provider
   }
   const fetched = deps.run("git", ["-C", found.path, "fetch", remote], {
     stdio: "inherit",
-    env: gitEnv(deps, resolved.hand),
+    env: gitEnv(deps, provider, resolved.hand),
   });
   if (fetched.status !== 0) {
     io.stderr(`${prefix}: git fetch ${remote} failed with status ${fetched.status ?? "none"}\n`);
@@ -921,7 +929,7 @@ export async function runHands(
   let safe: HandsIO;
   let provider: HandProvider;
   let awaitDesktop: AwaitDesktop | undefined;
-  if (providerId === "exedev") {
+  if (providerId !== "console") {
     if (flag.operator) {
       io.stderr(`${prefix}: --operator applies only to console hands\n`);
       return 1;
@@ -938,13 +946,13 @@ export async function runHands(
       io.stderr(`${prefix}: ${refused} applies only to console hands\n`);
       return 1;
     }
-    const preflight = exedevPreflight(deps.run);
+    const preflight = providerId === "boat" ? boatPreflight(deps.run) : exedevPreflight(deps.run);
     if (!preflight.ok) {
       io.stderr(`${bin} hands: ${preflight.error}\n`);
       return 2;
     }
     safe = io;
-    provider = createExedevProvider(deps);
+    provider = providerId === "boat" ? createBoatProvider(deps) : createExedevProvider(deps);
   } else {
     const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials, flag.operator);
     if (!resolved.ok) {

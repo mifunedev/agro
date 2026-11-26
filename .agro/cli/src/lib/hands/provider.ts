@@ -102,6 +102,7 @@ export type HandStatusReport = (hand: Hand) => void;
 
 export interface HandProvider {
   remoteCommand(command: string): string;
+  sshCommand?: () => string[];
   list(): Promise<HandOutcome<Hand[]>>;
   resolve(ref: string): Promise<HandOutcome<Hand>>;
   create(request: HandRequest, onStatus: HandStatusReport): Promise<HandOutcome<Hand>>;

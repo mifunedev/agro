@@ -1,0 +1,20 @@
+{
+  "_synthetic": "built from docs; US-001 replaces with a capture",
+  "pageInfo": {
+    "hasMore": false,
+    "limit": 200,
+    "nextCursor": null
+  },
+  "sandboxes": [
+    {
+      "id": "sbx_01hand",
+      "name": "agro-hand-dev",
+      "status": "ready"
+    },
+    {
+      "id": "sbx_01brain",
+      "name": "operator-brain",
+      "status": "running"
+    }
+  ]
+}
