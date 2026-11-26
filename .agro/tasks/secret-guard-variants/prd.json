@@ -69,15 +69,16 @@
         "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: worker ran `vitest run hooks.test.ts -t \"encoded path guard\"` before the hook change, exit 1: all 12 new deny cases and the reason test failed; 5 allow cases passed. 2-5 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 266 passed 3 skipped; cases cover base64 -d/--decode/-D and xxd -r -p/-rp payloads naming .config and env-file paths with | sh and > run.sh, content-blind decode-to-shell inside docker/kubectl/agro hands exec, ssh, bash -c; allows benign decodes and the local benign decode|sh (operator decision 2A). 6 executed: reason test asserts 'paste only the non-secret value', '--body-file', 'heredoc' for both new reasons. 7 reasoned: fixtures use Buffer.from(...).toString('base64'|'hex') and fragment-built paths (CFG_DIR, ENV_FILE). 8 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/scripts/__tests__/hooks.test.ts"
-      ]
+      ],
+      "commit": "48edcb1f"
     },
     {
       "id": "US-004",
