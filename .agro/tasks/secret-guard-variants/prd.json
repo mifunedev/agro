@@ -43,15 +43,16 @@
         "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: worker ran `vitest run hooks.test.ts -t \"remote exec\"` before the hook change: 13 of 18 failed; already denied before: `docker exec db env | grep PASSWORD` (env| rule), `sh -c 'echo $POSTGRES_PASSWORD'` (echo rule), bare `kubectl exec pod -- printenv`. 2-5 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 248 passed 3 skipped; cases cover docker/podman/nerdctl/kubectl exec, agro hands exec, ssh, bash -c, local printenv HOME stays ask, docker exec psql allows. 6 executed: reason test asserts 'Ask the operator to run the command' and 'paste only the non-secret value'. 7 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/scripts/__tests__/hooks.test.ts"
-      ]
+      ],
+      "commit": "dfd33796"
     },
     {
       "id": "US-003",
