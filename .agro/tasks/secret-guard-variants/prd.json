@@ -20,14 +20,15 @@
         "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "1 executed: worker ran hooks.test.ts before the hook change, exit 1 with 22 failures (21 new deny cases + reason test); echo|bash case already denied by the echo rule. 2-6 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 230 passed 3 skipped; cases cover node -, node, python3 -, bash -s heredocs, bare-interpreter pipes, here-string, benign stdin script, and prose heredocs (gh pr create --body-file -, git commit -F -, cat > notes.md). 4: `printf '%s' \"$x\" | python3 -` names no env read, so it is an allow case; the deny variant uses os.environ on the left. 7 executed: test asserts the reason contains 'Ask the operator to run the command' and 'paste only the non-secret value'. 8 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures.",
       "dependsOn": [],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/scripts/__tests__/hooks.test.ts"
       ],
-      "commit": "829c2348"
+      "commit": "829c2348",
+      "rounds": 1
     },
     {
       "id": "US-002",
@@ -69,7 +70,7 @@
         "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "1 executed: worker ran `vitest run hooks.test.ts -t \"encoded path guard\"` before the hook change, exit 1: all 12 new deny cases and the reason test failed; 5 allow cases passed. 2-5 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 266 passed 3 skipped; cases cover base64 -d/--decode/-D and xxd -r -p/-rp payloads naming .config and env-file paths with | sh and > run.sh, content-blind decode-to-shell inside docker/kubectl/agro hands exec, ssh, bash -c; allows benign decodes and the local benign decode|sh (operator decision 2A). 6 executed: reason test asserts 'paste only the non-secret value', '--body-file', 'heredoc' for both new reasons. 7 reasoned: fixtures use Buffer.from(...).toString('base64'|'hex') and fragment-built paths (CFG_DIR, ENV_FILE). 8 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures.",
       "dependsOn": [
         "US-002"
@@ -78,21 +79,22 @@
         ".agro/hooks/deny-env-dump.sh",
         ".agro/scripts/__tests__/hooks.test.ts"
       ],
-      "commit": "48edcb1f"
+      "commit": "48edcb1f",
+      "rounds": 1
     },
     {
       "id": "US-004",
       "title": "Document the new denials",
       "description": "As an agent reader, I want `docs/security-considerations.md` and `CHANGELOG.md` to state the new denials so that the documented heredoc remedy matches the hook.",
       "acceptanceCriteria": [
-        "`docs/security-considerations.md` § 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
-        "`docs/security-considerations.md` § 2 lists the container, remote exec, and encoded-path denials.",
+        "`docs/security-considerations.md` \u00a7 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
+        "`docs/security-considerations.md` \u00a7 2 lists the container, remote exec, and encoded-path denials.",
         "`CHANGELOG.md` `## [Unreleased]` has a `### Fixed` entry that links [#1673](https://github.com/mifunedev/agro/issues/1673).",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md` exits 0."
       ],
       "priority": 4,
       "passes": true,
-      "notes": "1 reasoned: advisor read the diff; § 2 now says the hook inspects a script that a heredoc, pipe, or here-string feeds to an interpreter, and ignores a prose heredoc (gh pr create --body-file -, git commit -F -, cat > file). 2 reasoned: § 2 has bullets for container/remote exec, encoded-path decode, and content-blind decode-to-shell inside remote exec or bash -c. 3 executed: `sed -n 9,24p CHANGELOG.md` shows ### Fixed after ### Changed under ## [Unreleased], linking #1673. 4 executed: advisor ran `bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md`, exit 0, no findings.",
+      "notes": "1 reasoned: advisor read the diff; \u00a7 2 now says the hook inspects a script that a heredoc, pipe, or here-string feeds to an interpreter, and ignores a prose heredoc (gh pr create --body-file -, git commit -F -, cat > file). 2 reasoned: \u00a7 2 has bullets for container/remote exec, encoded-path decode, and content-blind decode-to-shell inside remote exec or bash -c. 3 executed: `sed -n 9,24p CHANGELOG.md` shows ### Fixed after ### Changed under ## [Unreleased], linking #1673. 4 executed: advisor ran `bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md`, exit 0, no findings.",
       "dependsOn": [
         "US-003"
       ],
@@ -114,7 +116,7 @@
       ],
       "priority": 5,
       "passes": true,
-      "notes": "1 executed: evidence § 1 holds verbose hooks.test.ts output for the stdin, remote exec, and encoded path blocks; summary 266 passed 3 skipped. 2 executed: evidence § 2 holds `corepack pnpm test` summary (7 failed, 3604 passed, 9 skipped) and names the 7 herdr-default failures as the no-zsh baseline. 3 executed: advisor reran `bash .agro/scripts/link-providers.sh --check`, exit 0; evidence § 3 matches. 4 reasoned: evidence § 4 lists only tests, link check, and text filters; no container, live resource, or secret read.",
+      "notes": "1 executed: evidence \u00a7 1 holds verbose hooks.test.ts output for the stdin, remote exec, and encoded path blocks; summary 266 passed 3 skipped. 2 executed: evidence \u00a7 2 holds `corepack pnpm test` summary (7 failed, 3604 passed, 9 skipped) and names the 7 herdr-default failures as the no-zsh baseline. 3 executed: advisor reran `bash .agro/scripts/link-providers.sh --check`, exit 0; evidence \u00a7 3 matches. 4 reasoned: evidence \u00a7 4 lists only tests, link check, and text filters; no container, live resource, or secret read.",
       "dependsOn": [
         "US-001",
         "US-002",
