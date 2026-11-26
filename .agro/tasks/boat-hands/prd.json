@@ -43,15 +43,16 @@
         "`docs/configuration.md` § Field reference lists `boat` for `hands.provider`. `.agro/cli/src/__tests__/docs-reference.test.ts` passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: grep HAND_PROVIDER_IDS shows [console, exedev, boat]. 2 executed: config-secret.test.ts 'writes hands.provider boat' passes (vitest exit 0). 3 executed: config-secret.test.ts asserts 'must be one of console, exedev, boat', passes. 4 executed: host-config.test.ts it.each and anchored regex include boat, pass. 5 executed: docs/configuration.md row lists boat; docs-reference.test.ts passes (96/96). pnpm typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/host-config.ts",
         ".agro/cli/src/lib/__tests__/host-config.test.ts",
         ".agro/cli/src/__tests__/config-secret.test.ts",
         "docs/configuration.md"
-      ]
+      ],
+      "commit": "e59ded4c"
     },
     {
       "id": "US-003",
