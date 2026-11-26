@@ -20,13 +20,14 @@
         "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: worker ran hooks.test.ts before the hook change, exit 1 with 22 failures (21 new deny cases + reason test); echo|bash case already denied by the echo rule. 2-6 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 230 passed 3 skipped; cases cover node -, node, python3 -, bash -s heredocs, bare-interpreter pipes, here-string, benign stdin script, and prose heredocs (gh pr create --body-file -, git commit -F -, cat > notes.md). 4: `printf '%s' \"$x\" | python3 -` names no env read, so it is an allow case; the deny variant uses os.environ on the left. 7 executed: test asserts the reason contains 'Ask the operator to run the command' and 'paste only the non-secret value'. 8 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures.",
       "dependsOn": [],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/scripts/__tests__/hooks.test.ts"
-      ]
+      ],
+      "commit": "829c2348"
     },
     {
       "id": "US-002",
@@ -82,8 +83,8 @@
       "title": "Document the new denials",
       "description": "As an agent reader, I want `docs/security-considerations.md` and `CHANGELOG.md` to state the new denials so that the documented heredoc remedy matches the hook.",
       "acceptanceCriteria": [
-        "`docs/security-considerations.md` § 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
-        "`docs/security-considerations.md` § 2 lists the container, remote exec, and encoded-path denials.",
+        "`docs/security-considerations.md` \u00a7 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
+        "`docs/security-considerations.md` \u00a7 2 lists the container, remote exec, and encoded-path denials.",
         "`CHANGELOG.md` `## [Unreleased]` has a `### Fixed` entry that links [#1673](https://github.com/mifunedev/agro/issues/1673).",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md` exits 0."
       ],
@@ -121,5 +122,6 @@
         ".agro/tasks/secret-guard-variants/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1675
 }
