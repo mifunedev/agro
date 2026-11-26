@@ -186,7 +186,7 @@ For a console hand, run:
 git -C <harness-root>/projects/<owner>/<repo> remote add hand-<index> sandbox@<recorded-ssh-host>:projects/<owner>/<repo>
 ```
 For an exe.dev hand, use `hand-<vm>` and the destination `<vm>.exe.xyz:projects/<owner>/<repo>`.
-For a boat hand, use `hand-<id>` and the destination `<id>:projects/<owner>/<repo>`. `agro hands fetch` sets `GIT_SSH_COMMAND="boat ssh"`.
+For a boat hand, use `hand-<id>` and the destination `<id>:projects/<owner>/<repo>`.
 If an existing remote differs, stop for advisor review; do not overwrite it.
 Then fetch committed results with `agro hands fetch <hand> --project <owner>/<repo>`.
 Do not inspect credentials or bypass lifecycle, guard, or HTTP 403 refusals for this setup.

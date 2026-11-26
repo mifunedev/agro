@@ -118,10 +118,12 @@ function sshOptions(hand: Hand): string[] {
 }
 
 function gitEnv(deps: HandsDeps, provider: HandProvider, hand: Hand): NodeJS.ProcessEnv {
-  if (provider.sshCommand !== undefined) {
-    return { ...deps.env, GIT_SSH_COMMAND: provider.sshCommand().join(" "), GIT_SSH_VARIANT: "simple" };
-  }
-  return { ...deps.env, GIT_SSH_COMMAND: ["ssh", ...sshOptions(hand)].join(" ") };
+  const custom = provider.sshCommand?.();
+  return {
+    ...deps.env,
+    GIT_SSH_COMMAND: (custom ?? ["ssh", ...sshOptions(hand)]).join(" "),
+    ...(custom === undefined ? {} : { GIT_SSH_VARIANT: "simple" }),
+  };
 }
 
 function runSsh(deps: HandsDeps, provider: HandProvider, hand: Hand, sshDest: string, command: string): number {
@@ -291,24 +293,17 @@ name matches no VM; run them from the brain host.
 
 boat.dev hands:
 <hand> is the sandbox name without the prefix ${BOAT_PREFIX}, or the sandbox
-id. A hand is a sandbox whose name starts with ${BOAT_PREFIX}. \`list\` shows
-only those sandboxes. The verbs run the \`boat\` CLI with \`--json\` and exit 2
-when \`boat list\` fails. Run \`boat login\` on the brain host first.
+id. \`list\` shows only sandboxes whose name starts with ${BOAT_PREFIX}. The
+verbs run the \`boat\` CLI and exit 2 when \`boat list\` fails; run \`boat login\`
+on the brain host first. \`exec\` and git use \`boat ssh <id>\`.
 
-\`create --name <name>\` runs \`boat new --no-env --name ${BOAT_PREFIX}<name>
---no-auto-stop\` and waits for the \`ready\` event. \`fork <hand> --name <name>\`
-runs \`boat fork <id> --wait\` with the same name prefix and \`--no-auto-stop\`.
-When the account refuses \`--no-auto-stop\`, \`create\`, \`fork\`, and
-\`resume\` run again with \`--ttl ${BOAT_TRIAL_TTL_SECONDS}\`; the hand then stops after
-${BOAT_TRIAL_TTL_SECONDS / 3600} hours. \`pause\` runs \`boat stop\` and waits for the status \`archived\` or
-\`stopped\`. \`resume\` runs \`boat resume <id> --no-auto-stop\`. \`destroy\` runs
-\`boat delete <id> --yes\` and asks for confirmation unless --yes is given.
-
-Boat hands use \`boat ssh <id>\` for \`exec\` and git. The brain stores no IP
-and no host key. Each write verb first reads \`boat info <id>\` and exits 1
-without a change when the name lacks ${BOAT_PREFIX}, when the sandbox id equals BOAT_ID,
-or when <hand> is \`self\`. Inside a container without BOAT_ID, each write verb
-exits 1. The console-only flags exit 1.
+\`create --name <name>\` runs \`boat new --no-env --no-auto-stop\` and \`fork
+<hand> --name <name>\` runs \`boat fork <id> --wait --no-auto-stop\`. When the
+account refuses \`--no-auto-stop\`, \`create\`, \`fork\`, and \`resume\` use
+\`--ttl ${BOAT_TRIAL_TTL_SECONDS}\`. \`pause\`, \`resume\`, and \`destroy\` run \`boat stop\`,
+\`boat resume\`, and \`boat delete\`. Each write verb exits 1 without a change
+when the current name lacks ${BOAT_PREFIX}, when <hand> is \`self\` or BOAT_ID,
+or inside a container without BOAT_ID.
 
 Projects:
 A project lives at ~/projects/<owner>/<repo> on the hand and at
@@ -986,16 +981,17 @@ export async function runHands(
       io.stderr(`${prefix}: ${refused} applies only to console hands\n`);
       return 1;
     }
-    const preflight = providerId === "boat" ? boatPreflight(deps.run) : exedevPreflight(deps.run);
-    if (!preflight.ok) {
-      io.stderr(`${bin} hands: ${preflight.error}\n`);
+    const [preflight, makeProvider] =
+      providerId === "boat"
+        ? [boatPreflight, () => createBoatProvider(deps, (notice) => io.stderr(`${prefix}: ${notice}\n`))]
+        : [exedevPreflight, () => createExedevProvider(deps)];
+    const checked = preflight(deps.run);
+    if (!checked.ok) {
+      io.stderr(`${bin} hands: ${checked.error}\n`);
       return 2;
     }
     safe = io;
-    provider =
-      providerId === "boat"
-        ? createBoatProvider(deps, (notice) => io.stderr(`${prefix}: ${notice}\n`))
-        : createExedevProvider(deps);
+    provider = makeProvider();
   } else {
     const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials, flag.operator);
     if (!resolved.ok) {

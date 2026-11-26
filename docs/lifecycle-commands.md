@@ -851,8 +851,7 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
 
 ### boat.dev hands
 
-No live run has verified the boat provider yet. The tests use a fake `boat`
-CLI. The live review (US-006 in `.agro/tasks/boat-hands/prd.md`) is pending.
+No live run has verified the boat provider yet.
 
 - Install the `boat` CLI on the brain host. See
   [the boat CLI reference](https://docs.boat.dev/cli-reference). If `boat` is

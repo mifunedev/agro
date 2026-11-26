@@ -1,13 +1,10 @@
 import type { LifecycleRunner, RunResult } from "../execution/runner.js";
-import { CONTAINER_REFUSAL } from "./exedev-provider.js";
-import { shellQuote, type Hand, type HandOutcome, type HandProvider } from "./provider.js";
+import { CONTAINER_REFUSAL, type ExedevDeps } from "./exedev-provider.js";
+import { firstLine, isRecord, shellQuote, type Hand, type HandOutcome, type HandProvider } from "./provider.js";
 
 export const BOAT_PREFIX = "agro-hand-";
-export const BOAT_CLI_REFERENCE = "https://docs.boat.dev/cli-reference";
 export const BOAT_TRIAL_TTL_SECONDS = 7200;
 export const BOAT_TRIAL_REFUSAL_CODE = "no_auto_stop_not_allowed";
-
-const STOPPED_STATUSES = ["archived", "stopped"];
 
 interface BoatSandbox {
   id: string;
@@ -15,25 +12,9 @@ interface BoatSandbox {
   status: string;
 }
 
-export interface BoatDeps {
-  run: LifecycleRunner;
-  env: Record<string, string | undefined>;
-  inContainer: () => boolean;
-  sleep: (ms: number) => Promise<void>;
-  now: () => number;
-  pollDelayMs: (elapsedMs: number) => number;
-  timeoutMs: number;
-}
+export type BoatDeps = Omit<ExedevDeps, "hostname"> & { env: NodeJS.ProcessEnv };
 
 type BoatCall = { ok: true; stdout: string } | { ok: false; error: string; code?: string; stdout: string };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function firstLine(text: string | undefined): string {
-  return text?.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
-}
 
 function jsonLines(stdout: string): Record<string, unknown>[] {
   return stdout.split(/\r?\n/).flatMap((line) => {
@@ -58,7 +39,7 @@ function boat(run: LifecycleRunner, command: string, args: string[], timeoutMs?:
   });
   const stdout = result.stdout ?? "";
   if (result.error?.code === "ENOENT") {
-    return { ok: false, stdout, error: `boat is not installed; install it from ${BOAT_CLI_REFERENCE}` };
+    return { ok: false, stdout, error: `boat is not installed; install it from https://docs.boat.dev/cli-reference` };
   }
   const event = jsonLines(stdout).find((line) => line.event === "error");
   if (event !== undefined) {
@@ -76,15 +57,11 @@ function boat(run: LifecycleRunner, command: string, args: string[], timeoutMs?:
   return { ok: true, stdout };
 }
 
-function failure(call: { error: string }): { ok: false; error: string } {
-  return { ok: false, error: call.error };
-}
-
 export function boatPreflight(run: LifecycleRunner): HandOutcome<void> {
   const result = boat(run, "list", []);
   if (result.ok) return { ok: true, value: undefined };
   if (result.code === "unauthorized") return { ok: false, error: `${result.error}; run boat login` };
-  return failure(result);
+  return result;
 }
 
 function toSandbox(value: unknown): BoatSandbox | undefined {
@@ -120,7 +97,7 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
 
   function listHands(): HandOutcome<Hand[]> {
     const result = boat(run, "list", []);
-    if (!result.ok) return failure(result);
+    if (!result.ok) return result;
     let parsed: unknown;
     try {
       parsed = JSON.parse(result.stdout);
@@ -151,7 +128,7 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
 
   function info(id: string): HandOutcome<BoatSandbox> {
     const result = boat(run, "info", [id]);
-    if (!result.ok) return failure(result);
+    if (!result.ok) return result;
     const [parsed] = jsonLines(result.stdout);
     const sandbox = toSandbox(parsed) ?? toSandbox(parsed?.sandbox);
     return sandbox === undefined ? { ok: false, error: "boat info returned invalid JSON" } : { ok: true, value: sandbox };
@@ -172,7 +149,6 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
     if (found.value.id === brainId) return refusal(verb, ref);
     const current = info(found.value.id);
     if (!current.ok) return current;
-    if (current.value.id === brainId) return refusal(verb, ref);
     if (!current.value.name.startsWith(BOAT_PREFIX)) {
       return { ok: false, error: `refusing to ${verb} ${ref}: sandbox ${current.value.id} is named ${current.value.name}, not ${BOAT_PREFIX}<name>` };
     }
@@ -207,7 +183,7 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
       const current = info(hand.id);
       if (!current.ok) return current;
       const { status } = current.value;
-      if (STOPPED_STATUSES.includes(status)) return { ok: true, value: undefined };
+      if (status === "archived" || status === "stopped") return { ok: true, value: undefined };
       if (status === "error") return { ok: false, error: `hand ${hand.label} reached status error` };
       const elapsed = deps.now() - startedAt;
       if (elapsed >= deps.timeoutMs) {
@@ -216,10 +192,6 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
       }
       await deps.sleep(deps.pollDelayMs(elapsed));
     }
-  }
-
-  function done(result: BoatCall): HandOutcome<void> {
-    return result.ok ? { ok: true, value: undefined } : failure(result);
   }
 
   return {
@@ -246,17 +218,19 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
       const hand = guard("pause", ref);
       if (!hand.ok) return hand;
       const stopped = boat(run, "stop", [hand.value.id]);
-      return stopped.ok ? awaitStopped(hand.value) : failure(stopped);
+      return stopped.ok ? awaitStopped(hand.value) : stopped;
     },
     async resume(ref) {
       const hand = guard("resume", ref);
       if (!hand.ok) return hand;
-      return done(withoutAutoStop("resume", [hand.value.id], hand.value.label));
+      const resumed = withoutAutoStop("resume", [hand.value.id], hand.value.label);
+      return resumed.ok ? { ok: true, value: undefined } : resumed;
     },
     async destroy(ref) {
       const hand = guard("destroy", ref);
       if (!hand.ok) return hand;
-      return done(boat(run, "delete", [hand.value.id, "--yes"]));
+      const deleted = boat(run, "delete", [hand.value.id, "--yes"]);
+      return deleted.ok ? { ok: true, value: undefined } : deleted;
     },
   };
 }
