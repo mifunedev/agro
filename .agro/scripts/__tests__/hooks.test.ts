@@ -356,6 +356,8 @@ describe.concurrent("remote exec secret guard (deny-env-dump.sh)", () => {
 
 const b64 = (text: string) => Buffer.from(text).toString("base64");
 const hex = (text: string) => Buffer.from(text).toString("hex");
+const spacedHex = (text: string, prefix: string) =>
+  (hex(text).match(/../g) ?? []).map((byte) => prefix + byte).join(" ");
 const CFG_DIR = "." + "con" + "fig";
 const HOSTS_READ = `cat ~/${CFG_DIR}/gh/hosts.yml`;
 const ENV_READ = `cat ${ENV_FILE}`;
@@ -374,6 +376,17 @@ describe.concurrent("encoded path guard (deny-env-dump.sh)", () => {
     ["deny", "ssh host 'echo $P | xxd -r -p | sh'"],
     ["deny", `bash -c 'eval "$(echo $P | base64 -d)"'`],
     ["deny", "kubectl exec pod -- sh -c 'echo $P | base64 -d | sh'"],
+    ["deny", ["base64 -d <<'EOF' | sh", b64(HOSTS_READ), "EOF"].join("\n")],
+    ["deny", ["xxd -r -p <<EOF > run.sh", hex(ENV_READ), "EOF"].join("\n")],
+    ["deny", `echo '${spacedHex(ENV_READ, "")}' | xxd -r -p | sh`],
+    ["deny", `echo '${spacedHex(HOSTS_READ, "0x")}' | xxd -r -p | sh`],
+    ["deny", `echo ${b64(`printenv ${GH_SECRET}`)} | base64 -d | sh`],
+    ["deny", `echo ${b64("env")} | base64 -d | sh`],
+    ["deny", `echo ${b64("export -p")} | base64 --decode | bash`],
+    ["deny", `echo ${hex(`echo $${PG_SECRET}`)} | xxd -r -p | sh`],
+    ["allow", `echo ${b64("make test")} | base64 -d | sh`],
+    ["allow", ["base64 -d <<'EOF' > image.png", b64("not a path"), "EOF"].join("\n")],
+    ["allow", `echo '${spacedHex("hello world", "")}' | xxd -r -p`],
     ["allow", "echo aGVsbG8= | base64 -d"],
     ["allow", "base64 -d image.b64 > image.png"],
     ["allow", `echo ${b64("ls -la")} | base64 -d | sh`],
@@ -389,6 +402,7 @@ describe.concurrent("encoded path guard (deny-env-dump.sh)", () => {
     for (const command of [
       `echo ${b64(HOSTS_READ)} | base64 -d | sh`,
       "docker exec box sh -c 'echo $P | base64 -d | sh'",
+      `echo ${b64(`printenv ${GH_SECRET}`)} | base64 -d | sh`,
     ]) {
       const result = await runHook(CMD_HOOK, { command });
       const reason: string = JSON.parse(result.stdout).hookSpecificOutput.permissionDecisionReason;

@@ -190,11 +190,13 @@ DECODE_RUN="(${DECODE})[^;&]*\\|[[:space:]]*((sudo|exec|command)[[:space:]]+)*(/
 DECODE_RUN+="|(\\\$\\(|\`)[^)\`]*(${DECODE})"
 
 decoded_text=''
-if command -v perl >/dev/null 2>&1 && grep -qE -- "$DECODE" <<<"$cmd"; then
+if command -v perl >/dev/null 2>&1 && grep -qE -- "$DECODE" <<<"$raw_cmd"; then
   decoded_text=$(perl -MMIME::Base64 -ne '
-    for my $t (/[A-Za-z0-9+\/_-]{8,}={0,2}/g) { (my $b = $t) =~ tr{-_}{+/}; print decode_base64($b), "\n" }
-    for my $h (/[0-9A-Fa-f]{8,}/g) { print pack("H*", substr($h, 0, length($h) & ~1)), "\n" }
-  ' <<<"$cmd" | tr -c '[:print:]' ' ') || decoded_text=''
+    for my $t (/[A-Za-z0-9+\/_-]{4,}={0,2}/g) { (my $b = $t) =~ tr{-_}{+/}; print decode_base64($b), "\n" }
+    s/\b0x(?=[0-9A-Fa-f])//gi;
+    s{(?<![0-9A-Za-z])[0-9A-Fa-f]{2}(?:[\s,]+[0-9A-Fa-f]{2}(?![0-9A-Za-z]))+}{(my $r = $&) =~ s/[\s,]//g; $r}ge;
+    for my $h (/[0-9A-Fa-f]{4,}/g) { print pack("H*", substr($h, 0, length($h) & ~1)), "\n" }
+  ' <<<"$raw_cmd" | tr -c '[:print:]\n' ' ') || decoded_text=''
 fi
 
 ASK='\bprintenv[[:space:]]+[A-Za-z_]'
@@ -319,8 +321,8 @@ if grep -qEi -- "$DENY" <<<"$literal_cmd" || grep -qEi -- "$ENV_DUMP" <<<"$dump_
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, agro secret get, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the operator to run the command themselves and paste only the specific non-secret output you need.'
 elif grep -qE -- "$REMOTE_EXEC" <<<"$dump_cmd" && grep -qE -- "$REMOTE_ENV_READ" <<<"$literal_cmd"; then
   emit deny 'Secret-exposure guard (deny): a container or remote exec (docker/podman/nerdctl/kubectl exec, agro hands exec, ssh, or a shell -c runner) prints a secret-named variable or dumps the environment, which puts the secret in the transcript. Do NOT retry a variant that moves the read to another container, host, shell, script, or encoding. Ask the operator to run the command themselves and paste only the non-secret value you need.'
-elif [[ -n $decoded_text ]] && grep -qEi -- "$OPERATOR_PATH|$SECRET_PATH" <<<"$decoded_text"; then
-  emit deny 'Encoded-path guard (deny): a base64 or hex payload that the command decodes (base64 -d/--decode/-D, xxd -r) names an operator-only or secret-laden path (.config/, settings.local.json, env file, private key, cloud credentials, shell history, or similar). Encoding does not change the policy. Do NOT retry a variant that encodes, splits, or relocates the path. If you need a value from that file, ask the operator to paste only the non-secret value into the chat. If you only need to name the path in prose, write it in a file passed with --body-file (or git commit -F) or in a heredoc.'
+elif [[ -n $decoded_text ]] && { grep -qEi -- "$OPERATOR_PATH|$SECRET_PATH|$DENY" <<<"$decoded_text" || grep -qE -- "$ENV_DUMP|$REMOTE_ENV_READ" <<<"$decoded_text"; }; then
+  emit deny 'Encoded-payload guard (deny): a base64 or hex payload that the command decodes (base64 -d/--decode/-D, xxd -r) names an operator-only or secret-laden path (.config/, settings.local.json, env file, private key, cloud credentials, shell history, or similar), or dumps the environment or prints a secret-named variable or token. Encoding does not change the policy. Do NOT retry a variant that encodes, splits, or relocates the path or command. If you need a value from that file, ask the operator to paste only the non-secret value into the chat. If you only need to name the path in prose, write it in a file passed with --body-file (or git commit -F) or in a heredoc.'
 elif grep -qE -- "$REMOTE_EXEC" <<<"$dump_cmd" && grep -qE -- "$DECODE_RUN" <<<"$literal_cmd"; then
   emit deny 'Encoded-exec guard (deny): a container or remote exec (docker/podman/nerdctl/kubectl exec, agro hands exec, ssh, or a shell -c runner) runs a base64 or hex decode (base64 -d, xxd -r) through a shell, which hides the real command from this guard. Do NOT retry a variant that moves the decode to another shell, host, script, or encoding. Run the plain command so the guard can read it. If you need a secret or operator-only value, ask the operator to paste only the non-secret value into the chat. If you only need to name a path in prose, write it in a file passed with --body-file (or git commit -F) or in a heredoc.'
 elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
