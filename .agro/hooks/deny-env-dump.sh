@@ -197,19 +197,29 @@ READ_WORDS='cat|tac|less|more|bat|head|tail|xxd|od|strings|hexdump|base64|nano|v
 READ_CMD="(${READ_WORDS}|\\.)"
 SECRET_PATH_DENY="\\b${READ_CMD}\\b[^#|]*${SECRET_PATH}"
 
-DECODE='\bbase64[[:space:]]+([^|;&]*[[:space:]])?(-[A-Za-z]*[dD]\b|--decode\b)'
+DECODE='\bbase64[[:space:]]+([^|;&]*[[:space:]])?(-[A-Za-z]*[dD][A-Za-z]*\b|--d[a-z]*\b)'
 DECODE+='|\bxxd[[:space:]]+([^|;&]*[[:space:]])?-[A-Za-z]*r'
 DECODE_RUN="(${DECODE})[^;&]*\\|[[:space:]]*((sudo|exec|command)[[:space:]]+)*(/[^[:space:]]*/)?(sh|bash|zsh|dash|ksh)\\b"
 DECODE_RUN+="|(\\\$\\(|\`)[^)\`]*(${DECODE})"
 
 decoded_text=''
-if command -v perl >/dev/null 2>&1 && grep -qE -- "$DECODE" <<<"$raw_cmd"; then
+decode_scan=$cmd
+if command -v perl >/dev/null 2>&1; then
+  decode_scan+=$'\n'$(DECODE=$DECODE perl -0777 -ne '
+    while (/<<(-)?\s*(["\x27]?)(\w+)\2([^\n]*)\n(.*?)\n(?(1)\t*)\3(?=\n|$)/gs) {
+      my ($body, $head) = ($5, substr($_, 0, $-[0]));
+      $head =~ s/.*[;&|(\n]//s;
+      print "$body\n" if $head =~ /$ENV{DECODE}/;
+    }
+  ' <<<"$raw_cmd") || decode_scan=$cmd
+fi
+if command -v perl >/dev/null 2>&1 && grep -qE -- "$DECODE" <<<"$decode_scan"; then
   decoded_text=$(perl -MMIME::Base64 -ne '
     for my $t (/[A-Za-z0-9+\/_-]{4,}={0,2}/g) { (my $b = $t) =~ tr{-_}{+/}; print decode_base64($b), "\n" }
     s/\b0x(?=[0-9A-Fa-f])//gi;
     s{(?<![0-9A-Za-z])[0-9A-Fa-f]{2}(?:[\s,]+[0-9A-Fa-f]{2}(?![0-9A-Za-z]))+}{(my $r = $&) =~ s/[\s,]//g; $r}ge;
     for my $h (/[0-9A-Fa-f]{4,}/g) { print pack("H*", substr($h, 0, length($h) & ~1)), "\n" }
-  ' <<<"$raw_cmd" | tr -c '[:print:]\n' ' ') || decoded_text=''
+  ' <<<"$decode_scan" | tr -c '[:print:]\n' ' ') || decoded_text=''
 fi
 
 ASK='\bprintenv[[:space:]]+[A-Za-z_]'
