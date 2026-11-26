@@ -1,6 +1,6 @@
 # Manual review evidence
 
-Branch: `fix/1673-secret-guard-variants` at `f725cb67`, on the brain host.
+Branch: `fix/1673-secret-guard-variants` at `d0e5598c`, on the brain host.
 
 Tooling: `export PATH=$HOME/.local/share/fnm/aliases/default/bin:$PATH`, then `corepack pnpm`.
 
@@ -16,17 +16,19 @@ corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts --reporter=verbos
 
 Exit status: 0.
 
-The list below holds every case in the three new describe blocks. The reporter prints each case with a `✓` prefix and a duration. The list removes the prefix and the duration and sorts the cases in each block. Each heredoc case name stops at the first newline, so two cases can show the same name. All 120 cases passed. No case failed.
+The list below holds every case in the three new describe blocks. The reporter prints each case with a `✓` prefix and a duration. The list removes the prefix and the duration and sorts the cases in each block. Each heredoc case name stops at the first newline, so two cases can show the same name. All 155 cases passed. No case failed.
 
 The review repairs add cases. Commit `187e8bef` adds the 38 stdin cases whose names start with `hardened`. Commit `2d3da381` adds 11 encoded path cases for spaced hex, `0x` hex, environment dump and secret read payloads, and heredoc payloads.
+
+The second review repairs add more cases. Commit `b2e6e738` tightens stdin interpreter parsing and adds the 25 stdin cases whose names start with `tightened`. These cases cover heredoc end lines, interpreter options that take a value, and prose that names `env` or `ENV`. Commit `7c02f9be` limits the remote environment read check to the exec command and adds 4 remote exec cases. Commit `6af2550b` limits the encoded payload scan and adds 6 encoded path cases. These cases cover combined decode flags such as `-di`, `-id`, and `--dec`, payloads in commit and note prose, and `base64 -w0` encoding.
 
 Block counts:
 
 | Describe block | Passed | Failed |
 |---|---|---|
-| stdin interpreter guard (deny-env-dump.sh) | 73 | 0 |
-| remote exec secret guard (deny-env-dump.sh) | 18 | 0 |
-| encoded path guard (deny-env-dump.sh) | 29 | 0 |
+| stdin interpreter guard (deny-env-dump.sh) | 98 | 0 |
+| remote exec secret guard (deny-env-dump.sh) | 22 | 0 |
+| encoded path guard (deny-env-dump.sh) | 35 | 0 |
 
 ```
 ## stdin interpreter guard
@@ -103,9 +105,37 @@ stdin interpreter guard (deny-env-dump.sh) > hardened shell-dump deny: bash <<'E
 stdin interpreter guard (deny-env-dump.sh) > hardened shell-dump deny: cat <<'EOF' | sh
 stdin interpreter guard (deny-env-dump.sh) > hardened shell-dump deny: sh -s <<'EOF'
 stdin interpreter guard (deny-env-dump.sh) > names the operator remedy in the denial reason
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line allow: gh pr create --title t --body-file - <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line allow: node - <<-'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line deny: bash -s <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line deny: node - <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line deny: node - <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line deny: node - <<-'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened end-line deny: node <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive allow: bash -s <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive allow: bash <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive allow: python3 - <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive deny: bash <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive deny: bash <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive deny: bash <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive deny: bash <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened false-positive deny: ruby <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value allow: node -r dotenv/config scripts/run.js <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value allow: python3 -m json.tool <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: bash -o pipefail <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: node --import tsx <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: node --require dotenv/config - <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: node -r dotenv/config <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: perl -I lib <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: python3 -W ignore - <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: python3 -X utf8 <<'EOF'
+stdin interpreter guard (deny-env-dump.sh) > tightened option-value deny: ruby -I lib <<'EOF'
 ## remote exec secret guard
 remote exec secret guard (deny-env-dump.sh) > allow: docker exec db psql -c 'select 1'
+remote exec secret guard (deny-env-dump.sh) > allow: find . -name 'env' | xargs ls
+remote exec secret guard (deny-env-dump.sh) > allow: grep -r 'env' src | xargs wc -l
 remote exec secret guard (deny-env-dump.sh) > ask: git commit -m "deny docker exec db printenv POSTGRES_PASSWORD"
+remote exec secret guard (deny-env-dump.sh) > ask: printenv GH_TOKEN; ssh host ls
 remote exec secret guard (deny-env-dump.sh) > ask: printenv HOME
 remote exec secret guard (deny-env-dump.sh) > deny: agro hands exec box -- printenv GH_TOKEN
 remote exec secret guard (deny-env-dump.sh) > deny: bash -c 'printenv GH_TOKEN'
@@ -119,18 +149,22 @@ remote exec secret guard (deny-env-dump.sh) > deny: kubectl exec -n prod pod/db 
 remote exec secret guard (deny-env-dump.sh) > deny: kubectl exec pod -- printenv
 remote exec secret guard (deny-env-dump.sh) > deny: nerdctl exec db printenv GH_TOKEN
 remote exec secret guard (deny-env-dump.sh) > deny: podman exec db printenv GH_TOKEN
+remote exec secret guard (deny-env-dump.sh) > deny: ssh host 'cd /app; printenv GH_TOKEN'
 remote exec secret guard (deny-env-dump.sh) > deny: ssh host 'printenv GH_TOKEN'
 remote exec secret guard (deny-env-dump.sh) > deny: ssh host printenv GH_TOKEN
 remote exec secret guard (deny-env-dump.sh) > names the operator remedy in the denial reason
 ## encoded path guard
 encoded path guard (deny-env-dump.sh) > allow: base64 -d <<'EOF' > image.png
 encoded path guard (deny-env-dump.sh) > allow: base64 -d image.b64 > image.png
+encoded path guard (deny-env-dump.sh) > allow: base64 -w0 image.png > image.b64
+encoded path guard (deny-env-dump.sh) > allow: cat > notes.md <<'EOF'
 encoded path guard (deny-env-dump.sh) > allow: docker exec box sh -c 'base64 -d /tmp/image.b64 > /tmp/image.png'
 encoded path guard (deny-env-dump.sh) > allow: echo '68 65 6c 6c 6f 20 77 6f 72 6c 64' | xxd -r -p
 encoded path guard (deny-env-dump.sh) > allow: echo 68656c6c6f20776f726c64 | xxd -r -p
 encoded path guard (deny-env-dump.sh) > allow: echo aGVsbG8= | base64 -d
 encoded path guard (deny-env-dump.sh) > allow: echo bHMgLWxh | base64 -d | sh
 encoded path guard (deny-env-dump.sh) > allow: echo bWFrZSB0ZXN0 | base64 -d | sh
+encoded path guard (deny-env-dump.sh) > allow: git commit -F - <<'EOF'
 encoded path guard (deny-env-dump.sh) > deny: agro hands exec box -- sh -c 'echo $P | base64 --decode | bash'
 encoded path guard (deny-env-dump.sh) > deny: base64 -d <<'EOF' | sh
 encoded path guard (deny-env-dump.sh) > deny: base64 -d <<< Y2F0IC5lbnY= | sh
@@ -142,8 +176,11 @@ encoded path guard (deny-env-dump.sh) > deny: echo 'Y2F0IH4vLmNvbmZpZy9naC9ob3N0
 encoded path guard (deny-env-dump.sh) > deny: echo 636174202e656e76 | xxd -rp > run.sh
 encoded path guard (deny-env-dump.sh) > deny: echo 636174207e2f2e636f6e6669672f67682f686f7374732e796d6c | xxd -r -p | sh
 encoded path guard (deny-env-dump.sh) > deny: echo 6563686f2024504f5354475245535f50415353574f5244 | xxd -r -p | sh
+encoded path guard (deny-env-dump.sh) > deny: echo Y2F0IC5lbnY= | base64 -id > run.sh
+encoded path guard (deny-env-dump.sh) > deny: echo Y2F0IH4vLmNvbmZpZy9naC9ob3N0cy55bWw= | base64 --dec | sh
 encoded path guard (deny-env-dump.sh) > deny: echo Y2F0IH4vLmNvbmZpZy9naC9ob3N0cy55bWw= | base64 -d > run.sh
 encoded path guard (deny-env-dump.sh) > deny: echo Y2F0IH4vLmNvbmZpZy9naC9ob3N0cy55bWw= | base64 -d | sh
+encoded path guard (deny-env-dump.sh) > deny: echo Y2F0IH4vLmNvbmZpZy9naC9ob3N0cy55bWw= | base64 -di | sh
 encoded path guard (deny-env-dump.sh) > deny: echo ZW52 | base64 -d | sh
 encoded path guard (deny-env-dump.sh) > deny: echo ZXhwb3J0IC1w | base64 --decode | bash
 encoded path guard (deny-env-dump.sh) > deny: echo cHJpbnRlbnYgR0hfVE9LRU4= | base64 -d | sh
@@ -158,9 +195,9 @@ Summary lines, verbatim:
 
 ```
  Test Files  1 passed (1)
-      Tests  315 passed | 3 skipped (318)
-   Start at  20:44:28
-   Duration  20.28s (transform 191ms, setup 0ms, import 301ms, tests 18.92s, environment 0ms)
+      Tests  350 passed | 3 skipped (353)
+   Start at  21:06:49
+   Duration  19.38s (transform 187ms, setup 0ms, import 222ms, tests 18.22s, environment 0ms)
 ```
 
 ## 2. Full test suite
@@ -185,8 +222,8 @@ Failed tests and summary lines, verbatim:
  FAIL  .agro/scripts/__tests__/herdr-default.test.ts > Pi clipboard defaults in the canonical zshrc > leaves the variable unset without a nonempty pane marker: {"HERDR_PANE_ID":""}
  FAIL  .agro/scripts/__tests__/herdr-default.test.ts > Pi clipboard defaults in the canonical zshrc > leaves the variable unset in a noninteractive Herdr shell
  Test Files  1 failed | 124 passed (125)
-      Tests  7 failed | 3653 passed | 9 skipped (3669)
-   Duration  183.06s (transform 7.04s, setup 0ms, import 18.94s, tests 127.33s, environment 52ms)
+      Tests  7 failed | 3688 passed | 9 skipped (3704)
+   Duration  167.47s (transform 5.51s, setup 0ms, import 15.73s, tests 120.67s, environment 11ms)
 ```
 
 Failure cause for the first case, verbatim:
@@ -197,7 +234,7 @@ AssertionError: These functional tests require zsh on the test runner: expected 
 
 `command -v zsh` exits with status 1 on this node. The node has no `zsh`.
 
-The 7 failures are all in `herdr-default.test.ts`. They are the same 7 failures that `baseline.md` records. They are the baseline on a node with no `zsh`. No other test file failed. The passed count went from 3533 in the baseline to 3653, because the branch adds 120 cases.
+The 7 failures are all in `herdr-default.test.ts`. They are the same 7 failures that `baseline.md` records. They are the baseline on a node with no `zsh`. No other test file failed. The passed count went from 3533 in the baseline to 3688, because the branch adds 155 cases.
 
 ## 3. Provider link check
 
