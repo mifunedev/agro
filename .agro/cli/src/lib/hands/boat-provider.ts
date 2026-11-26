@@ -1,3 +1,4 @@
+import { NODE_READY_TIMEOUT_MS } from "../console-api.js";
 import type { LifecycleRunner, RunResult } from "../execution/runner.js";
 import { CONTAINER_REFUSAL, type ExedevDeps } from "./exedev-provider.js";
 import { firstLine, isRecord, shellQuote, type Hand, type HandOutcome, type HandProvider } from "./provider.js";
@@ -16,7 +17,11 @@ export type BoatDeps = Omit<ExedevDeps, "hostname"> & { env: NodeJS.ProcessEnv }
 
 type BoatCall = { ok: true; stdout: string } | { ok: false; error: string; code?: string; stdout: string };
 
-function jsonLines(stdout: string): Record<string, unknown>[] {
+function records(stdout: string): Record<string, unknown>[] {
+  try {
+    const whole: unknown = JSON.parse(stdout.trim());
+    if (isRecord(whole)) return [whole];
+  } catch {}
   return stdout.split(/\r?\n/).flatMap((line) => {
     try {
       const parsed: unknown = JSON.parse(line);
@@ -32,16 +37,17 @@ function eventId(event: Record<string, unknown>): string | undefined {
   return candidates.find((value): value is string => typeof value === "string" && value !== "");
 }
 
-function boat(run: LifecycleRunner, command: string, args: string[], timeoutMs?: number): BoatCall {
-  const result: RunResult = run("boat", [command, ...args, "--json"], {
-    stdio: "capture",
-    ...(timeoutMs === undefined ? {} : { timeoutMs }),
-  });
+function eventStatus(event: Record<string, unknown>): unknown {
+  return isRecord(event.sandbox) && event.sandbox.status !== undefined ? event.sandbox.status : event.status;
+}
+
+function boat(run: LifecycleRunner, command: string, args: string[], timeoutMs: number): BoatCall {
+  const result: RunResult = run("boat", [command, ...args, "--json"], { stdio: "capture", timeoutMs });
   const stdout = result.stdout ?? "";
   if (result.error?.code === "ENOENT") {
     return { ok: false, stdout, error: `boat is not installed; install it from https://docs.boat.dev/cli-reference` };
   }
-  const event = jsonLines(stdout).find((line) => line.event === "error");
+  const event = records(stdout).find((line) => line.event === "error");
   if (event !== undefined) {
     const code = String(event.code ?? "unknown");
     return { ok: false, stdout, code, error: `boat ${command} failed: ${String(event.error ?? "unknown error")} (code ${code})` };
@@ -57,8 +63,8 @@ function boat(run: LifecycleRunner, command: string, args: string[], timeoutMs?:
   return { ok: true, stdout };
 }
 
-export function boatPreflight(run: LifecycleRunner): HandOutcome<void> {
-  const result = boat(run, "list", []);
+export function boatPreflight(run: LifecycleRunner, timeoutMs = NODE_READY_TIMEOUT_MS): HandOutcome<void> {
+  const result = boat(run, "list", [], timeoutMs);
   if (result.ok) return { ok: true, value: undefined };
   if (result.code === "unauthorized") return { ok: false, error: `${result.error}; run boat login` };
   return result;
@@ -88,21 +94,24 @@ function toHand(sandbox: BoatSandbox): Hand {
 }
 
 export function createBoatProvider(deps: BoatDeps, notice: (message: string) => void = () => {}): HandProvider {
-  const { run } = deps;
   const brainId = deps.env.BOAT_ID === "" ? undefined : deps.env.BOAT_ID;
+  const call = (command: string, args: string[]) => boat(deps.run, command, args, deps.timeoutMs);
 
   function refusal(verb: string, name: string): { ok: false; error: string } {
     return { ok: false, error: `refusing to ${verb} ${name}: it is this brain` };
   }
 
   function listHands(): HandOutcome<Hand[]> {
-    const result = boat(run, "list", []);
+    const result = call("list", []);
     if (!result.ok) return result;
     let parsed: unknown;
     try {
       parsed = JSON.parse(result.stdout);
     } catch {
       return { ok: false, error: "boat list returned invalid JSON" };
+    }
+    if (isRecord(parsed) && isRecord(parsed.pageInfo) && parsed.pageInfo.hasMore === true) {
+      return { ok: false, error: "boat list returned more than one page; agro hands reads one page" };
     }
     const sandboxes = isRecord(parsed) ? parsed.sandboxes : undefined;
     if (!Array.isArray(sandboxes)) return { ok: false, error: "boat list returned no sandboxes list" };
@@ -127,9 +136,9 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
   }
 
   function info(id: string): HandOutcome<BoatSandbox> {
-    const result = boat(run, "info", [id]);
+    const result = call("info", [id]);
     if (!result.ok) return result;
-    const [parsed] = jsonLines(result.stdout);
+    const [parsed] = records(result.stdout);
     const sandbox = toSandbox(parsed) ?? toSandbox(parsed?.sandbox);
     return sandbox === undefined ? { ok: false, error: "boat info returned invalid JSON" } : { ok: true, value: sandbox };
   }
@@ -156,24 +165,35 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
   }
 
   function withoutAutoStop(command: string, args: string[], name: string): BoatCall {
-    const first = boat(run, command, [...args, "--no-auto-stop"], deps.timeoutMs);
+    const first = call(command, [...args, "--no-auto-stop"]);
     if (first.ok || first.code !== BOAT_TRIAL_REFUSAL_CODE) return first;
-    notice(`trial tier: hand ${name} stops after ${BOAT_TRIAL_TTL_SECONDS / 3600} hours`);
-    return boat(run, command, [...args, "--ttl", String(BOAT_TRIAL_TTL_SECONDS)], deps.timeoutMs);
+    const retried = call(command, [...args, "--ttl", String(BOAT_TRIAL_TTL_SECONDS)]);
+    if (retried.ok) notice(`trial tier: hand ${name} stops after ${BOAT_TRIAL_TTL_SECONDS / 3600} hours`);
+    return retried;
+  }
+
+  function freshName(name: string | undefined): HandOutcome<string> {
+    if (name === undefined) return { ok: false, error: "boat hands need --name <name>" };
+    if (name.startsWith(BOAT_PREFIX)) return { ok: false, error: `pass the hand name without ${BOAT_PREFIX}` };
+    const listed = listHands();
+    if (!listed.ok) return listed;
+    const taken = listed.value.find((hand) => hand.name === name);
+    return taken === undefined ? { ok: true, value: name } : { ok: false, error: `boat hand ${name} already exists as ${taken.id}` };
   }
 
   function launch(command: string, args: string[], name: string): HandOutcome<Hand> {
     const result = withoutAutoStop(command, [...args, "--name", `${BOAT_PREFIX}${name}`], name);
-    const events = jsonLines(result.stdout);
+    const events = records(result.stdout);
     const ready = events.find((event) => event.event === "ready");
     const id = (ready === undefined ? undefined : eventId(ready)) ?? events.map(eventId).find((value) => value !== undefined);
-    if (result.ok && ready !== undefined && id !== undefined) {
-      return { ok: true, value: toHand({ id, name: `${BOAT_PREFIX}${name}`, status: "ready" }) };
+    const finalStatus = ready === undefined ? eventStatus(events.at(-1) ?? {}) : "ready";
+    if (result.ok && id !== undefined && typeof finalStatus === "string" && ["ready", "idle", "running"].includes(finalStatus)) {
+      return { ok: true, value: toHand({ id, name: `${BOAT_PREFIX}${name}`, status: finalStatus }) };
     }
     const cause = result.ok ? `boat ${command} reported no ready sandbox` : result.error;
     return {
       ok: false,
-      error: id === undefined ? cause : `${cause}; sandbox ${id} exists: run agro hands destroy ${name} --yes`,
+      error: id === undefined ? cause : `${cause}; sandbox ${id} exists: run agro hands destroy ${id} --provider boat --yes`,
     };
   }
 
@@ -200,24 +220,26 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
     list: async () => listHands(),
     resolve: async (ref) => resolve(ref),
     async create({ name }) {
-      if (name === undefined) return { ok: false, error: "boat hands need --name <name>" };
-      const allowed = mayWrite("create", name);
+      const allowed = mayWrite("create", name ?? "");
       if (!allowed.ok) return allowed;
-      return launch("new", ["--no-env"], name);
+      const fresh = freshName(name);
+      if (!fresh.ok) return fresh;
+      return launch("new", ["--no-env"], fresh.value);
     },
     async fork(ref, { name }) {
-      if (name === undefined) return { ok: false, error: "boat hands need --name <name>" };
-      const allowed = mayWrite("fork", name);
+      const allowed = mayWrite("fork", name ?? "");
       if (!allowed.ok) return allowed;
+      const fresh = freshName(name);
+      if (!fresh.ok) return fresh;
       const source = guard("fork", ref);
       if (!source.ok) return source;
-      const forked = launch("fork", [source.value.id, "--wait"], name);
+      const forked = launch("fork", [source.value.id, "--wait"], fresh.value);
       return forked.ok ? { ok: true, value: { hand: forked.value, job: null } } : forked;
     },
     async pause(ref) {
       const hand = guard("pause", ref);
       if (!hand.ok) return hand;
-      const stopped = boat(run, "stop", [hand.value.id]);
+      const stopped = call("stop", [hand.value.id]);
       return stopped.ok ? awaitStopped(hand.value) : stopped;
     },
     async resume(ref) {
@@ -229,7 +251,7 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
     async destroy(ref) {
       const hand = guard("destroy", ref);
       if (!hand.ok) return hand;
-      const deleted = boat(run, "delete", [hand.value.id, "--yes"]);
+      const deleted = call("delete", [hand.value.id, "--yes"]);
       return deleted.ok ? { ok: true, value: undefined } : deleted;
     },
   };
