@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "fix/1673-secret-guard-variants",
+  "description": "Deny piped, container, and encoded variants in the secret and operator-path guards (deny-env-dump.sh), with failing-first tests and no prose regression.",
+  "review": true,
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Deny stdin-fed interpreter scripts that read a secret from the environment",
+      "description": "As the operator, I want `deny-env-dump.sh` to inspect a script that a heredoc or a pipe feeds to an interpreter. Then a stdin script cannot read `DATABASE_URL` past the guard.",
+      "acceptanceCriteria": [
+        "Red first: the worker adds the deny cases below to `.agro/scripts/__tests__/hooks.test.ts` and runs the file. The worker records that each new deny case fails before the hook change.",
+        "The hook denies `node - <<'EOF'` with a body that reads `process.env.DATABASE_URL`.",
+        "The hook denies `node <<'EOF'`, `python3 - <<'EOF'`, and `bash -s <<'EOF'` when the body reads the environment. Environment reads are `process.env`, `os.environ`, `getenv`, `%ENV`, `$ENV{`, and `ENV[`. A `$NAME` or `${NAME}` reference to a secret-named variable also counts.",
+        "The hook denies a pipe into a bare interpreter, for example `echo 'console.log(process.env.DATABASE_URL)' | node`, and `printf '%s' \"$x\" | python3 -` when the left side names an environment read.",
+        "The hook allows a stdin interpreter heredoc whose body reads no environment value, for example `node - <<'EOF'` with `console.log(1)`.",
+        "The hook allows a prose heredoc that names `process.env.DATABASE_URL`: `gh pr create --body-file - <<'EOF'`, `git commit -F - <<'EOF'`, and `cat > notes.md <<'EOF'`.",
+        "The denial reason names the remedy: the operator runs the command and pastes only the non-secret value.",
+        "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/scripts/__tests__/hooks.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Deny secret-named environment reads through container and remote exec",
+      "description": "As the operator, I want `deny-env-dump.sh` to deny `printenv`, `env`, and `echo` of a secret-named variable inside `docker exec`, `agro hands exec`, `ssh`, and `bash -c`. The guard then stops a container secret from reaching a database URL.",
+      "acceptanceCriteria": [
+        "Red first: the worker adds the deny cases below to `.agro/scripts/__tests__/hooks.test.ts` and records that each new deny case fails before the hook change.",
+        "The hook denies `docker exec db printenv POSTGRES_PASSWORD`; today the `ASK` pattern returns `ask` for this command.",
+        "The hook denies the same read through `podman exec`, `kubectl exec`, `agro hands exec <name> --`, `ssh <host>`, and `bash -c 'printenv GH_TOKEN'`.",
+        "The hook denies `docker exec db env | grep PASSWORD` and `docker exec db sh -c 'echo $POSTGRES_PASSWORD'`.",
+        "The hook keeps `ask` for a local `printenv HOME`, and allows `docker exec db psql -c 'select 1'`.",
+        "The denial reason names the remedy: the operator runs the command and pastes only the non-secret value.",
+        "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/scripts/__tests__/hooks.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Deny encoded operator and secret paths",
+      "description": "As the operator, I want `deny-env-dump.sh` to decode `base64 -d` and `xxd -r` payloads so that a `.config/` path carried as encoded text cannot pass the operator-path guard.",
+      "acceptanceCriteria": [
+        "Red first: the worker adds the deny cases below to `.agro/scripts/__tests__/hooks.test.ts` and records that each new deny case fails before the hook change.",
+        "When the command contains `base64 -d`, `base64 --decode`, `base64 -D`, or `xxd -r`, the hook decodes each literal payload token. The hook tests the decoded text against `OPERATOR_PATH` and `SECRET_PATH`.",
+        "The hook denies `echo <base64 of \"cat ~/.config/gh/hosts.yml\"> | base64 -d | sh` and the same payload written with `> run.sh`.",
+        "The hook denies a `base64 -d` or `xxd -r` decode that a shell runs (`| sh`, `| bash`, `$(...)`) inside `docker exec`, `agro hands exec`, `ssh`, or `bash -c`. The payload content does not matter.",
+        "The hook allows `echo aGVsbG8= | base64 -d` and `base64 -d image.b64 > image.png`.",
+        "The denial reason names the remedy. The operator pastes the value, or the agent names the path in prose through `--body-file` or a heredoc.",
+        "Test sources build each encoded fixture at run time with `Buffer.from(...).toString(\"base64\")`. No protected path appears as a literal in the test file.",
+        "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/scripts/__tests__/hooks.test.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Document the new denials",
+      "description": "As an agent reader, I want `docs/security-considerations.md` and `CHANGELOG.md` to state the new denials so that the documented heredoc remedy matches the hook.",
+      "acceptanceCriteria": [
+        "`docs/security-considerations.md` § 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
+        "`docs/security-considerations.md` § 2 lists the container, remote exec, and encoded-path denials.",
+        "`CHANGELOG.md` `## [Unreleased]` has a `### Fixed` entry that links [#1673](https://github.com/mifunedev/agro/issues/1673).",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        "docs/security-considerations.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Capture the manual review evidence",
+      "description": "As the operator, I want a command transcript in `.agro/tasks/secret-guard-variants/evidence/manual-review.md` so that I can verify each variant without reading the regexes.",
+      "acceptanceCriteria": [
+        "The transcript holds the output of `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` with each new case name and its result.",
+        "The transcript holds the output of `corepack pnpm test`, and names the 7 `herdr-default.test.ts` failures as the baseline on a node with no `zsh`.",
+        "The transcript holds the output of `bash .agro/scripts/link-providers.sh --check`.",
+        "The story runs no live resource, reads no environment secret, and starts no container."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/secret-guard-variants/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
