@@ -43,14 +43,29 @@ before each tool call. `.claude/hooks` is a symlink to `.agro/hooks`.
   `gh auth token` and `agro secret get`, and reads of secret files such as `.env*`, `*.pem`, and
   `id_rsa*`. The hook also denies any command that names a `.config/` path.
   The operator runs `agro secret get` on the host.
+- `deny-env-dump.sh` denies a container or remote exec that prints a
+  secret-named variable or dumps the environment. The runners are
+  `docker exec`, `podman exec`, `nerdctl exec`, `kubectl exec`,
+  `agro hands exec`, `ssh`, and a shell `-c` runner. A local `printenv NAME` still asks.
+- `deny-env-dump.sh` decodes each literal payload of a `base64 -d`,
+  `base64 --decode`, `base64 -D`, or `xxd -r` command. When the decoded text
+  names an operator-only or secret path, the hook denies the command.
+- `deny-env-dump.sh` denies any decode that a shell runs inside a container
+  exec, a remote exec, or `bash -c`. The payload does not change this deny.
 - [`deny-secret-paths.sh`](../.agro/hooks/deny-secret-paths.sh) checks the file
   tools (`Read`, `Write`, `Edit`, `NotebookEdit`, `Grep`, `Glob`). The hook denies
   the same secret paths, `.config/`, and `settings.local.json`.
 - [`warn-devtcp.sh`](../.agro/hooks/warn-devtcp.sh) prints a warning for
   `/dev/tcp` and `/dev/udp`. The hook blocks nothing.
 
-`deny-env-dump.sh` ignores HEREDOC bodies. A template file such as
-`.example.env` stays readable.
+`deny-env-dump.sh` inspects a script that a heredoc, a pipe, or a here-string
+feeds to an interpreter. The interpreters are `node`, `python`, `perl`, `ruby`,
+`bash`, `sh`, and `zsh`. When the script reads the environment or a
+secret-named variable, the hook denies the script.
+
+`deny-env-dump.sh` ignores a prose heredoc, such as a body for
+`gh pr create --body-file -`, `git commit -F -`, or `cat > file`. A template
+file such as `.example.env` stays readable.
 
 Wiring:
 
