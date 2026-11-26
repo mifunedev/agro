@@ -13,7 +13,7 @@ export const WORKSPACES_SUBDIR = "workspaces";
 
 export const DEFAULT_WORKSPACE_NAME = "harness";
 
-export const HAND_PROVIDER_IDS = ["console", "exedev"] as const;
+export const HAND_PROVIDER_IDS = ["console", "exedev", "boat"] as const;
 
 export type HandProviderId = (typeof HAND_PROVIDER_IDS)[number];
 

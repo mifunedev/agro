@@ -356,6 +356,16 @@ describe("agro config hands.provider", () => {
     expect(err).toEqual([]);
   });
 
+  it("writes hands.provider boat to the host config", async () => {
+    const host = hostScope();
+    const { io, out, err } = makeIo();
+    const opts = { bin: "agro", env: {}, home: host.home };
+    expect(await runConfigSet("hands.provider", "boat", opts, io)).toBe(0);
+    expect(JSON.parse(readFileSync(host.configFile, "utf8"))).toEqual({ version: 1, hands: { provider: "boat" } });
+    expect(out.join("")).toBe(`${host.configFile}: set hands.provider=boat\n`);
+    expect(err).toEqual([]);
+  });
+
   it("keeps the other host config fields", async () => {
     const host = hostScope();
     mkdirSync(host.agroHome, { recursive: true });
@@ -376,7 +386,7 @@ describe("agro config hands.provider", () => {
     const host = hostScope();
     const { io, err } = makeIo();
     expect(await runConfigSet("hands.provider", "aws", { bin: "agro", env: {}, home: host.home }, io)).toBe(1);
-    expect(err.join("")).toContain("hands.provider must be one of console, exedev");
+    expect(err.join("")).toContain("hands.provider must be one of console, exedev, boat");
     expect(existsSync(host.configFile)).toBe(false);
   });
 
