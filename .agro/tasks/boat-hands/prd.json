@@ -103,8 +103,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Advisor reran: pnpm typecheck exit 0; vitest commands/__tests__ 415/415. 1 executed: create runs boat new with the no-env, name agro-hand-<name>, and no-auto-stop flags; id from ready event; failure after a known id names the id and the destroy command. 2 executed: trial fallback only on BOAT_TRIAL_REFUSAL_CODE (placeholder no_auto_stop_not_allowed, US-001 confirms) with ttl 7200 and stderr notice; no retry on rate_limited or 429. 3 executed: fork --wait; pause stop then poll info until archived or stopped, error and timeout fail; resume without auto-stop. 4 executed: destroy prompt shows name and id, --yes skips, no aborts with no delete. 5 executed: guard re-reads boat info and refuses a name without agro-hand-. 6 executed: BOAT_ID sandbox and ref self refused for write verbs and fork source. 7 executed: container without BOAT_ID refuses writes with CONTAINER_REFUSAL; list, exec, fetch run. 8 executed: console-only flags refused. 9 executed: credential grep test kept. 10 executed: typecheck and suite pass except baseline. Deferred US-003 criterion 4 executed: create --project adds remote hand-<id> as <id>:projects/acme/widget and pushes through boat ssh. Deviations: create and fork require --name.",
+      "passes": true,
+      "notes": "Advisor reran: pnpm typecheck exit 0; vitest commands/__tests__ 415/415. 1 executed: create runs boat new with the no-env, name agro-hand-<name>, and no-auto-stop flags; id from ready event; failure after a known id names the id and the destroy command. 2 executed: trial fallback only on BOAT_TRIAL_REFUSAL_CODE (placeholder no_auto_stop_not_allowed, US-001 confirms) with ttl 7200 and stderr notice; no retry on rate_limited or 429. 3 executed: fork --wait; pause stop then poll info until archived or stopped, error and timeout fail; resume without auto-stop. 4 executed: destroy prompt shows name and id, --yes skips, no aborts with no delete. 5 executed: guard re-reads boat info and refuses a name without agro-hand-. 6 executed: BOAT_ID sandbox and ref self refused for write verbs and fork source. 7 executed: container without BOAT_ID refuses writes with CONTAINER_REFUSAL; list, exec, fetch run. 8 executed: console-only flags refused. 9 executed: credential grep test kept. 10 executed: typecheck and suite pass except baseline. Deferred US-003 criterion 4 executed: create --project adds remote hand-<id> as <id>:projects/acme/widget and pushes through boat ssh. Deviations: create and fork require --name. Review round 1 repair (972d8c91): destroy hint names id and --provider boat; duplicate-name and doubled-prefix refusals; hasMore fails loudly; whole-stdout JSON before JSON Lines; final ready/idle/running record accepted; timeoutMs on every provider boat call; trial notice after successful retry. Advisor reran typecheck exit 0 and vitest 465/465 incl. sandbox-routing.",
       "dependsOn": [
         "US-003"
       ],
@@ -113,7 +113,7 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands-boat.test.ts"
       ],
-      "commit": "1a5afaf8",
+      "commit": "972d8c91",
       "rounds": 1
     },
     {
