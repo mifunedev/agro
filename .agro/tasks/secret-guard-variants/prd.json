@@ -20,14 +20,14 @@
         "`corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "1 executed: worker ran hooks.test.ts before the hook change, exit 1 with 22 failures (21 new deny cases + reason test); echo|bash case already denied by the echo rule. 2-6 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 230 passed 3 skipped; cases cover node -, node, python3 -, bash -s heredocs, bare-interpreter pipes, here-string, benign stdin script, and prose heredocs (gh pr create --body-file -, git commit -F -, cat > notes.md). 4: `printf '%s' \"$x\" | python3 -` names no env read, so it is an allow case; the deny variant uses os.environ on the left. 7 executed: test asserts the reason contains 'Ask the operator to run the command' and 'paste only the non-secret value'. 8 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures.",
+      "passes": true,
+      "notes": "1 executed: worker ran hooks.test.ts before the hook change, exit 1 with 22 failures (21 new deny cases + reason test); echo|bash case already denied by the echo rule. 2-6 executed: advisor reran `corepack pnpm vitest run .agro/scripts/__tests__/hooks.test.ts`, exit 0, 230 passed 3 skipped; cases cover node -, node, python3 -, bash -s heredocs, bare-interpreter pipes, here-string, benign stdin script, and prose heredocs (gh pr create --body-file -, git commit -F -, cat > notes.md). 4: `printf '%s' \"$x\" | python3 -` names no env read, so it is an allow case; the deny variant uses os.environ on the left. 7 executed: test asserts the reason contains 'Ask the operator to run the command' and 'paste only the non-secret value'. 8 executed: exit 0; worker full suite shows only the 7 baseline herdr-default failures. Round 1 (review repair, findings 1,2,4-8): worker red run exit 1 with 32 new deny failures; advisor reran hooks.test.ts, exit 0, 304 passed 3 skipped. Covers 2>&1/>&2 redirects, docker/podman/kubectl/agro hands exec and ssh prefixes, shell-body env dumps, ENV/environ/process[\"env\"] forms, /usr/bin/env and sudo -E launch forms, dash/ksh, and multi-stage pipes; prose heredoc allow cases stay green.",
       "dependsOn": [],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/scripts/__tests__/hooks.test.ts"
       ],
-      "commit": "829c2348",
+      "commit": "187e8bef",
       "rounds": 1
     },
     {
