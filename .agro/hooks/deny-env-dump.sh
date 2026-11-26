@@ -4,8 +4,12 @@ set -euo pipefail
 input=$(cat)
 cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
 
+SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIAL|AUTH|BEARER|SESSION|COOKIE|SLACK_[A-Z_]*|OPENAI_[A-Z_]*|ANTHROPIC_[A-Z_]*|GITHUB_TOKEN|GH_TOKEN|AWS_SECRET|AWS_SESSION|GCP_[A-Z_]*|DATABASE_URL|DB_PASSWORD)'
+
+raw_cmd=$cmd
+
 if command -v perl >/dev/null 2>&1; then
-  cmd=$(perl -0777 -pe 's{<<-?\s*(["\x27]?)(\w+)\1(.*?)\n\s*\2\b}{<<HEREDOC_STRIPPED}gs' <<<"$cmd")
+  cmd=$(perl -0777 -pe 's{<<(-)?\s*(["\x27]?)(\w+)\2(.*?)\n(?(1)\t*)\3(?=\n|$)}{<<HEREDOC_STRIPPED}gs' <<<"$cmd")
 fi
 
 cmd=${cmd//$'\n'/ }
@@ -15,8 +19,6 @@ if command -v perl >/dev/null 2>&1; then
   literal_cmd=$(perl -pe 's{((?:^|[^A-Za-z0-9_./-])jq(?:\s+-[^\s\x27"]*)*(?:\s+--(?:arg|argjson)\s+[^\s\x27"]+\s+[^\s\x27"]+)*(?:\s+-[^\s\x27"]*)*\s+)\x27([^\x27]*)\x27}{my ($p, $f) = ($1, $2); $f =~ s/"((?:[^"\\]|\\.)*)"/index($1, "\\(") >= 0 ? "\"$1\"" : "\"\""/ge; "$p\x27$f\x27"}ge' <<<"$cmd") || literal_cmd=$cmd
 fi
 
-SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIAL|AUTH|BEARER|SESSION|COOKIE|SLACK_[A-Z_]*|OPENAI_[A-Z_]*|ANTHROPIC_[A-Z_]*|GITHUB_TOKEN|GH_TOKEN|AWS_SECRET|AWS_SESSION|GCP_[A-Z_]*|DATABASE_URL|DB_PASSWORD)'
-
 ENV_DUMP='(^|[^A-Za-z0-9._/-])env[[:space:]]*[|>;&]'
 ENV_DUMP+='|(^|[^A-Za-z0-9._/-])env[[:space:]]*$'
 ENV_DUMP+='|\bset[[:space:]]*[|>]'
@@ -25,6 +27,12 @@ ENV_DUMP+='|\bprintenv[[:space:]]*([|;>&]|$)'
 SHELL_RUNNER='(^|[[:space:];&|(`/])(sh|bash|zsh|dash|ksh|fish)([[:space:]]+-[^[:space:]]*)*[[:space:]]+-[A-Za-z]*c([[:space:]]|$)'
 SHELL_RUNNER+='|(^|[[:space:];&|(`/])su[[:space:]]([^;&|]*[[:space:]])?-[A-Za-z]*c([[:space:]]|$)'
 SHELL_RUNNER+='|(^|[[:space:];&|(`/])(eval|ssh|xargs|watch|tmux|screen)([[:space:]]|$)'
+
+REMOTE_EXEC='\b(docker|podman|nerdctl|kubectl)[[:space:]]+([^|;&]*[[:space:]])?exec([[:space:]]|$)'
+REMOTE_EXEC+='|\bagro[[:space:]]+hands[[:space:]]+exec([[:space:]]|$)'
+REMOTE_EXEC+="|${SHELL_RUNNER}"
+REMOTE_ENV_READ="\\bprintenv[[:space:]]+([^|;&]*[[:space:]])?[\"']?[A-Z0-9_]*${SECRET_NAME}[A-Z0-9_]*"
+REMOTE_ENV_READ+="|(^|[^A-Za-z0-9._/-])(env|printenv)[[:space:]]*[\"'][[:space:]]*([|;>&)]|\$)"
 
 DENY='\bexport[[:space:]]+-p\b'
 DENY+='|\bdeclare[[:space:]]+-[xp]\b'
@@ -42,6 +50,109 @@ DENY+='|\bagro[[:space:]]+secret[[:space:]]+get\b'
 DENY+='|\bgcloud[[:space:]]+auth[[:space:]]+print-(access|identity)-token\b'
 DENY+='|\bkubectl[[:space:]]+get[[:space:]]+secret[^|]*-o[[:space:]]*(yaml|json)'
 DENY+='|\bdocker[[:space:]]+(secret|config)[[:space:]]+inspect\b'
+
+STDIN_SCRIPT_ENV_READ=''
+if command -v perl >/dev/null 2>&1; then
+  STDIN_SCRIPT_ENV_READ=$(SECRET_NAME=$SECRET_NAME DENY=$DENY perl -e '
+    my ($secret, $deny_src) = @ENV{qw(SECRET_NAME DENY)};
+    my $read = qr/process\s*(?:\.|\[)\s*["\x27]?env\b|\benviron\b|getenv|%ENV\b|\$ENV\{|\bENV\s*(?:\[|\.)|\$\{?[A-Z0-9_]*$secret[A-Z0-9_]*\}?/;
+    my $dump = qr/(?:^|[;&|(])[ \t]*(?:(?:sudo|exec|command|builtin)[ \t]+)*(?:env|printenv|set)[ \t]*(?:$|[|;&>)])/m;
+    my $deny = qr/$deny_src/mi;
+    my $redirect = qr/\d*[<>]+&[\d-]|&>>?/;
+    sub interp_kind {
+      my $s = shift;
+      $s =~ s/$redirect/ /g;
+      $s =~ s/\d*[<>]+\s*[^\s<>]*//g;
+      my @w = map { s/["\x27]//gr } split " ", $s;
+      while (@w) {
+        my $word = $w[0] =~ s{.*/}{}r;
+        if ($word =~ /^\w+=/ || $word =~ /^(exec|command|builtin|nohup|time)$/) { shift @w }
+        elsif ($word =~ /^(env|sudo|doas)$/) {
+          shift @w;
+          while (@w && $w[0] =~ /^-|^\w+=/) { my $o = shift @w; shift @w if $o =~ /^-[ugCDhprtUS]$/ }
+        }
+        elsif ($word =~ /^(docker|podman|nerdctl|kubectl)$/) {
+          shift @w;
+          shift @w while @w && $w[0] =~ /^(compose|container)$/;
+          return 0 unless @w && shift(@w) eq "exec";
+          while (@w && $w[0] =~ /^-/) { my $o = shift @w; shift @w if $o =~ /^(-[euwcn]|--(env|env-file|user|workdir|container|namespace))$/ }
+          shift @w;
+          shift @w if @w && $w[0] eq "--";
+        }
+        elsif ($word eq "agro" && @w > 2 && $w[1] eq "hands" && $w[2] eq "exec") {
+          splice @w, 0, 4;
+          shift @w if @w && $w[0] eq "--";
+        }
+        elsif ($word eq "ssh") {
+          shift @w;
+          while (@w && $w[0] =~ /^-/) { my $o = shift @w; shift @w if $o =~ /^-[bcDEeFIiJLlmOoPpQRSWw]$/ }
+          shift @w;
+          shift @w if @w && $w[0] eq "--";
+          return "shell" unless @w;
+        }
+        else { last }
+      }
+      return 0 unless @w;
+      my $bin = shift(@w) =~ s{.*/}{}r;
+      return 0 unless $bin =~ /^(node|nodejs|python[0-9.]*|perl|ruby|bash|sh|zsh|dash|ksh)$/;
+      my $python = $bin =~ /^python/;
+      my $takes_value = $python ? qr/^-[WX]$/
+        : $bin =~ /^node/ ? qr/^(-r|--require|--import|-C|--conditions|--loader)$/
+        : $bin =~ /^(perl|ruby)$/ ? qr/^-[IrM]$/
+        : qr/^[-+][oO]$/;
+      my (@flags, @ops);
+      while (@w) {
+        my $x = shift @w;
+        if ($x eq "--") { @ops = @w; last }
+        if ($x =~ $takes_value) { shift @w; next }
+        return 0 if $python && $x =~ /^-[bBdEhiIOPqsSuvx]*m/;
+        if ($x =~ /^-./) { push @flags, $x; next }
+        @ops = ($x, @w);
+        last;
+      }
+      my $stdin = !@ops || grep { $_ eq "-" } @ops;
+      return $stdin ? "script" : 0 if $bin !~ /^(bash|sh|zsh|dash|ksh)$/;
+      return 0 if grep { /^-[A-Za-z]*c/ } @flags;
+      return "shell" if grep { /^-[A-Za-z]*s/ } @flags;
+      return $stdin ? "shell" : 0;
+    }
+    sub body_hit {
+      my ($kind, $text) = @_;
+      return 0 unless $kind;
+      return $text =~ $read || ($kind eq "shell" && ($text =~ $dump || $text =~ $deny));
+    }
+    my $c = do { local $/; <STDIN> };
+    my $hit = 0;
+    while ($c =~ /<<(-)?\s*(["\x27]?)(\w+)\2([^\n]*)(.*?)\n(?(1)\t*)\3(?=\n|$)/gs) {
+      my ($tail, $body, $pos) = ($4, $5, $-[0]);
+      my $head = substr($c, 0, $pos) =~ s/$redirect/ /gr;
+      $head =~ s/.*[;&|(`{\n]//s;
+      my $t = $tail =~ s/$redirect/ /gr;
+      $t =~ s/(\|\||[;&]).*//s;
+      my ($args, @stages) = split /\|/, $t, -1;
+      for my $kind (interp_kind("$head $args"), map { interp_kind($_) } @stages) {
+        $hit = 1 if body_hit($kind, $body);
+      }
+    }
+    $c =~ s/<<(-)?\s*(["\x27]?)(\w+)\2([^\n]*).*?\n(?(1)\t*)\3(?=\n|$)/<< $4/gs;
+    my @pipelines = ([""]);
+    for my $t ($c =~ /($redirect|\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"|\\.|[^\x27"\\|;&\n<>]+|[<>]+|\|\||&&|[|;&\n])/gs) {
+      if ($t eq "|") { push @{$pipelines[-1]}, "" }
+      elsif ($t =~ /^(\|\||&&|[;&\n])$/) { push @pipelines, [""] }
+      else { $pipelines[-1][-1] .= $t }
+    }
+    for my $p (@pipelines) {
+      for my $i (0 .. $#$p) {
+        my $s = $p->[$i];
+        $hit = 1 if $s =~ /^(.*?)<<<(.*)$/s && body_hit(interp_kind($1), $2);
+        next unless $i;
+        my $kind = interp_kind($s) or next;
+        $hit = 1 if grep { body_hit($kind, $p->[$_]) } 0 .. $i - 1;
+      }
+    }
+    print $hit ? 1 : "";
+  ' <<<"$raw_cmd") || STDIN_SCRIPT_ENV_READ=''
+fi
 
 DOCKER_INSPECT='\b(docker|podman|nerdctl)[[:space:]]+([^|;&]{0,160}[[:space:]])?inspect\b'
 DOCKER_FMT='(--format[=[:space:]]|(^|[[:space:]])-f[=[:space:]])'
@@ -85,6 +196,31 @@ SECRET_PATH+='|\.wget-hsts\b)'
 READ_WORDS='cat|tac|less|more|bat|head|tail|xxd|od|strings|hexdump|base64|nano|vim|vi|emacs|view|sed|awk|grep|rg|ripgrep|jq|yq|tee|cp|mv|scp|rsync|install|source'
 READ_CMD="(${READ_WORDS}|\\.)"
 SECRET_PATH_DENY="\\b${READ_CMD}\\b[^#|]*${SECRET_PATH}"
+
+DECODE='\bbase64[[:space:]]+([^|;&]*[[:space:]])?(-[A-Za-z]*[dD][A-Za-z]*\b|--d[a-z]*\b)'
+DECODE+='|\bxxd[[:space:]]+([^|;&]*[[:space:]])?-[A-Za-z]*r'
+DECODE_RUN="(${DECODE})[^;&]*\\|[[:space:]]*((sudo|exec|command)[[:space:]]+)*(/[^[:space:]]*/)?(sh|bash|zsh|dash|ksh)\\b"
+DECODE_RUN+="|(\\\$\\(|\`)[^)\`]*(${DECODE})"
+
+decoded_text=''
+decode_scan=$cmd
+if command -v perl >/dev/null 2>&1; then
+  decode_scan+=$'\n'$(DECODE=$DECODE perl -0777 -ne '
+    while (/<<(-)?\s*(["\x27]?)(\w+)\2([^\n]*)\n(.*?)\n(?(1)\t*)\3(?=\n|$)/gs) {
+      my ($body, $head) = ($5, substr($_, 0, $-[0]));
+      $head =~ s/.*[;&|(\n]//s;
+      print "$body\n" if $head =~ /$ENV{DECODE}/;
+    }
+  ' <<<"$raw_cmd") || decode_scan=$cmd
+fi
+if command -v perl >/dev/null 2>&1 && grep -qE -- "$DECODE" <<<"$decode_scan"; then
+  decoded_text=$(perl -MMIME::Base64 -ne '
+    for my $t (/[A-Za-z0-9+\/_-]{4,}={0,2}/g) { (my $b = $t) =~ tr{-_}{+/}; print decode_base64($b), "\n" }
+    s/\b0x(?=[0-9A-Fa-f])//gi;
+    s{(?<![0-9A-Za-z])[0-9A-Fa-f]{2}(?:[\s,]+[0-9A-Fa-f]{2}(?![0-9A-Za-z]))+}{(my $r = $&) =~ s/[\s,]//g; $r}ge;
+    for my $h (/[0-9A-Fa-f]{4,}/g) { print pack("H*", substr($h, 0, length($h) & ~1)), "\n" }
+  ' <<<"$decode_scan" | tr -c '[:print:]\n' ' ') || decoded_text=''
+fi
 
 ASK='\bprintenv[[:space:]]+[A-Za-z_]'
 
@@ -183,6 +319,7 @@ mask_quoted_separators() {
 path_cmd=$(mask_path_cmd "$cmd") || path_cmd=$cmd
 interp_cmd=$(mask_quoted_separators "$cmd") || interp_cmd=$cmd
 jq_filter_text=$(jq_filters "$literal_cmd") || jq_filter_text=$literal_cmd
+exec_segment_cmd=$(mask_quoted_separators "$literal_cmd") || exec_segment_cmd=$literal_cmd
 
 dump_cmd=$literal_cmd
 secret_path_cmd=$path_cmd
@@ -206,8 +343,16 @@ emit() {
 
 if grep -qEi -- "$DENY" <<<"$literal_cmd" || grep -qEi -- "$ENV_DUMP" <<<"$dump_cmd"; then
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, agro secret get, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the operator to run the command themselves and paste only the specific non-secret output you need.'
+elif grep -qE -- "$REMOTE_EXEC" <<<"$dump_cmd" && grep -qE -- "(${REMOTE_EXEC})[^|;&]*(${REMOTE_ENV_READ})" <<<"$exec_segment_cmd"; then
+  emit deny 'Secret-exposure guard (deny): a container or remote exec (docker/podman/nerdctl/kubectl exec, agro hands exec, ssh, or a shell -c runner) prints a secret-named variable or dumps the environment, which puts the secret in the transcript. Do NOT retry a variant that moves the read to another container, host, shell, script, or encoding. Ask the operator to run the command themselves and paste only the non-secret value you need.'
+elif [[ -n $decoded_text ]] && { grep -qEi -- "$OPERATOR_PATH|$SECRET_PATH|$DENY" <<<"$decoded_text" || grep -qE -- "$ENV_DUMP|$REMOTE_ENV_READ" <<<"$decoded_text"; }; then
+  emit deny 'Encoded-payload guard (deny): a base64 or hex payload that the command decodes (base64 -d/--decode/-D, xxd -r) names an operator-only or secret-laden path (.config/, settings.local.json, env file, private key, cloud credentials, shell history, or similar), or dumps the environment or prints a secret-named variable or token. Encoding does not change the policy. Do NOT retry a variant that encodes, splits, or relocates the path or command. If you need a value from that file, ask the operator to paste only the non-secret value into the chat. If you only need to name the path in prose, write it in a file passed with --body-file (or git commit -F) or in a heredoc.'
+elif grep -qE -- "$REMOTE_EXEC" <<<"$dump_cmd" && grep -qE -- "$DECODE_RUN" <<<"$literal_cmd"; then
+  emit deny 'Encoded-exec guard (deny): a container or remote exec (docker/podman/nerdctl/kubectl exec, agro hands exec, ssh, or a shell -c runner) runs a base64 or hex decode (base64 -d, xxd -r) through a shell, which hides the real command from this guard. Do NOT retry a variant that moves the decode to another shell, host, script, or encoding. Run the plain command so the guard can read it. If you need a secret or operator-only value, ask the operator to paste only the non-secret value into the chat. If you only need to name a path in prose, write it in a file passed with --body-file (or git commit -F) or in a heredoc.'
 elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
   emit deny 'Secret-exposure guard (deny): inline python, perl, ruby, or node code (-c, -e, -p, --eval) reads the process environment (os.environ, getenv, %ENV, $ENV{...}, ENV, process.env), which can print every environment variable, secrets included. Do NOT retry a variant that reaches the environment another way. If you need an environment value, ask the user to paste only that non-secret value.'
+elif [[ -n $STDIN_SCRIPT_ENV_READ ]]; then
+  emit deny 'Secret-exposure guard (deny): a script fed on stdin (heredoc, pipe, or here-string) to python, perl, ruby, node, or a shell reads the process environment (process.env, os.environ, getenv, %ENV, $ENV{...}, ENV[...]) or a secret-named variable such as $DATABASE_URL, which puts the secret in the transcript. Do NOT retry a variant that moves the read to a script file, another interpreter, a container, or an encoding. Ask the operator to run the command themselves and paste only the non-secret value you need.'
 elif grep -qE -- "$JQ_ENV_READ" <<<"$jq_filter_text"; then
   emit deny 'Secret-exposure guard (deny): a jq filter reads the process environment through `env` or `$ENV`, which prints environment variables, secrets included. Do NOT retry a variant that reaches the environment another way. To read an `env` key from JSON input, write `.env`. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then

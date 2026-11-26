@@ -16,6 +16,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - `/supervisor` and `/delegate` briefs forbid guard workarounds through stdin scripts, `docker exec`, remote exec, and base64, and require credential-free test databases ([#1673](https://github.com/mifunedev/agro/issues/1673)).
 
+### Fixed
+
+- `deny-env-dump.sh` denies a script on stdin that reads the environment or a secret-named variable, a secret read or environment dump through container or remote exec, and a decoded payload that names an operator-only or secret path ([#1673](https://github.com/mifunedev/agro/issues/1673)).
+
 ## [0.40.0] - 2026-11-17
 
 ### Added
