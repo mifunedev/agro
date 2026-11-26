@@ -5,7 +5,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LifecycleRunner, RunResult } from "../../lib/execution/runner.js";
 import { runHands, type HandsDeps } from "../hands.js";
-import { BOAT_PREFIX, createBoatProvider } from "../../lib/hands/boat-provider.js";
+import {
+  BOAT_PREFIX,
+  BOAT_TRIAL_REFUSAL_CODE,
+  BOAT_TRIAL_TTL_SECONDS,
+  createBoatProvider,
+  type BoatDeps,
+} from "../../lib/hands/boat-provider.js";
 import { createExedevProvider } from "../../lib/hands/exedev-provider.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -28,33 +34,64 @@ interface RunCall {
   gitVariant?: string;
 }
 
-interface Replies {
-  list?: RunResult | RunResult[];
+type BoatVerb = "list" | "info" | "new" | "fork" | "stop" | "resume" | "delete";
+
+interface Replies extends Partial<Record<BoatVerb, RunResult | RunResult[]>> {
   ssh?: number;
   git?: number;
 }
 
+const SYNTHETIC_READY = (id: string, name: string) =>
+  [
+    { event: "created", sandbox: { id, name, status: "provisioning" } },
+    { event: "state", id, status: "cloning" },
+    { event: "ready", sandbox: { id, name, status: "ready" } },
+  ]
+    .map((event) => JSON.stringify(event))
+    .join("\n");
+
+const DEFAULT_REPLIES: Record<BoatVerb, RunResult> = {
+  list: { status: 0, stdout: LIST_JSON },
+  info: { status: 0, stdout: JSON.stringify({ id: HAND_ID, name: "agro-hand-dev", status: "ready" }) },
+  new: { status: 0, stdout: SYNTHETIC_READY("sbx_new", "agro-hand-fresh") },
+  fork: { status: 0, stdout: SYNTHETIC_READY("sbx_fork", "agro-hand-copy") },
+  stop: { status: 0, stdout: "" },
+  resume: { status: 0, stdout: "" },
+  delete: { status: 0, stdout: "" },
+};
+
 function fakeRunner(replies: Replies = {}) {
   const calls: RunCall[] = [];
-  const listReplies = replies.list === undefined ? [] : Array.isArray(replies.list) ? [...replies.list] : [replies.list];
+  const queues = new Map<string, RunResult[]>();
+  for (const [verb, reply] of Object.entries(replies)) {
+    if (typeof reply === "object") queues.set(verb, Array.isArray(reply) ? [...reply] : [reply]);
+  }
   const run: LifecycleRunner = (cmd, args, opts): RunResult => {
     calls.push({ cmd, args, stdio: opts.stdio, gitSsh: opts.env?.GIT_SSH_COMMAND, gitVariant: opts.env?.GIT_SSH_VARIANT });
-    if (cmd === "boat" && args.join(" ") === LIST.join(" ")) {
-      if (listReplies.length === 0) return { status: 0, stdout: LIST_JSON };
-      return listReplies.length === 1 ? listReplies[0] : listReplies.shift()!;
-    }
     if (cmd === "boat" && args[0] === "ssh") return { status: replies.ssh ?? 0 };
+    if (cmd === "boat" && args[0] in DEFAULT_REPLIES) {
+      const queue = queues.get(args[0]) ?? [];
+      if (queue.length === 0) return DEFAULT_REPLIES[args[0] as BoatVerb];
+      return queue.length === 1 ? queue[0] : queue.shift()!;
+    }
+    if (cmd === "git" && args.includes("symbolic-ref")) return { status: 0, stdout: "main\n" };
     if (cmd === "git") return { status: replies.git ?? 0 };
     throw new Error(`unexpected call: ${cmd} ${args.join(" ")}`);
   };
   return { calls, run };
 }
 
+function boatCalls(calls: RunCall[], ...verbs: string[]): string[][] {
+  return calls.filter((c) => c.cmd === "boat" && verbs.includes(c.args[0])).map((c) => c.args);
+}
+
+const WRITES = ["new", "fork", "stop", "resume", "delete"];
+
 function listOf(...sandboxes: Record<string, unknown>[]): RunResult {
   return { status: 0, stdout: JSON.stringify({ pageInfo: { hasMore: false, limit: 200, nextCursor: null }, sandboxes }) };
 }
 
-function harness(run: LifecycleRunner) {
+function harness(run: LifecycleRunner, overrides: Partial<HandsDeps> = {}) {
   const home = mkdtempSync(join(tmpdir(), "agro-hands-boat-"));
   cleanups.push(home);
   const root = join(home, ".agro", "workspaces", "harness");
@@ -76,9 +113,27 @@ function harness(run: LifecycleRunner) {
     inContainer: () => false,
     sleep: async () => {},
     now: () => 0,
+    pollDelayMs: () => 5000,
+    timeoutMs: 15 * 60 * 1000,
+    confirm: async () => {
+      throw new Error("unexpected prompt");
+    },
+    ...overrides,
   };
   const io = { stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) };
   return { home, io, deps, stdout: () => out.join(""), stderr: () => err.join("") };
+}
+
+function boatDeps(): BoatDeps {
+  return {
+    run: fakeRunner().run,
+    env: {},
+    inContainer: () => false,
+    sleep: async () => {},
+    now: () => 0,
+    pollDelayMs: () => 0,
+    timeoutMs: 0,
+  };
 }
 
 describe("boat provider module", () => {
@@ -87,7 +142,7 @@ describe("boat provider module", () => {
   });
 
   it("transports through boat ssh, unlike exe.dev", () => {
-    expect(createBoatProvider({ run: fakeRunner().run }).sshCommand?.()).toEqual(["boat", "ssh"]);
+    expect(createBoatProvider(boatDeps()).sshCommand?.()).toEqual(["boat", "ssh"]);
     const exedev = createExedevProvider({
       run: fakeRunner().run,
       hostname: () => "x",
@@ -105,7 +160,7 @@ describe("boat provider module", () => {
   });
 
   it("resolves a hand by sandbox id with the id as SSH destination", async () => {
-    const resolved = await createBoatProvider({ run: fakeRunner().run }).resolve(HAND_ID);
+    const resolved = await createBoatProvider(boatDeps()).resolve(HAND_ID);
     expect(resolved).toEqual({
       ok: true,
       value: expect.objectContaining({ id: HAND_ID, name: "dev", sshDest: HAND_ID, remoteName: `hand-${HAND_ID}` }),
@@ -263,4 +318,260 @@ describe("agro hands with hands.provider boat", () => {
     expect(h.stderr()).toBe(error);
     expect(r.calls).toEqual([]);
   });
+});
+
+function clock(stepMs: number) {
+  let t = 0;
+  const slept: number[] = [];
+  return { now: () => t, sleep: async (ms: number) => void (slept.push(ms), (t += stepMs)), slept };
+}
+
+function infoOf(name: string, status = "ready", id = HAND_ID): RunResult {
+  return { status: 0, stdout: JSON.stringify({ id, name, status }) };
+}
+
+function errorEvent(code: string, status: number): RunResult {
+  return { status: 1, stdout: JSON.stringify({ code, error: `${code} refused`, event: "error", status }) };
+}
+
+const TRIAL_REFUSAL = errorEvent(BOAT_TRIAL_REFUSAL_CODE, 402);
+const TRIAL_NOTICE = (verb: string, name: string) =>
+  `agro hands ${verb}: trial tier: hand ${name} stops after ${BOAT_TRIAL_TTL_SECONDS / 3600} hours\n`;
+
+function writeArgs(verb: string, ref: string): string[] {
+  if (verb === "create") return ["create", "--name", ref];
+  if (verb === "fork") return ["fork", ref, "--name", "copy"];
+  return [verb, ref, ...(verb === "destroy" ? ["--yes"] : [])];
+}
+
+describe("boat hand lifecycle", () => {
+  it("creates a hand with --no-env and --no-auto-stop and reads the id from the ready event", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([["new", "--no-env", "--name", "agro-hand-fresh", "--no-auto-stop", "--json"]]);
+    expect(h.stdout()).toBe("name: fresh\nssh host: sbx_new\n");
+    expect(h.stderr()).toBe("");
+  });
+
+  it("needs --name to create", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: boat hands need --name <name>\n");
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
+  });
+
+  it("prints the id and the destroy command when the timeout expires after the id is known", async () => {
+    const created = JSON.stringify({ event: "created", sandbox: { id: "sbx_new", name: "agro-hand-fresh" } });
+    const r = fakeRunner({ new: { status: null, error: { code: "ETIMEDOUT", message: "spawnSync boat ETIMEDOUT" }, stdout: created } });
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(
+      "agro hands create: boat new failed with status none: spawnSync boat ETIMEDOUT; sandbox sbx_new exists: run agro hands destroy fresh --yes\n",
+    );
+  });
+
+  it("falls back to the trial TTL when the account refuses --no-auto-stop", async () => {
+    const r = fakeRunner({ new: [TRIAL_REFUSAL, DEFAULT_REPLIES.new] });
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, "new")).toEqual([
+      ["new", "--no-env", "--name", "agro-hand-fresh", "--no-auto-stop", "--json"],
+      ["new", "--no-env", "--name", "agro-hand-fresh", "--ttl", "7200", "--json"],
+    ]);
+    expect(h.stderr()).toBe(TRIAL_NOTICE("create", "fresh"));
+  });
+
+  it.each([
+    ["rate_limited", 429],
+    ["too_many_requests", 429],
+  ])("does not retry after %s", async (code, status) => {
+    const r = fakeRunner({ new: errorEvent(code, status) });
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(boatCalls(r.calls, "new")).toHaveLength(1);
+    expect(h.stderr()).toBe(`agro hands create: boat new failed: ${code} refused (code ${code})\n`);
+  });
+
+  it("creates with --project, prepares the hand through boat ssh, and pushes to <id>:projects/<owner>/<repo>", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    const project = join(h.home, ".agro", "workspaces", "harness", ...PROJECT_SUFFIX);
+    expect(await runHands(["create", "--name", "fresh", "--project", "acme/widget"], h.io, h.deps)).toBe(0);
+    const tail = r.calls.slice(r.calls.findIndex((c) => c.args[0] === "new") + 1);
+    expect(tail.map((c) => [c.cmd, ...c.args])).toEqual([
+      [
+        "boat",
+        "ssh",
+        "sbx_new",
+        "bash -lc 'mkdir -p projects/acme && git init -q -b main projects/acme/widget && git -C projects/acme/widget config receive.denyCurrentBranch updateInstead'",
+      ],
+      ["git", "-C", project, "remote", "add", "hand-sbx_new", "sbx_new:projects/acme/widget"],
+      ["git", "-C", project, "push", "hand-sbx_new", "main"],
+    ]);
+    expect(tail.at(-1)).toMatchObject({ gitSsh: "boat ssh", gitVariant: "simple" });
+    expect(h.stdout()).toContain("remote: hand-sbx_new\n");
+  });
+
+  it("forks after re-reading the source and waits for the ready fork", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["fork", "dev", "--name", "copy"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, "info", ...WRITES)).toEqual([
+      ["info", HAND_ID, "--json"],
+      ["fork", HAND_ID, "--wait", "--name", "agro-hand-copy", "--no-auto-stop", "--json"],
+    ]);
+    expect(h.stdout()).toBe("name: copy\nssh host: sbx_fork\n");
+  });
+
+  it("forks with the trial fallback", async () => {
+    const r = fakeRunner({ fork: [TRIAL_REFUSAL, DEFAULT_REPLIES.fork] });
+    const h = harness(r.run);
+    expect(await runHands(["fork", "dev", "--name", "copy"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, "fork").at(-1)).toEqual(["fork", HAND_ID, "--wait", "--name", "agro-hand-copy", "--ttl", "7200", "--json"]);
+    expect(h.stderr()).toBe(TRIAL_NOTICE("fork", "copy"));
+  });
+
+  it("resumes with --no-auto-stop and falls back to the trial TTL", async () => {
+    const plain = fakeRunner();
+    const h1 = harness(plain.run);
+    expect(await runHands(["resume", "dev"], h1.io, h1.deps)).toBe(0);
+    expect(boatCalls(plain.calls, ...WRITES)).toEqual([["resume", HAND_ID, "--no-auto-stop", "--json"]]);
+    expect(h1.stdout()).toBe("resumed dev\n");
+    const trial = fakeRunner({ resume: [TRIAL_REFUSAL, { status: 0, stdout: "" }] });
+    const h2 = harness(trial.run);
+    expect(await runHands(["resume", "dev"], h2.io, h2.deps)).toBe(0);
+    expect(boatCalls(trial.calls, ...WRITES).at(-1)).toEqual(["resume", HAND_ID, "--ttl", "7200", "--json"]);
+    expect(h2.stderr()).toBe(TRIAL_NOTICE("resume", "dev"));
+  });
+
+  it.each(["archived", "stopped"])("pauses with boat stop and polls boat info until %s", async (final) => {
+    const c = clock(5000);
+    const r = fakeRunner({ info: [infoOf("agro-hand-dev"), infoOf("agro-hand-dev", "archiving"), infoOf("agro-hand-dev", final)] });
+    const h = harness(r.run, { now: c.now, sleep: c.sleep });
+    expect(await runHands(["pause", "dev"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, "info", ...WRITES)).toEqual([
+      ["info", HAND_ID, "--json"],
+      ["stop", HAND_ID, "--json"],
+      ["info", HAND_ID, "--json"],
+      ["info", HAND_ID, "--json"],
+    ]);
+    expect(c.slept).toEqual([5000]);
+    expect(h.stdout()).toBe("paused dev\n");
+  });
+
+  it("fails a pause whose poll reaches error", async () => {
+    const r = fakeRunner({ info: [infoOf("agro-hand-dev"), infoOf("agro-hand-dev", "error")] });
+    const h = harness(r.run);
+    expect(await runHands(["pause", "dev"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands pause: hand dev reached status error\n");
+  });
+
+  it("fails a pause that does not stop before the timeout", async () => {
+    const c = clock(60_000);
+    const r = fakeRunner({ info: [infoOf("agro-hand-dev"), infoOf("agro-hand-dev", "archiving")] });
+    const h = harness(r.run, { now: c.now, sleep: c.sleep, timeoutMs: 120_000 });
+    expect(await runHands(["pause", "dev"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands pause: hand dev is not stopped after 2 minutes — last status archiving\n");
+  });
+
+  it("destroy --yes runs boat delete without a prompt", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["destroy", "dev", "--yes"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([["delete", HAND_ID, "--yes", "--json"]]);
+    expect(h.stdout()).toBe("destroyed dev\n");
+  });
+
+  it("destroy asks with the name and the id and deletes after yes", async () => {
+    const questions: string[] = [];
+    const r = fakeRunner();
+    const h = harness(r.run, { confirm: async (q) => (questions.push(q), true) });
+    expect(await runHands(["destroy", "dev"], h.io, h.deps)).toBe(0);
+    expect(questions).toEqual([`Destroy hand dev (${HAND_ID})?`]);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([["delete", HAND_ID, "--yes", "--json"]]);
+  });
+
+  it("destroy aborts after no with no write call", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run, { confirm: async () => false });
+    expect(await runHands(["destroy", "dev"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands destroy: aborted — hand dev (${HAND_ID}) unchanged\n`);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
+  });
+
+  it.each(["fork", "pause", "resume", "destroy"])("%s refuses a sandbox whose current name lacks agro-hand-", async (verb) => {
+    const r = fakeRunner({ info: infoOf("renamed-by-operator") });
+    const h = harness(r.run);
+    expect(await runHands(writeArgs(verb, "dev"), h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(
+      `agro hands ${verb}: refusing to ${verb} dev: sandbox ${HAND_ID} is named renamed-by-operator, not agro-hand-<name>\n`,
+    );
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
+  });
+
+  it.each(["fork", "pause", "resume", "destroy"])("%s refuses the BOAT_ID sandbox by name and by id", async (verb) => {
+    const r = fakeRunner();
+    const h = harness(r.run, { env: { BOAT_ID: HAND_ID } });
+    expect(await runHands(writeArgs(verb, "dev"), h.io, h.deps)).toBe(1);
+    expect(await runHands(writeArgs(verb, HAND_ID), h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(
+      `agro hands ${verb}: refusing to ${verb} dev: it is this brain\nagro hands ${verb}: refusing to ${verb} ${HAND_ID}: it is this brain\n`,
+    );
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
+  });
+
+  it.each(["create", "fork", "pause", "resume", "destroy"])("%s refuses the ref self", async (verb) => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    const args = verb === "fork" ? ["fork", "dev", "--name", "self"] : writeArgs(verb, "self");
+    expect(await runHands(args, h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands ${verb}: refusing to ${verb} self: it is this brain\n`);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
+  });
+
+  it("fork refuses the source self", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["fork", "self", "--name", "copy"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands fork: refusing to fork self: it is this brain\n");
+  });
+
+  it.each(["create", "fork", "pause", "resume", "destroy"])(
+    "%s refuses inside a container without BOAT_ID",
+    async (verb) => {
+      const r = fakeRunner();
+      const h = harness(r.run, { inContainer: () => true });
+      expect(await runHands(writeArgs(verb, verb === "create" ? "fresh" : "dev"), h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe(`agro hands ${verb}: cannot identify this brain inside a container; run agro hands from the brain host\n`);
+      expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
+    },
+  );
+
+  it("still lists, execs, and fetches inside a container without BOAT_ID", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run, { inContainer: () => true });
+    expect(await runHands(["list"], h.io, h.deps)).toBe(0);
+    expect(await runHands(["exec", "dev", "--", "ls"], h.io, h.deps)).toBe(0);
+    expect(await runHands(["fetch", "dev", "--project", "acme/widget"], h.io, h.deps)).toBe(0);
+  });
+
+  it("pauses inside a container when BOAT_ID names another sandbox", async () => {
+    const r = fakeRunner({ info: [infoOf("agro-hand-dev"), infoOf("agro-hand-dev", "archived")] });
+    const h = harness(r.run, { inContainer: () => true, env: { BOAT_ID: "sbx_01brain" } });
+    expect(await runHands(["pause", "dev"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([["stop", HAND_ID, "--json"]]);
+  });
+
+  it.each(["--disposable", "--profile=agro", "--docker", "--t3", "--code-server", "--desktop", "--ssh-key=k", "--json"])(
+    "create refuses the console-only flag %s",
+    async (flag) => {
+      const r = fakeRunner();
+      const h = harness(r.run);
+      expect(await runHands(["create", "--name", "fresh", flag], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe(`agro hands create: ${flag.split("=")[0]} applies only to console hands\n`);
+      expect(r.calls).toEqual([]);
+    },
+  );
 });

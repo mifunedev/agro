@@ -829,7 +829,14 @@ async function runAction(
   return 0;
 }
 
-async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
+async function runDestroy(
+  tokens: string[],
+  io: HandsIO,
+  deps: HandsDeps,
+  providerId: HandProviderId,
+  provider: HandProvider,
+  prefix: string,
+) {
   const parsed = oneHand(tokens, ["--yes", "-y"]);
   if (!parsed.ok) {
     io.stderr(`${prefix}: ${parsed.error}\n`);
@@ -837,7 +844,13 @@ async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provid
   }
   const { ref } = parsed;
   const yes = tokens.includes("--yes") || tokens.includes("-y");
-  if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy hand ${ref}?`, subject: `hand ${ref}` }))) {
+  let subject = `hand ${ref}`;
+  if (providerId === "boat" && !yes) {
+    const resolved = await provider.resolve(ref);
+    if (!resolved.ok) return failed(io, prefix, resolved.error);
+    subject = `hand ${resolved.value.name ?? ref} (${resolved.value.id})`;
+  }
+  if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy ${subject}?`, subject }))) {
     return 1;
   }
   const deleted = await provider.destroy(ref);
@@ -952,7 +965,10 @@ export async function runHands(
       return 2;
     }
     safe = io;
-    provider = providerId === "boat" ? createBoatProvider(deps) : createExedevProvider(deps);
+    provider =
+      providerId === "boat"
+        ? createBoatProvider(deps, (notice) => io.stderr(`${prefix}: ${notice}\n`))
+        : createExedevProvider(deps);
   } else {
     const resolved = resolveHandsConsoleConfig(deps.env, deps.homeDir, deps.readFile, deps.readCredentials, flag.operator);
     if (!resolved.ok) {
@@ -974,7 +990,7 @@ export async function runHands(
   }
   if (verb === "list") return runList(rest, safe, providerId, provider, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, providerId, provider, prefix, awaitDesktop);
-  if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);
+  if (verb === "destroy") return runDestroy(rest, safe, deps, providerId, provider, prefix);
   if (verb === "fork") return runFork(rest, safe, providerId, provider, prefix);
   if (verb === "exec") return runExec(rest, safe, deps, provider, prefix);
   if (verb === "fetch") return runFetch(rest, safe, deps, provider, prefix);
