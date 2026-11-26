@@ -4,6 +4,57 @@ set -euo pipefail
 input=$(cat)
 cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
 
+SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIAL|AUTH|BEARER|SESSION|COOKIE|SLACK_[A-Z_]*|OPENAI_[A-Z_]*|ANTHROPIC_[A-Z_]*|GITHUB_TOKEN|GH_TOKEN|AWS_SECRET|AWS_SESSION|GCP_[A-Z_]*|DATABASE_URL|DB_PASSWORD)'
+
+STDIN_SCRIPT_ENV_READ=''
+if command -v perl >/dev/null 2>&1; then
+  STDIN_SCRIPT_ENV_READ=$(SECRET_NAME=$SECRET_NAME perl -0777 -ne '
+    my $secret = $ENV{SECRET_NAME};
+    my $read = qr/process\.env|os\.environ|getenv|%ENV|\$ENV\{|\bENV\[|\$\{?[A-Z0-9_]*$secret[A-Z0-9_]*\}?/;
+    sub stdin_interp {
+      my $s = shift;
+      $s =~ s/\d*[<>]+&?\s*[^\s<>]*//g;
+      my @w = split " ", $s;
+      shift @w while @w && $w[0] =~ /^(\w+=\S*|env|sudo|exec|command|nohup|time)$/;
+      return 0 unless @w;
+      (my $bin = shift @w) =~ s{.*/}{};
+      my @ops = grep { !/^-./ } @w;
+      my $stdin = !@ops || $ops[0] eq "-";
+      return $stdin if $bin =~ /^(node|nodejs|python[0-9.]*|perl|ruby)$/;
+      return 0 unless $bin =~ /^(bash|sh|zsh)$/;
+      my @flags = grep { /^-[A-Za-z]+$/ } @w;
+      return 0 if grep { /c/ } @flags;
+      return 1 if grep { /s/ } @flags;
+      return $stdin;
+    }
+    my $hit = 0;
+    while (/<<-?\s*(["\x27]?)(\w+)\1([^\n]*)(.*?)\n\s*\2\b/gs) {
+      my ($tail, $body, $pos) = ($3, $4, $-[0]);
+      my $head = substr($_, 0, $pos);
+      $head =~ s/.*[;&|(`{\n]//s;
+      my ($args, $pipe) = $tail =~ /^([^|;&]*)(?:\|([^|;&]*))?/;
+      if (stdin_interp("$head $args") || (defined $pipe && stdin_interp($pipe))) {
+        $hit = 1 if $body =~ $read;
+      }
+    }
+    s/<<-?\s*(["\x27]?)(\w+)\1([^\n]*)\n.*?\n\s*\2\b/<< $3/gs;
+    my @pipelines = ([""]);
+    for my $t (/(\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"|\\.|[^\x27"\\|;&\n]+|\|\||&&|[|;&\n])/gs) {
+      if ($t eq "|") { push @{$pipelines[-1]}, "" }
+      elsif ($t =~ /^(\|\||&&|[;&\n])$/) { push @pipelines, [""] }
+      else { $pipelines[-1][-1] .= $t }
+    }
+    for my $p (@pipelines) {
+      for my $i (0 .. $#$p) {
+        my $s = $p->[$i];
+        $hit = 1 if $s =~ /^(.*?)<<<(.*)$/s && stdin_interp($1) && $2 =~ $read;
+        $hit = 1 if $i > 0 && stdin_interp($s) && $p->[$i - 1] =~ $read;
+      }
+    }
+    print $hit ? 1 : "";
+  ' <<<"$cmd") || STDIN_SCRIPT_ENV_READ=''
+fi
+
 if command -v perl >/dev/null 2>&1; then
   cmd=$(perl -0777 -pe 's{<<-?\s*(["\x27]?)(\w+)\1(.*?)\n\s*\2\b}{<<HEREDOC_STRIPPED}gs' <<<"$cmd")
 fi
@@ -14,8 +65,6 @@ literal_cmd=$cmd
 if command -v perl >/dev/null 2>&1; then
   literal_cmd=$(perl -pe 's{((?:^|[^A-Za-z0-9_./-])jq(?:\s+-[^\s\x27"]*)*(?:\s+--(?:arg|argjson)\s+[^\s\x27"]+\s+[^\s\x27"]+)*(?:\s+-[^\s\x27"]*)*\s+)\x27([^\x27]*)\x27}{my ($p, $f) = ($1, $2); $f =~ s/"((?:[^"\\]|\\.)*)"/index($1, "\\(") >= 0 ? "\"$1\"" : "\"\""/ge; "$p\x27$f\x27"}ge' <<<"$cmd") || literal_cmd=$cmd
 fi
-
-SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIAL|AUTH|BEARER|SESSION|COOKIE|SLACK_[A-Z_]*|OPENAI_[A-Z_]*|ANTHROPIC_[A-Z_]*|GITHUB_TOKEN|GH_TOKEN|AWS_SECRET|AWS_SESSION|GCP_[A-Z_]*|DATABASE_URL|DB_PASSWORD)'
 
 ENV_DUMP='(^|[^A-Za-z0-9._/-])env[[:space:]]*[|>;&]'
 ENV_DUMP+='|(^|[^A-Za-z0-9._/-])env[[:space:]]*$'
@@ -208,6 +257,8 @@ if grep -qEi -- "$DENY" <<<"$literal_cmd" || grep -qEi -- "$ENV_DUMP" <<<"$dump_
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, agro secret get, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the operator to run the command themselves and paste only the specific non-secret output you need.'
 elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
   emit deny 'Secret-exposure guard (deny): inline python, perl, ruby, or node code (-c, -e, -p, --eval) reads the process environment (os.environ, getenv, %ENV, $ENV{...}, ENV, process.env), which can print every environment variable, secrets included. Do NOT retry a variant that reaches the environment another way. If you need an environment value, ask the user to paste only that non-secret value.'
+elif [[ -n $STDIN_SCRIPT_ENV_READ ]]; then
+  emit deny 'Secret-exposure guard (deny): a script fed on stdin (heredoc, pipe, or here-string) to python, perl, ruby, node, or a shell reads the process environment (process.env, os.environ, getenv, %ENV, $ENV{...}, ENV[...]) or a secret-named variable such as $DATABASE_URL, which puts the secret in the transcript. Do NOT retry a variant that moves the read to a script file, another interpreter, a container, or an encoding. Ask the operator to run the command themselves and paste only the non-secret value you need.'
 elif grep -qE -- "$JQ_ENV_READ" <<<"$jq_filter_text"; then
   emit deny 'Secret-exposure guard (deny): a jq filter reads the process environment through `env` or `$ENV`, which prints environment variables, secrets included. Do NOT retry a variant that reaches the environment another way. To read an `env` key from JSON input, write `.env`. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then
