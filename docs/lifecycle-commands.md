@@ -56,7 +56,7 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev\|boat` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -655,9 +655,10 @@ lists the hands.
 
 The field `hands.provider` in the host config
 `${AGRO_HOME:-~/.agro}/config.json` selects the provider: `console` (the
-default) or `exedev`. `--provider console|exedev` selects the provider for one
-call and overrides `hands.provider`. Put `--provider` before or after the verb.
-Run `agro config set hands.provider exedev` to select exe.dev hands. See
+default), `exedev`, or `boat`. `--provider console|exedev|boat` selects the
+provider for one call and overrides `hands.provider`. Put `--provider` before
+or after the verb. Run `agro config set hands.provider exedev` to select exe.dev
+hands. Run `agro config set hands.provider boat` to select boat.dev hands. See
 [Configuration → Host config](configuration.md#host-config).
 
 Before application build/test/install workloads, inspect the hand's installed capabilities through SSH.
@@ -775,7 +776,7 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   With `--project` or `--clone`, the command places the project before the
   reads. If the placement fails, the command still reads the hand and prints
   the desktop lines, then exits with the placement status. The command then prints a `desktop:`
-  line and `next:` lines: SSH to the hand when it has an SSH host, run `tailscale up` and `sudo passwd sandbox`,
+  line and `next:` lines: SSH to the hand when the hand has an SSH host, run `tailscale up` and `sudo passwd sandbox`,
   then download the `.rdp` file from the Connect card of the hand in the
   console. `create --desktop --json` adds
   `desktop: {rdpListening, tailnetName, rdpAddress}`. `rdpAddress` is
@@ -813,7 +814,7 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   the org credit. The credit line never changes the exit status.
 - `--profile`, `--docker`, `--t3`, `--code-server`, `--desktop`,
   `--disposable`, `--ssh-key`, `--json` on `create`, and the `check` verb apply only to console
-  hands. The exe.dev provider refuses them and exits 1.
+  hands. The exe.dev and boat providers refuse them and exit 1.
 
 ### exe.dev hands
 
@@ -847,6 +848,53 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   is the VM whose name or SSH host label equals the host name.
 - exe.dev account authority is broader than a brain token. The tag guard and the
   brain guard are the only fence.
+
+### boat.dev hands
+
+No live run has verified the boat provider yet. The tests use a fake `boat`
+CLI. The live review (US-006 in `.agro/tasks/boat-hands/prd.md`) is pending.
+
+- Install the `boat` CLI on the brain host. See
+  [the boat CLI reference](https://docs.boat.dev/cli-reference). If `boat` is
+  missing, each verb exits 2 and names that page.
+- The credential is the `boat` CLI session. The operator runs `boat login` on
+  the brain host. AGRO reads no boat credential. If `boat list --json` returns
+  the code `unauthorized`, each verb exits 2 and names `boat login`.
+- A boat hand is a sandbox whose name starts with `agro-hand-`. `agro hands
+  list` shows only those sandboxes, without the prefix. `<hand>` is the name
+  without the prefix or the sandbox id. If two sandboxes have the same name,
+  the verb exits 1 and names both ids.
+- The verbs map to the `boat` CLI. Each call adds `--json`:
+
+  | Verb | boat command |
+  |---|---|
+  | `list` | `boat list`, filtered by the prefix `agro-hand-` |
+  | `create --name <name>` | `boat new --no-env --name agro-hand-<name> --no-auto-stop` |
+  | `fork <hand> --name <name>` | `boat fork <id> --wait --name agro-hand-<name> --no-auto-stop` |
+  | `pause` | `boat stop <id>`, then `boat info <id>` until the status is `archived` or `stopped` |
+  | `resume` | `boat resume <id> --no-auto-stop` |
+  | `destroy` | `boat delete <id> --yes` |
+
+- `create` and `fork` need `--name`. `--no-env` keeps the stored account
+  secrets off the hand.
+- `--no-auto-stop` keeps the hand running. If the account tier refuses
+  `--no-auto-stop`, `create`, `fork`, and `resume` run again with
+  `--ttl 7200` and print `trial tier: hand <name> stops after 2 hours`. A
+  `rate_limited` error or HTTP 429 gets no retry.
+- `exec`, `fetch`, and `create --project` use `boat ssh <id>`. The git remote
+  is `hand-<id>` with the URL `<id>:projects/<owner>/<repo>`. Git runs with
+  `GIT_SSH_COMMAND="boat ssh"` and `GIT_SSH_VARIANT=simple`. The IP and the
+  host key of a boat sandbox change after each resume and each fork, so the
+  brain writes no `known_hosts` entry and stores no IP.
+- `boat stop` and `boat fork` keep the disk but lose the Docker build cache.
+  The first build after a resume or in a fork starts cold.
+- Guards: each write verb reads `boat info <id>` first and exits 1 without a
+  change when the name does not start with `agro-hand-`. Each write verb and
+  the fork source refuse the sandbox id in `BOAT_ID` and the ref `self`.
+  Inside a container without `BOAT_ID`, each write verb exits 1; `list`,
+  `exec`, and `fetch` still run.
+- `--spec` and the console-only `create` flags exit 1 with
+  `<flag> applies only to console hands`.
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`
 

@@ -24,7 +24,12 @@ import {
   type DesktopWait,
   type LocalSshKey,
 } from "../lib/hands/console-provider.js";
-import { boatPreflight, createBoatProvider } from "../lib/hands/boat-provider.js";
+import {
+  BOAT_PREFIX,
+  BOAT_TRIAL_TTL_SECONDS,
+  boatPreflight,
+  createBoatProvider,
+} from "../lib/hands/boat-provider.js";
 import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
@@ -170,9 +175,10 @@ Usage:
 
 Providers:
   \`hands.provider\` in the host config \${AGRO_HOME:-~/.agro}/config.json
-  selects the provider: \`console\` (the default) or \`exedev\`.
+  selects the provider: \`console\` (the default), \`exedev\`, or \`boat\`.
   Run \`${bin} config set hands.provider exedev\` to select exe.dev hands.
-  \`--provider console|exedev\` selects the provider for one call and
+  Run \`${bin} config set hands.provider boat\` to select boat.dev hands.
+  \`--provider console|exedev|boat\` selects the provider for one call and
   overrides \`hands.provider\`. Put it before or after the verb.
 
 Authority:
@@ -283,12 +289,33 @@ brain is the VM whose name or SSH host label equals the host name. Inside a
 container, \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 when the host
 name matches no VM; run them from the brain host.
 
+boat.dev hands:
+<hand> is the sandbox name without the prefix ${BOAT_PREFIX}, or the sandbox
+id. A hand is a sandbox whose name starts with ${BOAT_PREFIX}. \`list\` shows
+only those sandboxes. The verbs run the \`boat\` CLI with \`--json\` and exit 2
+when \`boat list\` fails. Run \`boat login\` on the brain host first.
+
+\`create --name <name>\` runs \`boat new --no-env --name ${BOAT_PREFIX}<name>
+--no-auto-stop\` and waits for the \`ready\` event. \`fork <hand> --name <name>\`
+runs \`boat fork <id> --wait\` with the same name prefix and \`--no-auto-stop\`.
+When the account refuses \`--no-auto-stop\`, \`create\`, \`fork\`, and
+\`resume\` run again with \`--ttl ${BOAT_TRIAL_TTL_SECONDS}\`; the hand then stops after
+${BOAT_TRIAL_TTL_SECONDS / 3600} hours. \`pause\` runs \`boat stop\` and waits for the status \`archived\` or
+\`stopped\`. \`resume\` runs \`boat resume <id> --no-auto-stop\`. \`destroy\` runs
+\`boat delete <id> --yes\` and asks for confirmation unless --yes is given.
+
+Boat hands use \`boat ssh <id>\` for \`exec\` and git. The brain stores no IP
+and no host key. Each write verb first reads \`boat info <id>\` and exits 1
+without a change when the name lacks ${BOAT_PREFIX}, when the sandbox id equals BOAT_ID,
+or when <hand> is \`self\`. Inside a container without BOAT_ID, each write verb
+exits 1. The console-only flags exit 1.
+
 Projects:
 A project lives at ~/projects/<owner>/<repo> on the hand and at
 <harness-root>/projects/<owner>/<repo> on the brain. The harness root is
 \`harnessRoot\` in ~/.agro/config.json, else ~/.agro/workspaces/harness.
 \`create --project\` prepares the hand folder, adds the remote hand-<index>
-(hand-<name> for exe.dev hands) to the brain project, and pushes the current
+(hand-<name> for exe.dev hands, hand-<id> for boat hands) to the brain project, and pushes the current
 branch. \`create --clone\` clones https://github.com/<owner>/<repo>.git on the
 hand with the hand's own git credential. \`exec\` runs the command over SSH,
 in the project folder with --project, and exits with its status. \`fetch\`
