@@ -867,15 +867,17 @@ async function runDestroy(
   const { ref } = parsed;
   const yes = tokens.includes("--yes") || tokens.includes("-y");
   let subject = `hand ${ref}`;
+  let target = ref;
   if (providerId === "boat" && !yes) {
     const resolved = await provider.resolve(ref);
     if (!resolved.ok) return failed(io, prefix, resolved.error);
     subject = `hand ${resolved.value.name ?? ref} (${resolved.value.id})`;
+    target = resolved.value.id;
   }
   if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy ${subject}?`, subject }))) {
     return 1;
   }
-  const deleted = await provider.destroy(ref);
+  const deleted = await provider.destroy(target);
   if (!deleted.ok) return failed(io, prefix, deleted.error);
   io.stdout(`destroyed ${ref}\n`);
   return 0;

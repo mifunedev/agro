@@ -33,7 +33,8 @@ function records(stdout: string): Record<string, unknown>[] {
 }
 
 function eventId(event: Record<string, unknown>): string | undefined {
-  const candidates = [event.id, isRecord(event.sandbox) ? event.sandbox.id : undefined, event.sandboxId];
+  if (event.event === "error") return undefined;
+  const candidates = [isRecord(event.sandbox) ? event.sandbox.id : undefined, event.sandboxId, event.id];
   return candidates.find((value): value is string => typeof value === "string" && value !== "");
 }
 
@@ -102,7 +103,7 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
   }
 
   function listHands(): HandOutcome<Hand[]> {
-    const result = call("list", []);
+    const result = call("list", ["--all"]);
     if (!result.ok) return result;
     let parsed: unknown;
     try {
@@ -167,6 +168,7 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
   function withoutAutoStop(command: string, args: string[], name: string): BoatCall {
     const first = call(command, [...args, "--no-auto-stop"]);
     if (first.ok || first.code !== BOAT_TRIAL_REFUSAL_CODE) return first;
+    if (records(first.stdout).some((event) => eventId(event) !== undefined)) return first;
     const retried = call(command, [...args, "--ttl", String(BOAT_TRIAL_TTL_SECONDS)]);
     if (retried.ok) notice(`trial tier: hand ${name} stops after ${BOAT_TRIAL_TTL_SECONDS / 3600} hours`);
     return retried;
@@ -178,7 +180,10 @@ export function createBoatProvider(deps: BoatDeps, notice: (message: string) => 
     const listed = listHands();
     if (!listed.ok) return listed;
     const taken = listed.value.find((hand) => hand.name === name);
-    return taken === undefined ? { ok: true, value: name } : { ok: false, error: `boat hand ${name} already exists as ${taken.id}` };
+    if (taken !== undefined) return { ok: false, error: `boat hand ${name} already exists as ${taken.id}` };
+    const shadowed = listed.value.find((hand) => hand.id === name);
+    if (shadowed !== undefined) return { ok: false, error: `boat hand name ${name} equals sandbox id of hand ${shadowed.name}` };
+    return { ok: true, value: name };
   }
 
   function launch(command: string, args: string[], name: string): HandOutcome<Hand> {

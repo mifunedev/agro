@@ -174,7 +174,7 @@ describe("agro hands with hands.provider boat", () => {
     expect(h.stderr()).toBe("");
     expect(r.calls.map((c) => [c.cmd, ...c.args])).toEqual([
       ["boat", ...LIST],
-      ["boat", ...LIST],
+      ["boat", "list", "--all", "--json"],
     ]);
     expect(r.calls.every((c) => c.stdio === "capture")).toBe(true);
   });
@@ -595,5 +595,69 @@ describe("boat provider hardening", () => {
     expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
     expect(boatCalls(r.calls, "new")).toHaveLength(2);
     expect(h.stderr()).toBe("agro hands create: boat new failed: internal refused (code internal)\n");
+  });
+});
+
+describe("boat provider review round 2", () => {
+  const PARKED = { id: "sbx_parked", name: "agro-hand-parked", status: "stopped" };
+
+  it("lists every state so a stopped hand resolves and resumes", async () => {
+    const r = fakeRunner({ list: listOf(PARKED), info: { status: 0, stdout: JSON.stringify(PARKED) } });
+    const h = harness(r.run);
+    expect(await runHands(["resume", "parked"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, "list").slice(1)).toEqual([["list", "--all", "--json"]]);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([["resume", "sbx_parked", "--no-auto-stop", "--json"]]);
+  });
+
+  it("destroys the sandbox id confirmed at the prompt, not a re-resolved name", async () => {
+    const swapped = listOf({ id: "sbx_other", name: "agro-hand-dev", status: "ready" }, { id: HAND_ID, name: "agro-hand-old", status: "ready" });
+    const r = fakeRunner({ list: [{ status: 0, stdout: LIST_JSON }, { status: 0, stdout: LIST_JSON }, swapped] });
+    const h = harness(r.run, { confirm: async () => true });
+    expect(await runHands(["destroy", "dev"], h.io, h.deps)).toBe(0);
+    expect(boatCalls(r.calls, "info", ...WRITES)).toEqual([
+      ["info", HAND_ID, "--json"],
+      ["delete", HAND_ID, "--yes", "--json"],
+    ]);
+  });
+
+  it("prefers the sandbox id over an event id", async () => {
+    const stdout = [
+      { event: "created", id: "evt_1", sandbox: { id: "sbx_new" } },
+      { event: "ready", id: "evt_2", sandboxId: "sbx_new", status: "ready" },
+    ]
+      .map((e) => JSON.stringify(e))
+      .join("\n");
+    const h = harness(fakeRunner({ new: { status: 0, stdout } }).run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("name: fresh\nssh host: sbx_new\n");
+  });
+
+  it("takes no id from an error record", async () => {
+    const stdout = JSON.stringify({ event: "error", id: "err_1", code: "internal", error: "backend down", status: 500 });
+    const h = harness(fakeRunner({ new: { status: 1, stdout } }).run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: boat new failed: backend down (code internal)\n");
+  });
+
+  it("does not retry the trial fallback when the refused attempt already named a sandbox", async () => {
+    const stdout = [
+      JSON.stringify({ event: "created", sandbox: { id: "sbx_new", name: "agro-hand-fresh" } }),
+      JSON.stringify({ code: BOAT_TRIAL_REFUSAL_CODE, error: "refused", event: "error", status: 402 }),
+    ].join("\n");
+    const r = fakeRunner({ new: { status: 1, stdout } });
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(boatCalls(r.calls, "new")).toHaveLength(1);
+    expect(h.stderr()).toBe(
+      `agro hands create: boat new failed: refused (code ${BOAT_TRIAL_REFUSAL_CODE}); sandbox sbx_new exists: run agro hands destroy sbx_new --provider boat --yes\n`,
+    );
+  });
+
+  it("refuses a name equal to the sandbox id of an existing hand", async () => {
+    const r = fakeRunner();
+    const h = harness(r.run);
+    expect(await runHands(["create", "--name", HAND_ID], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands create: boat hand name ${HAND_ID} equals sandbox id of hand dev\n`);
+    expect(boatCalls(r.calls, ...WRITES)).toEqual([]);
   });
 });
