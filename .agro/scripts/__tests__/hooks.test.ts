@@ -309,6 +309,51 @@ describe.concurrent("remote exec secret guard (deny-env-dump.sh)", () => {
   });
 });
 
+const b64 = (text: string) => Buffer.from(text).toString("base64");
+const hex = (text: string) => Buffer.from(text).toString("hex");
+const CFG_DIR = "." + "con" + "fig";
+const HOSTS_READ = `cat ~/${CFG_DIR}/gh/hosts.yml`;
+const ENV_READ = `cat ${ENV_FILE}`;
+
+describe.concurrent("encoded path guard (deny-env-dump.sh)", () => {
+  const cases: [Decision, string][] = [
+    ["deny", `echo ${b64(HOSTS_READ)} | base64 -d | sh`],
+    ["deny", `echo ${b64(HOSTS_READ)} | base64 -d > run.sh`],
+    ["deny", `echo '${b64(HOSTS_READ)}' | base64 --decode > run.sh`],
+    ["deny", `printf %s "${b64(ENV_READ)}" | base64 -D | bash`],
+    ["deny", `base64 -d <<< ${b64(ENV_READ)} | sh`],
+    ["deny", `echo ${hex(HOSTS_READ)} | xxd -r -p | sh`],
+    ["deny", `echo ${hex(ENV_READ)} | xxd -rp > run.sh`],
+    ["deny", "docker exec box sh -c 'echo $P | base64 -d | sh'"],
+    ["deny", "agro hands exec box -- sh -c 'echo $P | base64 --decode | bash'"],
+    ["deny", "ssh host 'echo $P | xxd -r -p | sh'"],
+    ["deny", `bash -c 'eval "$(echo $P | base64 -d)"'`],
+    ["deny", "kubectl exec pod -- sh -c 'echo $P | base64 -d | sh'"],
+    ["allow", "echo aGVsbG8= | base64 -d"],
+    ["allow", "base64 -d image.b64 > image.png"],
+    ["allow", `echo ${b64("ls -la")} | base64 -d | sh`],
+    ["allow", `echo ${hex("hello world")} | xxd -r -p`],
+    ["allow", "docker exec box sh -c 'base64 -d /tmp/image.b64 > /tmp/image.png'"],
+  ];
+
+  it.each(cases)("%s: %s", async (want, command) => {
+    expect(await commandDecision(command)).toBe(want);
+  });
+
+  it("names the paste and prose remedies in the denial reason", async () => {
+    for (const command of [
+      `echo ${b64(HOSTS_READ)} | base64 -d | sh`,
+      "docker exec box sh -c 'echo $P | base64 -d | sh'",
+    ]) {
+      const result = await runHook(CMD_HOOK, { command });
+      const reason: string = JSON.parse(result.stdout).hookSpecificOutput.permissionDecisionReason;
+      expect(reason).toContain("paste only the non-secret value");
+      expect(reason).toContain("--body-file");
+      expect(reason).toContain("heredoc");
+    }
+  });
+});
+
 describe.concurrent("docker-inspect env guard (deny-env-dump.sh)", () => {
   const envField = ".Config." + "Env";
   const cases: [Decision, string][] = [
