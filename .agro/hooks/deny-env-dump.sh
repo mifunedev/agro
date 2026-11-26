@@ -9,7 +9,7 @@ SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY
 raw_cmd=$cmd
 
 if command -v perl >/dev/null 2>&1; then
-  cmd=$(perl -0777 -pe 's{<<-?\s*(["\x27]?)(\w+)\1(.*?)\n\s*\2\b}{<<HEREDOC_STRIPPED}gs' <<<"$cmd")
+  cmd=$(perl -0777 -pe 's{<<(-)?\s*(["\x27]?)(\w+)\2(.*?)\n(?(1)\t*)\3(?=\n|$)}{<<HEREDOC_STRIPPED}gs' <<<"$cmd")
 fi
 
 cmd=${cmd//$'\n'/ }
@@ -53,10 +53,10 @@ DENY+='|\bdocker[[:space:]]+(secret|config)[[:space:]]+inspect\b'
 
 STDIN_SCRIPT_ENV_READ=''
 if command -v perl >/dev/null 2>&1; then
-  STDIN_SCRIPT_ENV_READ=$(SECRET_NAME=$SECRET_NAME ENV_DUMP=$ENV_DUMP DENY=$DENY perl -e '
-    my ($secret, $dump_src, $deny_src) = @ENV{qw(SECRET_NAME ENV_DUMP DENY)};
-    my $read = qr/process\s*(?:\.|\[)\s*["\x27]?env\b|\benviron\b|getenv|\bENV\b|\$\{?[A-Z0-9_]*$secret[A-Z0-9_]*\}?/;
-    my $dump = qr/$dump_src/m;
+  STDIN_SCRIPT_ENV_READ=$(SECRET_NAME=$SECRET_NAME DENY=$DENY perl -e '
+    my ($secret, $deny_src) = @ENV{qw(SECRET_NAME DENY)};
+    my $read = qr/process\s*(?:\.|\[)\s*["\x27]?env\b|\benviron\b|getenv|%ENV\b|\$ENV\{|\bENV\s*(?:\[|\.)|\$\{?[A-Z0-9_]*$secret[A-Z0-9_]*\}?/;
+    my $dump = qr/(?:^|[;&|(])[ \t]*(?:(?:sudo|exec|command|builtin)[ \t]+)*(?:env|printenv|set)[ \t]*(?:$|[|;&>)])/m;
     my $deny = qr/$deny_src/mi;
     my $redirect = qr/\d*[<>]+&[\d-]|&>>?/;
     sub interp_kind {
@@ -94,13 +94,26 @@ if command -v perl >/dev/null 2>&1; then
       }
       return 0 unless @w;
       my $bin = shift(@w) =~ s{.*/}{}r;
-      my @ops = grep { !/^-./ } @w;
-      my $stdin = !@ops || $ops[0] eq "-";
-      return $stdin ? "script" : 0 if $bin =~ /^(node|nodejs|python[0-9.]*|perl|ruby)$/;
-      return 0 unless $bin =~ /^(bash|sh|zsh|dash|ksh)$/;
-      my @flags = grep { /^-[A-Za-z]+$/ } @w;
-      return 0 if grep { /c/ } @flags;
-      return "shell" if grep { /s/ } @flags;
+      return 0 unless $bin =~ /^(node|nodejs|python[0-9.]*|perl|ruby|bash|sh|zsh|dash|ksh)$/;
+      my $python = $bin =~ /^python/;
+      my $takes_value = $python ? qr/^-[WX]$/
+        : $bin =~ /^node/ ? qr/^(-r|--require|--import|-C|--conditions|--loader)$/
+        : $bin =~ /^(perl|ruby)$/ ? qr/^-[IrM]$/
+        : qr/^[-+][oO]$/;
+      my (@flags, @ops);
+      while (@w) {
+        my $x = shift @w;
+        if ($x eq "--") { @ops = @w; last }
+        if ($x =~ $takes_value) { shift @w; next }
+        return 0 if $python && $x =~ /^-[bBdEhiIOPqsSuvx]*m/;
+        if ($x =~ /^-./) { push @flags, $x; next }
+        @ops = ($x, @w);
+        last;
+      }
+      my $stdin = !@ops || grep { $_ eq "-" } @ops;
+      return $stdin ? "script" : 0 if $bin !~ /^(bash|sh|zsh|dash|ksh)$/;
+      return 0 if grep { /^-[A-Za-z]*c/ } @flags;
+      return "shell" if grep { /^-[A-Za-z]*s/ } @flags;
       return $stdin ? "shell" : 0;
     }
     sub body_hit {
@@ -110,8 +123,8 @@ if command -v perl >/dev/null 2>&1; then
     }
     my $c = do { local $/; <STDIN> };
     my $hit = 0;
-    while ($c =~ /<<-?\s*(["\x27]?)(\w+)\1([^\n]*)(.*?)\n\s*\2\b/gs) {
-      my ($tail, $body, $pos) = ($3, $4, $-[0]);
+    while ($c =~ /<<(-)?\s*(["\x27]?)(\w+)\2([^\n]*)(.*?)\n(?(1)\t*)\3(?=\n|$)/gs) {
+      my ($tail, $body, $pos) = ($4, $5, $-[0]);
       my $head = substr($c, 0, $pos) =~ s/$redirect/ /gr;
       $head =~ s/.*[;&|(`{\n]//s;
       my $t = $tail =~ s/$redirect/ /gr;
@@ -121,7 +134,7 @@ if command -v perl >/dev/null 2>&1; then
         $hit = 1 if body_hit($kind, $body);
       }
     }
-    $c =~ s/<<-?\s*(["\x27]?)(\w+)\1([^\n]*)\n.*?\n\s*\2\b/<< $3/gs;
+    $c =~ s/<<(-)?\s*(["\x27]?)(\w+)\2([^\n]*).*?\n(?(1)\t*)\3(?=\n|$)/<< $4/gs;
     my @pipelines = ([""]);
     for my $t ($c =~ /($redirect|\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"|\\.|[^\x27"\\|;&\n<>]+|[<>]+|\|\||&&|[|;&\n])/gs) {
       if ($t eq "|") { push @{$pipelines[-1]}, "" }

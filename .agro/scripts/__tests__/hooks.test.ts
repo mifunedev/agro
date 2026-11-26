@@ -251,7 +251,7 @@ describe.concurrent("stdin interpreter guard (deny-env-dump.sh)", () => {
     ["allow", heredoc("gh pr create --title t --body-file -", "The guard denies process.env.DATABASE_URL reads.")],
     ["allow", heredoc("git commit -F -", "fix: deny process.env.DATABASE_URL in stdin node scripts")],
     ["allow", heredoc("cat > notes.md", "node reads process.env.DATABASE_URL | python3 -")],
-    ["allow", `git commit -m "$(${heredoc("cat", "deny echo process.env.DATABASE_URL | node")})"`],
+    ["allow", `git commit -m "$(${heredoc("cat", "deny echo process.env.DATABASE_URL | node")}\n)"`],
     ["allow", heredoc("node scripts/render.js", "process.env.DATABASE_URL is prose here")],
     ["allow", "echo hi | node"],
     ["allow", "printf '%s' \"$x\" | python3 -"],
@@ -305,6 +305,39 @@ describe.concurrent("stdin interpreter guard (deny-env-dump.sh)", () => {
   ];
 
   it.each(hardened)("hardened %s %s: %s", async (_finding, want, command) => {
+    expect(await commandDecision(command)).toBe(want);
+  });
+
+  const GH_READ = "throw process.env.GH_TOKEN";
+  const tightened: [string, Decision, string][] = [
+    ["end-line", "deny", heredoc("node", "EOF=1;", GH_READ)],
+    ["end-line", "deny", heredoc("node -", "  EOF", GH_READ)],
+    ["end-line", "deny", heredoc("node -", "\tEOF", GH_READ)],
+    ["end-line", "deny", heredoc("bash -s", "EOF # not the end", "echo $GH_TOKEN")],
+    ["end-line", "deny", ["node - <<-'EOF'", "\tEOF=1;", `\t${GH_READ}`, "\tEOF"].join("\n")],
+    ["end-line", "allow", ["node - <<-'EOF'", "\tconsole.log(1)", "\tEOF"].join("\n")],
+    ["end-line", "allow", heredoc("gh pr create --title t --body-file -", "EOF=1 explains process.env.GH_TOKEN", "  EOF in prose")],
+    ["option-value", "deny", heredoc("python3 -W ignore -", "import os", "print(os.environ)")],
+    ["option-value", "deny", heredoc("python3 -X utf8", "import os", "print(os.environ)")],
+    ["option-value", "deny", heredoc("node -r dotenv/config", DB_READ)],
+    ["option-value", "deny", heredoc("node --require dotenv/config -", DB_READ)],
+    ["option-value", "deny", heredoc("node --import tsx", DB_READ)],
+    ["option-value", "deny", heredoc("ruby -I lib", "puts ENV['GH_TOKEN']")],
+    ["option-value", "deny", heredoc("perl -I lib", "print $ENV{GH_TOKEN};")],
+    ["option-value", "deny", heredoc("bash -o pipefail", "echo $GH_TOKEN")],
+    ["option-value", "allow", heredoc("python3 -m json.tool", "{\"note\": \"os.environ is prose\"}")],
+    ["option-value", "allow", heredoc("node -r dotenv/config scripts/run.js", DB_READ)],
+    ["false-positive", "allow", heredoc("python3 -", "ENV = 'prod'", "print(ENV)")],
+    ["false-positive", "allow", heredoc("bash", "python3 -m venv env")],
+    ["false-positive", "allow", heredoc("bash -s", "cd env", "ls")],
+    ["false-positive", "deny", heredoc("ruby", "puts ENV.fetch('GH_TOKEN')")],
+    ["false-positive", "deny", heredoc("bash", "env | sort")],
+    ["false-positive", "deny", heredoc("bash", "true && printenv")],
+    ["false-positive", "deny", heredoc("bash", "cd /tmp; env")],
+    ["false-positive", "deny", heredoc("bash", "set | grep A")],
+  ];
+
+  it.each(tightened)("tightened %s %s: %s", async (_item, want, command) => {
     expect(await commandDecision(command)).toBe(want);
   });
 
