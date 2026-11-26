@@ -88,14 +88,14 @@
       "title": "Document the new denials",
       "description": "As an agent reader, I want `docs/security-considerations.md` and `CHANGELOG.md` to state the new denials so that the documented heredoc remedy matches the hook.",
       "acceptanceCriteria": [
-        "`docs/security-considerations.md` \u00a7 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
-        "`docs/security-considerations.md` \u00a7 2 lists the container, remote exec, and encoded-path denials.",
+        "`docs/security-considerations.md` § 2 states that `deny-env-dump.sh` inspects a heredoc body fed to an interpreter, and still ignores a prose heredoc.",
+        "`docs/security-considerations.md` § 2 lists the container, remote exec, and encoded-path denials.",
         "`CHANGELOG.md` `## [Unreleased]` has a `### Fixed` entry that links [#1673](https://github.com/mifunedev/agro/issues/1673).",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md` exits 0."
       ],
       "priority": 4,
       "passes": true,
-      "notes": "1 reasoned: advisor read the diff; \u00a7 2 now says the hook inspects a script that a heredoc, pipe, or here-string feeds to an interpreter, and ignores a prose heredoc (gh pr create --body-file -, git commit -F -, cat > file). 2 reasoned: \u00a7 2 has bullets for container/remote exec, encoded-path decode, and content-blind decode-to-shell inside remote exec or bash -c. 3 executed: `sed -n 9,24p CHANGELOG.md` shows ### Fixed after ### Changed under ## [Unreleased], linking #1673. 4 executed: advisor ran `bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md`, exit 0, no findings.",
+      "notes": "1 reasoned: advisor read the diff; § 2 now says the hook inspects a script that a heredoc, pipe, or here-string feeds to an interpreter, and ignores a prose heredoc (gh pr create --body-file -, git commit -F -, cat > file). 2 reasoned: § 2 has bullets for container/remote exec, encoded-path decode, and content-blind decode-to-shell inside remote exec or bash -c. 3 executed: `sed -n 9,24p CHANGELOG.md` shows ### Fixed after ### Changed under ## [Unreleased], linking #1673. 4 executed: advisor ran `bash .agro/skills/ste/scripts/ste-check.sh docs/security-considerations.md`, exit 0, no findings.",
       "dependsOn": [
         "US-003"
       ],
@@ -117,7 +117,7 @@
       ],
       "priority": 5,
       "passes": true,
-      "notes": "1 executed: evidence \u00a7 1 holds verbose hooks.test.ts output for the stdin, remote exec, and encoded path blocks; summary 266 passed 3 skipped. 2 executed: evidence \u00a7 2 holds `corepack pnpm test` summary (7 failed, 3604 passed, 9 skipped) and names the 7 herdr-default failures as the no-zsh baseline. 3 executed: advisor reran `bash .agro/scripts/link-providers.sh --check`, exit 0; evidence \u00a7 3 matches. 4 reasoned: evidence \u00a7 4 lists only tests, link check, and text filters; no container, live resource, or secret read.",
+      "notes": "1 executed: evidence § 1 holds verbose hooks.test.ts output for the stdin, remote exec, and encoded path blocks; summary 266 passed 3 skipped. 2 executed: evidence § 2 holds `corepack pnpm test` summary (7 failed, 3604 passed, 9 skipped) and names the 7 herdr-default failures as the no-zsh baseline. 3 executed: advisor reran `bash .agro/scripts/link-providers.sh --check`, exit 0; evidence § 3 matches. 4 reasoned: evidence § 4 lists only tests, link check, and text filters; no container, live resource, or secret read.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -130,5 +130,6 @@
       "commit": "3699431f"
     }
   ],
-  "pr": 1675
+  "pr": 1675,
+  "reviewed": "d63287352f9d6c9c9a6a4b41e95b4d89b703b010"
 }
