@@ -263,6 +263,51 @@ describe.concurrent("stdin interpreter guard (deny-env-dump.sh)", () => {
     expect(await commandDecision(command)).toBe(want);
   });
 
+  const hardened: [string, Decision, string][] = [
+    ["redirect", "deny", heredoc("node - 2>&1", DB_READ)],
+    ["redirect", "deny", heredoc("node - >&2", DB_READ)],
+    ["redirect", "deny", heredoc("python3 - 2>&-", "import os", "print(os.environ)")],
+    ["redirect", "allow", heredoc("node - 2>&1", "console.log(1)")],
+    ["pipe-redirect", "deny", `echo '${PIPE_READ}' 2>&1 | node`],
+    ["pipe-redirect", "deny", [`cat <<'EOF' 2>&1 | node`, DB_READ, "EOF"].join("\n")],
+    ["remote", "deny", heredoc("docker exec -i db python3 -", "import os", "print(os.environ)")],
+    ["remote", "deny", heredoc("ssh host bash -s", "echo $GH_TOKEN")],
+    ["remote", "deny", heredoc("docker exec -i db sh", "echo $POSTGRES_PASSWORD")],
+    ["remote", "deny", heredoc("docker exec -i -u app -e X=1 db node -", DB_READ)],
+    ["remote", "deny", heredoc("kubectl exec -i -n prod pod -- node", DB_READ)],
+    ["remote", "deny", heredoc("podman exec -i db -- perl", "print %ENV;")],
+    ["remote", "deny", heredoc("agro hands exec box -- python3 -", "import os", "print(os.environ)")],
+    ["remote", "deny", heredoc("ssh -p 2222 -o BatchMode=yes host 'bash -s'", "echo $GH_TOKEN")],
+    ["remote", "allow", heredoc("docker exec -i db psql", "select 1")],
+    ["remote", "allow", heredoc("ssh host bash -s", "echo $HOME")],
+    ["shell-dump", "deny", heredoc("bash", "printenv")],
+    ["shell-dump", "deny", heredoc("bash -s", "env")],
+    ["shell-dump", "deny", [`cat <<'EOF' | sh`, "printenv", "EOF"].join("\n")],
+    ["shell-dump", "deny", heredoc("sh -s", "export -p")],
+    ["shell-dump", "deny", heredoc("bash", "declare -x | sort")],
+    ["shell-dump", "deny", heredoc("bash", "cat /proc/self/environ")],
+    ["shell-dump", "allow", heredoc("bash -s", "echo env is fine")],
+    ["read-forms", "deny", heredoc("ruby -", "puts ENV.fetch('DATABASE_URL')")],
+    ["read-forms", "deny", heredoc("ruby", "p ENV.to_h")],
+    ["read-forms", "deny", heredoc("python3 -", "from os import environ", "print(environ)")],
+    ["read-forms", "deny", heredoc("node -", "console.log(process['env'])")],
+    ["read-forms", "deny", heredoc("node", "console.log(process [\"env\"].X)")],
+    ["launch", "deny", heredoc("/usr/bin/env node", DB_READ)],
+    ["launch", "deny", heredoc("sudo -E node -", DB_READ)],
+    ["launch", "deny", heredoc("sudo -u app -E python3 -", "import os", "print(os.environ)")],
+    ["launch", "deny", heredoc("/usr/bin/env -i FOO=1 node", DB_READ)],
+    ["launch", "deny", heredoc("dash", "echo $GH_TOKEN")],
+    ["launch", "deny", heredoc("ksh -s", "echo $GH_TOKEN")],
+    ["pipeline", "deny", `echo '${PIPE_READ}' | cat | node`],
+    ["pipeline", "deny", [`cat <<'EOF' | tr a a | node`, DB_READ, "EOF"].join("\n")],
+    ["pipeline", "allow", "echo hi | cat | node"],
+    ["pipeline", "allow", [`cat <<'EOF' | tr a a | node`, "console.log(1)", "EOF"].join("\n")],
+  ];
+
+  it.each(hardened)("hardened %s %s: %s", async (_finding, want, command) => {
+    expect(await commandDecision(command)).toBe(want);
+  });
+
   it("names the operator remedy in the denial reason", async () => {
     const result = await runHook(CMD_HOOK, { command: heredoc("node -", DB_READ) });
     const reason: string = JSON.parse(result.stdout).hookSpecificOutput.permissionDecisionReason;

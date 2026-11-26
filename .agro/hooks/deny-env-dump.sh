@@ -6,54 +6,7 @@ cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
 
 SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIAL|AUTH|BEARER|SESSION|COOKIE|SLACK_[A-Z_]*|OPENAI_[A-Z_]*|ANTHROPIC_[A-Z_]*|GITHUB_TOKEN|GH_TOKEN|AWS_SECRET|AWS_SESSION|GCP_[A-Z_]*|DATABASE_URL|DB_PASSWORD)'
 
-STDIN_SCRIPT_ENV_READ=''
-if command -v perl >/dev/null 2>&1; then
-  STDIN_SCRIPT_ENV_READ=$(SECRET_NAME=$SECRET_NAME perl -0777 -ne '
-    my $secret = $ENV{SECRET_NAME};
-    my $read = qr/process\.env|os\.environ|getenv|%ENV|\$ENV\{|\bENV\[|\$\{?[A-Z0-9_]*$secret[A-Z0-9_]*\}?/;
-    sub stdin_interp {
-      my $s = shift;
-      $s =~ s/\d*[<>]+&?\s*[^\s<>]*//g;
-      my @w = split " ", $s;
-      shift @w while @w && $w[0] =~ /^(\w+=\S*|env|sudo|exec|command|nohup|time)$/;
-      return 0 unless @w;
-      (my $bin = shift @w) =~ s{.*/}{};
-      my @ops = grep { !/^-./ } @w;
-      my $stdin = !@ops || $ops[0] eq "-";
-      return $stdin if $bin =~ /^(node|nodejs|python[0-9.]*|perl|ruby)$/;
-      return 0 unless $bin =~ /^(bash|sh|zsh)$/;
-      my @flags = grep { /^-[A-Za-z]+$/ } @w;
-      return 0 if grep { /c/ } @flags;
-      return 1 if grep { /s/ } @flags;
-      return $stdin;
-    }
-    my $hit = 0;
-    while (/<<-?\s*(["\x27]?)(\w+)\1([^\n]*)(.*?)\n\s*\2\b/gs) {
-      my ($tail, $body, $pos) = ($3, $4, $-[0]);
-      my $head = substr($_, 0, $pos);
-      $head =~ s/.*[;&|(`{\n]//s;
-      my ($args, $pipe) = $tail =~ /^([^|;&]*)(?:\|([^|;&]*))?/;
-      if (stdin_interp("$head $args") || (defined $pipe && stdin_interp($pipe))) {
-        $hit = 1 if $body =~ $read;
-      }
-    }
-    s/<<-?\s*(["\x27]?)(\w+)\1([^\n]*)\n.*?\n\s*\2\b/<< $3/gs;
-    my @pipelines = ([""]);
-    for my $t (/(\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"|\\.|[^\x27"\\|;&\n]+|\|\||&&|[|;&\n])/gs) {
-      if ($t eq "|") { push @{$pipelines[-1]}, "" }
-      elsif ($t =~ /^(\|\||&&|[;&\n])$/) { push @pipelines, [""] }
-      else { $pipelines[-1][-1] .= $t }
-    }
-    for my $p (@pipelines) {
-      for my $i (0 .. $#$p) {
-        my $s = $p->[$i];
-        $hit = 1 if $s =~ /^(.*?)<<<(.*)$/s && stdin_interp($1) && $2 =~ $read;
-        $hit = 1 if $i > 0 && stdin_interp($s) && $p->[$i - 1] =~ $read;
-      }
-    }
-    print $hit ? 1 : "";
-  ' <<<"$cmd") || STDIN_SCRIPT_ENV_READ=''
-fi
+raw_cmd=$cmd
 
 if command -v perl >/dev/null 2>&1; then
   cmd=$(perl -0777 -pe 's{<<-?\s*(["\x27]?)(\w+)\1(.*?)\n\s*\2\b}{<<HEREDOC_STRIPPED}gs' <<<"$cmd")
@@ -97,6 +50,96 @@ DENY+='|\bagro[[:space:]]+secret[[:space:]]+get\b'
 DENY+='|\bgcloud[[:space:]]+auth[[:space:]]+print-(access|identity)-token\b'
 DENY+='|\bkubectl[[:space:]]+get[[:space:]]+secret[^|]*-o[[:space:]]*(yaml|json)'
 DENY+='|\bdocker[[:space:]]+(secret|config)[[:space:]]+inspect\b'
+
+STDIN_SCRIPT_ENV_READ=''
+if command -v perl >/dev/null 2>&1; then
+  STDIN_SCRIPT_ENV_READ=$(SECRET_NAME=$SECRET_NAME ENV_DUMP=$ENV_DUMP DENY=$DENY perl -e '
+    my ($secret, $dump_src, $deny_src) = @ENV{qw(SECRET_NAME ENV_DUMP DENY)};
+    my $read = qr/process\s*(?:\.|\[)\s*["\x27]?env\b|\benviron\b|getenv|\bENV\b|\$\{?[A-Z0-9_]*$secret[A-Z0-9_]*\}?/;
+    my $dump = qr/$dump_src/m;
+    my $deny = qr/$deny_src/mi;
+    my $redirect = qr/\d*[<>]+&[\d-]|&>>?/;
+    sub interp_kind {
+      my $s = shift;
+      $s =~ s/$redirect/ /g;
+      $s =~ s/\d*[<>]+\s*[^\s<>]*//g;
+      my @w = map { s/["\x27]//gr } split " ", $s;
+      while (@w) {
+        my $word = $w[0] =~ s{.*/}{}r;
+        if ($word =~ /^\w+=/ || $word =~ /^(exec|command|builtin|nohup|time)$/) { shift @w }
+        elsif ($word =~ /^(env|sudo|doas)$/) {
+          shift @w;
+          while (@w && $w[0] =~ /^-|^\w+=/) { my $o = shift @w; shift @w if $o =~ /^-[ugCDhprtUS]$/ }
+        }
+        elsif ($word =~ /^(docker|podman|nerdctl|kubectl)$/) {
+          shift @w;
+          shift @w while @w && $w[0] =~ /^(compose|container)$/;
+          return 0 unless @w && shift(@w) eq "exec";
+          while (@w && $w[0] =~ /^-/) { my $o = shift @w; shift @w if $o =~ /^(-[euwcn]|--(env|env-file|user|workdir|container|namespace))$/ }
+          shift @w;
+          shift @w if @w && $w[0] eq "--";
+        }
+        elsif ($word eq "agro" && @w > 2 && $w[1] eq "hands" && $w[2] eq "exec") {
+          splice @w, 0, 4;
+          shift @w if @w && $w[0] eq "--";
+        }
+        elsif ($word eq "ssh") {
+          shift @w;
+          while (@w && $w[0] =~ /^-/) { my $o = shift @w; shift @w if $o =~ /^-[bcDEeFIiJLlmOoPpQRSWw]$/ }
+          shift @w;
+          shift @w if @w && $w[0] eq "--";
+          return "shell" unless @w;
+        }
+        else { last }
+      }
+      return 0 unless @w;
+      my $bin = shift(@w) =~ s{.*/}{}r;
+      my @ops = grep { !/^-./ } @w;
+      my $stdin = !@ops || $ops[0] eq "-";
+      return $stdin ? "script" : 0 if $bin =~ /^(node|nodejs|python[0-9.]*|perl|ruby)$/;
+      return 0 unless $bin =~ /^(bash|sh|zsh|dash|ksh)$/;
+      my @flags = grep { /^-[A-Za-z]+$/ } @w;
+      return 0 if grep { /c/ } @flags;
+      return "shell" if grep { /s/ } @flags;
+      return $stdin ? "shell" : 0;
+    }
+    sub body_hit {
+      my ($kind, $text) = @_;
+      return 0 unless $kind;
+      return $text =~ $read || ($kind eq "shell" && ($text =~ $dump || $text =~ $deny));
+    }
+    my $c = do { local $/; <STDIN> };
+    my $hit = 0;
+    while ($c =~ /<<-?\s*(["\x27]?)(\w+)\1([^\n]*)(.*?)\n\s*\2\b/gs) {
+      my ($tail, $body, $pos) = ($3, $4, $-[0]);
+      my $head = substr($c, 0, $pos) =~ s/$redirect/ /gr;
+      $head =~ s/.*[;&|(`{\n]//s;
+      my $t = $tail =~ s/$redirect/ /gr;
+      $t =~ s/(\|\||[;&]).*//s;
+      my ($args, @stages) = split /\|/, $t, -1;
+      for my $kind (interp_kind("$head $args"), map { interp_kind($_) } @stages) {
+        $hit = 1 if body_hit($kind, $body);
+      }
+    }
+    $c =~ s/<<-?\s*(["\x27]?)(\w+)\1([^\n]*)\n.*?\n\s*\2\b/<< $3/gs;
+    my @pipelines = ([""]);
+    for my $t ($c =~ /($redirect|\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"|\\.|[^\x27"\\|;&\n<>]+|[<>]+|\|\||&&|[|;&\n])/gs) {
+      if ($t eq "|") { push @{$pipelines[-1]}, "" }
+      elsif ($t =~ /^(\|\||&&|[;&\n])$/) { push @pipelines, [""] }
+      else { $pipelines[-1][-1] .= $t }
+    }
+    for my $p (@pipelines) {
+      for my $i (0 .. $#$p) {
+        my $s = $p->[$i];
+        $hit = 1 if $s =~ /^(.*?)<<<(.*)$/s && body_hit(interp_kind($1), $2);
+        next unless $i;
+        my $kind = interp_kind($s) or next;
+        $hit = 1 if grep { body_hit($kind, $p->[$_]) } 0 .. $i - 1;
+      }
+    }
+    print $hit ? 1 : "";
+  ' <<<"$raw_cmd") || STDIN_SCRIPT_ENV_READ=''
+fi
 
 DOCKER_INSPECT='\b(docker|podman|nerdctl)[[:space:]]+([^|;&]{0,160}[[:space:]])?inspect\b'
 DOCKER_FMT='(--format[=[:space:]]|(^|[[:space:]])-f[=[:space:]])'
