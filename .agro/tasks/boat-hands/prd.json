@@ -127,7 +127,7 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file under `docs/` and `.agro/skills/`."
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": "Advisor reran: typecheck exit 0; vitest commands/__tests__ plus docs-reference 419/419; link-providers.sh --check Providers OK. 1 executed: handsHelp lists console, exedev, boat and the boat ssh transport; existing help tests pass unedited. 2 executed: docs/lifecycle-commands.md has the boat.dev hands section with boat login, agro-hand- prefix, no-env, no-auto-stop with 2-hour trial fallback, boat ssh transport, Docker build cache loss, and the not-live-verified note; docs-reference passes. 3 executed: references/hands.md boat column; SKILL.md names boat hands in the hands route. 4 reasoned: one Added entry under Unreleased linked to #1671. 5 executed: ste-check exit 0 on docs/lifecycle-commands.md, references/hands.md, SKILL.md. Known follow-on: sandbox-routing.test.ts decisions.json provenance is stale after the instruction edits; the advisor regenerates it after the final doc edit and before push.",
       "dependsOn": [
         "US-004"
@@ -137,9 +137,11 @@
         "docs/lifecycle-commands.md",
         ".agro/skills/sandbox/references/hands.md",
         ".agro/skills/sandbox/SKILL.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "6b834b5b"
+      "commit": "6b834b5b",
+      "rounds": 1
     },
     {
       "id": "US-006",
