@@ -21,14 +21,15 @@
         "Typecheck passes."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (349 passed); `corepack pnpm run typecheck` exit 0. AC1-AC7 executed by tests in \u00a7 agro hands create --desktop (sandbox, agro with/without --docker, brain authority sandbox tools, no tools without --desktop, n2 makes zero calls under both authorities, no spec field, 422/503 lines). AC8 executed: 9 new/updated tests failed on the old code; 2 tests pin bodies the old code already sent (operator --profile agro --docker), so they cannot fail first (reasoned). AC9 executed: typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/hands/console-provider.ts",
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts"
-      ]
+      ],
+      "commit": "676b2e34"
     },
     {
       "id": "US-002",
