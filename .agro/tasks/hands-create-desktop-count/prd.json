@@ -77,8 +77,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no new finding in the changed lines."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Commits ddd20d1a + repair 18b04cc1 (round 1: the Changed entry names the #1667 behavior change per supervisor direction). AC1-AC2 executed: help test 'shows the new flags in the help' pins the usage line, --count paragraph, role tools, n2 sentence, exedev console-only list; `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); typecheck exit 0. AC3 reasoned from diff: docs row, --desktop bullet, new --count bullet, exedev list. AC4 executed by reading CHANGELOG [Unreleased]: Added --count entry and Changed --desktop entry, linking #1676 (Changed also #1667). AC5 executed (same vitest run). AC6 executed: ste-check finding set on docs/lifecycle-commands.md equals the HEAD~1 baseline (1 pre-existing VAGUE finding), no new finding. | Reopened round 2: CI red on 674c050c (sandbox-routing stale instructionSha256 after the docs edit). Supervisor chose option B: refresh decisions.json from a real replay.",
+      "passes": true,
+      "notes": "Commits ddd20d1a + repair 18b04cc1 (round 1: the Changed entry names the #1667 behavior change per supervisor direction). AC1-AC2 executed: help test 'shows the new flags in the help' pins the usage line, --count paragraph, role tools, n2 sentence, exedev console-only list; `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); typecheck exit 0. AC3 reasoned from diff: docs row, --desktop bullet, new --count bullet, exedev list. AC4 executed by reading CHANGELOG [Unreleased]: Added --count entry and Changed --desktop entry, linking #1676 (Changed also #1667). AC5 executed (same vitest run). AC6 executed: ste-check finding set on docs/lifecycle-commands.md equals the HEAD~1 baseline (1 pre-existing VAGUE finding), no new finding. | Reopened round 2: CI red on 674c050c (sandbox-routing stale instructionSha256 after the docs edit). Supervisor chose option B: refresh decisions.json from a real replay. | Round 2 accepted (e3582789): decisions.json rebuilt from a real replay, replay15, 17 fresh-context decision-only agents (claude-opus-5-5), at most 2 at a time; all 17 match their oracles. Advisor confirmed every response equals its replay file and every handle is replay15-R<n>. `corepack pnpm test`: only the 7 baseline herdr-default failures (3723 passed); typecheck exit 0.",
       "dependsOn": [
         "US-002"
       ],
@@ -89,7 +89,8 @@
         "CHANGELOG.md",
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "rounds": 2
+      "rounds": 2,
+      "commit": "e3582789"
     },
     {
       "id": "US-004",
