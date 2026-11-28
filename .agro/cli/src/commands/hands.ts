@@ -676,7 +676,7 @@ function launchInSequence(
 function handLine(created: CreatedHand, hand: Hand, desktop: boolean): string {
   const address = created.desktop === undefined ? null : rdpAddress(created.desktop);
   const desktopField = desktop ? ` desktop ${address ?? "not listening"}` : "";
-  return `hand ${created.index} alias ${hand.alias ?? "-"} status ${hand.status} ssh ${hand.sshDest ?? "-"}${desktopField}\n`;
+  return `hand ${hand.index ?? "-"} alias ${hand.alias ?? "-"} status ${hand.status} ssh ${hand.sshDest ?? "-"}${desktopField}\n`;
 }
 
 async function createMany(

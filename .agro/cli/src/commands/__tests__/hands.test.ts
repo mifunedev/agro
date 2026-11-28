@@ -1875,7 +1875,7 @@ describe("agro hands create --count", () => {
     return {
       id: `u${k}`,
       status,
-      orgIndex: k,
+      orgIndex: 40 + k,
       alias: `alias-${k}`,
       name: null,
       profile: "sandbox",
@@ -1919,14 +1919,14 @@ describe("agro hands create --count", () => {
 
   const THREE_RUNNING = () => ({ u1: [node(1)], u2: [node(2)], u3: [node(3)] });
   const HAND_LINES =
-    "hand 1 alias alias-1 status running ssh sandbox@hand-1.example\n" +
-    "hand 2 alias alias-2 status running ssh sandbox@hand-2.example\n" +
-    "hand 3 alias alias-3 status running ssh sandbox@hand-3.example\n";
+    "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+    "hand 42 alias alias-2 status running ssh sandbox@hand-2.example\n" +
+    "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n";
 
   function jsonOf(k: number, status = "running") {
     return {
       id: `u${k}`,
-      index: k,
+      index: 40 + k,
       alias: `alias-${k}`,
       name: null,
       status,
@@ -2033,17 +2033,17 @@ describe("agro hands create --count", () => {
     expect(h.stdout()).toBe(HAND_LINES);
   });
 
-  it("prints one human line for each hand in request order", async () => {
+  it("prints one human line with the console index for each hand in request order", async () => {
     const h = counted(THREE_RUNNING());
     expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(0);
     expect(h.stdout()).toBe(HAND_LINES);
     expect(h.stderr()).toContain("agro hands create: hand u2 running\n");
   });
 
-  it("prints a dash for a hand without an SSH host", async () => {
-    const h = counted({ u1: [node(1)], u2: [node(2, "running", { sshHost: null, alias: null })] });
+  it("prints a dash for a hand without an index or an SSH host", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "running", { sshHost: null, alias: null, orgIndex: null })] });
     expect(await runHands([...BASE_CREATE, "--count", "2"], h.io, h.deps)).toBe(0);
-    expect(h.stdout().split("\n")[1]).toBe("hand 2 alias - status running ssh -");
+    expect(h.stdout().split("\n")[1]).toBe("hand - alias - status running ssh -");
   });
 
   it("prints one JSON line for each hand in request order", async () => {
@@ -2063,7 +2063,7 @@ describe("agro hands create --count", () => {
     );
     expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
     expect(h.posts).toHaveLength(2);
-    expect(h.stdout()).toBe("hand 1 alias alias-1 status running ssh sandbox@hand-1.example\n");
+    expect(h.stdout()).toBe("hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n");
     expect(h.stderr()).toMatch(/^agro hands create: hand 2 of 3: HTTP 500 INTERNAL: boom$/m);
     expect(h.stderr()).not.toContain("hand 3 of 3");
   });
@@ -2081,9 +2081,9 @@ describe("agro hands create --count", () => {
     expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
     expect(h.posts).toHaveLength(3);
     expect(h.stdout()).toBe(
-      "hand 1 alias alias-1 status running ssh sandbox@hand-1.example\n" +
-        "hand 2 alias alias-2 status failed ssh sandbox@hand-2.example\n" +
-        "hand 3 alias alias-3 status running ssh sandbox@hand-3.example\n",
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+        "hand 42 alias alias-2 status failed ssh sandbox@hand-2.example\n" +
+        "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n",
     );
     expect(h.stderr()).toContain("agro hands create: hand 2 of 3: hand u2 failed — last status failed\n");
   });
@@ -2110,9 +2110,9 @@ describe("agro hands create --count", () => {
     expect(await runHands([...BASE_CREATE, "--count", "3", "--desktop"], h.io, h.deps)).toBe(0);
     expect(h.posts).toEqual(Array(3).fill({ profile: "sandbox", sshKeyIds: ["key-1"], tools: COUNT_TOOLS }));
     expect(h.stdout()).toBe(
-      "hand 1 alias alias-1 status running ssh sandbox@hand-1.example desktop alias-1.ts.net:3389\n" +
-        "hand 2 alias alias-2 status running ssh sandbox@hand-2.example desktop not listening\n" +
-        "hand 3 alias alias-3 status running ssh sandbox@hand-3.example desktop alias-3.ts.net:3389\n" +
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example desktop alias-1.ts.net:3389\n" +
+        "hand 42 alias alias-2 status running ssh sandbox@hand-2.example desktop not listening\n" +
+        "hand 43 alias alias-3 status running ssh sandbox@hand-3.example desktop alias-3.ts.net:3389\n" +
         COUNT_NEXT_LINES,
     );
     expect(h.stderr()).toContain("agro hands create: warning: hand u2 is running but xrdp is not listening");
