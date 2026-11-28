@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1676-hands-create-desktop-count",
+  "description": "agro hands create --desktop parity with the agro-console Desktop option, and --count to create 1 to 10 console hands in one call.",
+  "review": true,
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Align --desktop with the agro-console Desktop option",
+      "description": "As an operator on a brain, I want `agro hands create --desktop` to match the agro-console Desktop option. The CLI sends the same tools and applies the same spec rule, so that a desktop hand from the CLI matches a desktop hand from `/nodes/create`.",
+      "acceptanceCriteria": [
+        "With `--desktop` and the profile `sandbox` (the default), the create request body has `tools: [\"agro\", \"docker\", \"desktop\"]` and no `docker` field.",
+        "With `--desktop --profile agro`, with or without `--docker`, the create request body has `tools: [\"docker\", \"desktop\"]` and no `docker` field.",
+        "With brain authority, `--desktop --profile agro` sends `tools: [\"agro\", \"docker\", \"desktop\"]`, because the console forces the profile `sandbox` for brain authority.",
+        "Without `--desktop`, the create request body has no `tools` field, as before.",
+        "`--desktop --spec n2` exits 1 with `agro hands create: the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)` and sends no console request.",
+        "`--desktop` without `--spec` sends no `spec` field. The console default spec `n4` supports the desktop.",
+        "The console refusals HTTP 422 `SPEC_TOO_SMALL_FOR_TOOL` and HTTP 503 `DESKTOP_IMAGE_UNAVAILABLE` keep their current lines.",
+        "The tests in `.agro/cli/src/commands/__tests__/hands.test.ts` \u00a7 `agro hands create --desktop` pin each body above with the existing fake console, and each test fails before the change.",
+        "Typecheck passes."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (349 passed); `corepack pnpm run typecheck` exit 0. AC1-AC7 executed by tests in \u00a7 agro hands create --desktop (sandbox, agro with/without --docker, brain authority sandbox tools, no tools without --desktop, n2 makes zero calls under both authorities, no spec field, 422/503 lines). AC8 executed: 9 new/updated tests failed on the old code; 2 tests pin bodies the old code already sent (operator --profile agro --docker), so they cannot fail first (reasoned). AC9 executed: typecheck exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/hands/console-provider.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts"
+      ],
+      "commit": "676b2e34"
+    },
+    {
+      "id": "US-002",
+      "title": "Create N console hands with --count",
+      "description": "As an operator on a brain, I want `agro hands create --count <N>` to create N console hands in one call. Then I can create N desktop gate nodes with one command.",
+      "acceptanceCriteria": [
+        "`--count <N>` and `--count=<N>` accept an integer from 1 to 10. The default is 1. Another value exits 1 with `agro hands create: --count must be an integer from 1 to 10` and sends no console request.",
+        "`--count` applies only to console hands. With the exedev provider, `create --count 2` exits 1 with `agro hands create: --count applies only to console hands` before any provider call.",
+        "With N greater than 1, `--project` or `--clone` exits 1 with `agro hands create: --count excludes --project and --clone`.",
+        "With `--name <name>` and N greater than 1, the hands get the names `<name>-1` to `<name>-N` in request order. With N equal to 1, the hand gets `<name>`. Without `--name`, the request has no `name` field.",
+        "The CLI sends the create requests in sequence. The CLI sends request k+1 only after the console returns a node id for request k. The waits for `running` and the desktop waits run at the same time.",
+        "When the console refuses request k without a node id, the CLI sends no later request. The CLI prints `agro hands create: hand <k> of <N>: <error>` on stderr.",
+        "With N equal to 1, the human output and the `--json` output do not change.",
+        "With N greater than 1 and without `--json`, stdout has one line for each hand with a node id, in request order. The line is `hand <index> alias <alias> status <status> ssh <sshDest or ->`.",
+        "With N greater than 1 and `--desktop`, each hand line adds `desktop <rdpAddress>` or `desktop not listening`. The desktop next steps print one time after the hand lines.",
+        "With N greater than 1 and `--json`, stdout has one JSON line for each hand with a node id, in request order. Each JSON line has the fields of the current `--json` line. A hand with a failed wait gets the line with its last status.",
+        "`--count 3 --desktop` sends three requests, each with the US-001 desktop body.",
+        "The exit status is 0 only when each of the N hands reaches `running`. Otherwise the exit status is 1. Before the exit, the CLI prints the line of each hand with a node id and one stderr line for each failure. A desktop without xrdp stays a warning, as with N equal to 1.",
+        "Tests in `.agro/cli/src/commands/__tests__/hands.test.ts` cover each criterion above with the existing fake console. The cases are the bound, the names, the request order, the human lines, and the JSON lines. The cases also include a refusal at request 2 of 3, a wait failure at hand 2 of 3, and the exedev refusal. No test creates a live hand.",
+        "Typecheck passes."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Commits 53033ca7 + repair 1b8f8652 (round 1: hand lines print the console index, not the request position). Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); `corepack pnpm run typecheck` exit 0. All AC executed by tests in describe 'agro hands create --count': bound (0, 11, 2.5, abc, +3, 03, -1, empty, both forms; 10 accepted), exedev refusal for --count 2 and --count=2, --project/--clone exclusion, names <name>-k / plain name at N=1 / no name field, request k+1 held until node id k with concurrent polls, refusal at 2 of 3 (2 POSTs, stderr 'hand 2 of 3: ...'), N=1 output byte-identical with and without --json, human lines with console index (41-43, dash for null index/ssh), desktop fields and next steps once, JSON lines in order with last status after a wait failure at 2 of 3, exit 1 on failure, three desktop bodies with the US-001 tools. Typecheck executed exit 0. | Reopened round 2 for /code-review 1677 findings 1, 3, 4, 5. | Round 2 accepted (445f604b): result promises never reject (failed result per hand, exit 1), slot reserved per request, 'hand(s) <k+1> to <N> not requested' stderr line, 'desktop -' on a failed hand. Advisor reran `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/ .agro/scripts/__tests__/sandbox-routing.test.ts` exit 0 (417 passed); typecheck exit 0. | Reopened round 3 (supervisor approved option A) for the second-review findings F1 and F2. | Round 3 accepted (c15ae912): F1 human line prints 'ssh -' unless running (test 'prints ssh - for a hand whose wait failed although its last node has an SSH host'); F2 desktop-wait error stays a warning with exit unaffected (test 'keeps a running hand and warns when the desktop wait rejects for hand 2 of 3'). Advisor reran vitest commands + sandbox-routing exit 0 (418 passed); typecheck exit 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts"
+      ],
+      "rounds": 3,
+      "commit": "c15ae912"
+    },
+    {
+      "id": "US-003",
+      "title": "Update help, docs, and CHANGELOG",
+      "description": "As an operator, I want the help, the docs, and the CHANGELOG to describe `--desktop` and `--count`, so that the published text matches the code.",
+      "acceptanceCriteria": [
+        "`agro hands --help` shows `[--count <N>]` in the `create` usage line. The help has a `--count` paragraph with the bound, the names, the output, and the exit status. The `--desktop` paragraph names the US-001 tools and the local `n2` refusal.",
+        "The help states that `--count` applies only to console hands, in the exedev paragraph.",
+        "`docs/lifecycle-commands.md` shows the same usage line and describes `--count` and the US-001 `--desktop` tools.",
+        "`CHANGELOG.md` `## [Unreleased]` has an `### Added` entry for `--count` and a `### Changed` entry for the #1667 `--desktop` change. The `### Changed` entry states the role tools and the local `n2` refusal. Both entries link to #1676.",
+        "The help test in `.agro/cli/src/commands/__tests__/hands.test.ts` pins the new usage line.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no new finding in the changed lines."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Commits ddd20d1a + repair 18b04cc1 (round 1: the Changed entry names the #1667 behavior change per supervisor direction). AC1-AC2 executed: help test 'shows the new flags in the help' pins the usage line, --count paragraph, role tools, n2 sentence, exedev console-only list; `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); typecheck exit 0. AC3 reasoned from diff: docs row, --desktop bullet, new --count bullet, exedev list. AC4 executed by reading CHANGELOG [Unreleased]: Added --count entry and Changed --desktop entry, linking #1676 (Changed also #1667). AC5 executed (same vitest run). AC6 executed: ste-check finding set on docs/lifecycle-commands.md equals the HEAD~1 baseline (1 pre-existing VAGUE finding), no new finding. | Reopened round 2: CI red on 674c050c (sandbox-routing stale instructionSha256 after the docs edit). Supervisor chose option B: refresh decisions.json from a real replay. | Round 2 accepted (e3582789): decisions.json rebuilt from a real replay, replay15, 17 fresh-context decision-only agents (claude-opus-5-5), at most 2 at a time; all 17 match their oracles. Advisor confirmed every response equals its replay file and every handle is replay15-R<n>. `corepack pnpm test`: only the 7 baseline herdr-default failures (3723 passed); typecheck exit 0.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/commands/__tests__/hands.test.ts",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
+      ],
+      "rounds": 2,
+      "commit": "e3582789"
+    },
+    {
+      "id": "US-004",
+      "title": "Capture the manual review transcript",
+      "description": "As the advisor, I want a command transcript of the built CLI against a local fake console. The PR then shows the behavior through the user entry point, with no live spend.",
+      "acceptanceCriteria": [
+        "The worker builds the CLI with `npm --prefix .agro/cli run build`. The worker runs `node .agro/cli/dist/<entry>` with `AGRO_CONSOLE_URL=http://127.0.0.1:<port>` and `AGRO_CONSOLE_TOKEN=fake-token` inline on each command.",
+        "Before the boot, the worker confirms a free `<port>`. If the port is busy, the worker reports BLOCKED with the holder process and stops no process.",
+        "The fake console is an untracked script in the worktree scratch area. The fake console answers `POST /api/nodes` and `GET /api/nodes/<id>` and logs each request body. The fake console stops at the end of the run.",
+        "The transcript is at `.agro/tasks/hands-create-desktop-count/evidence/manual-review.md`. The transcript runs `create --count 2 --desktop --name gate --json`, `create --desktop --spec n2`, `create --count 11`, `--provider exedev create --count 2`, and a refusal at request 2 of 3. Each command shows stdout, stderr, the exit status, and the logged request bodies.",
+        "No command uses a real token, and no command reaches a live console."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor read evidence/manual-review.md (222 lines). AC1 executed by worker: `npm --prefix .agro/cli run build`, then `node .agro/cli/dist/agro.js hands create ...` with inline AGRO_CONSOLE_URL=http://127.0.0.1:18777 AGRO_CONSOLE_TOKEN=fake-token and a fresh HOME. AC2 executed: port 18777 free before boot; advisor confirmed nothing listens on 1877x after the run. AC3 executed: untracked Node fake console in the scratchpad, logged method/path/body, PID stopped, scratch deleted (advisor confirmed the scratchpad is empty). AC4 executed: transcript shows the five commands with stdout, stderr, exit status, and request logs (A exit 0 with two sandbox bodies tools [agro,docker,desktop]; B n2 exit 1 no request; C --count 11 exit 1 no request; D exedev exit 1 no request; E refusal at 2 of 3: two POSTs, stderr 'hand 2 of 3', exit 1). AC5 reasoned: only the literal fake-token and 127.0.0.1 appear. | Reopened round 1: the transcript predates the review fixes (scenario E now prints 'hand 3 not requested'); rerun on the current head. | Round 1 accepted (61c45763): transcript rerun on e379e74a (code identical to the reviewed 9836b97c), port 18777 free before and after, fake console PID stopped, scratch deleted; scenario E shows 'hand 3 not requested'; ste-check no findings.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/hands-create-desktop-count/evidence/manual-review.md"
+      ],
+      "commit": "61c45763",
+      "rounds": 1
+    }
+  ],
+  "pr": 1677,
+  "reviewed": "9836b97c"
+}

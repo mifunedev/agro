@@ -56,7 +56,7 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--count <N>] [--json] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` · `agro hands check [--ssh-key <uuid>]...` · `--provider console\|exedev` · `--operator` | create and manage hands and console VMs, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -756,9 +756,15 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   `--code-server` turn on Docker, T3, and code-server. Each of the three flags
   requires `--profile agro`.
 - `create --desktop` adds the desktop tool to the hand with either profile.
-  The request sends `tools: ["desktop"]`, or `tools: ["docker", "desktop"]`
-  with `--docker`, and no `docker` field. The desktop needs at least `n4`. If
-  the console returns HTTP 422 `SPEC_TOO_SMALL_FOR_TOOL`, the command prints
+  The request sends the console role tools and no `docker` field:
+  `tools: ["agro", "docker", "desktop"]` for the profile `sandbox`, and
+  `tools: ["docker", "desktop"]` for the profile `agro`. With brain authority,
+  the request always sends the `sandbox` tools, because the console forces the
+  profile `sandbox` for a brain. `--docker` adds nothing to `--desktop`. The
+  desktop needs at least `n4`. With `--spec n2`, the command prints
+  `the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)`
+  and exits 1 before it sends a request. Without `--spec`, the console default
+  `n4` fits. If the console returns HTTP 422 `SPEC_TOO_SMALL_FOR_TOOL`, the command prints
   `the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)`
   and exits 1. If the console returns HTTP 503 `DESKTOP_IMAGE_UNAVAILABLE`, the
   command prints
@@ -793,6 +799,22 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   spec, `spec` is `n4`. If the console returns a hand id and
   the wait then fails, `create --json` prints the line with the last status and
   exits 1. `--json` excludes `--project` and `--clone`.
+- `create --count <N>` requests N hands. N is an integer from 1 to 10. The
+  default is 1. Another value makes the command print
+  `--count must be an integer from 1 to 10` and exit 1. With N greater than 1,
+  `--count` excludes `--project` and `--clone`, and `--name <name>` gives the
+  names `<name>-1` to `<name>-N`. The command sends one request at a time. It
+  sends the next request after the console returns the node id of the previous
+  hand. A refusal without a node id stops the later requests. The waits run at
+  the same time. The command then prints one line for each hand with a node id,
+  in request order:
+  `hand <index> alias <alias> status <status> ssh <sandbox@host or ->`. With
+  `--desktop`, each line adds `desktop <rdpAddress>` or
+  `desktop not listening`, and the `next:` lines follow once. With `--json`,
+  the command prints one JSON line for each hand in request order. A hand
+  whose wait failed gets its last status. Each failure prints
+  `hand <k> of <N>: <error>` to stderr. The command exits 0 only when all N
+  hands reach `running`, else 1. With N equal to 1, the output does not change.
 - `list --json` adds `name` and `profile` to each console row.
 - The fork takes the spec of the source hand. `--spec` sets another spec. If
   the console response names the fork, the command waits for the fork as
@@ -812,7 +834,7 @@ agro hands fetch agro-sbx-dev-001 --project <owner>/<repo>  # git fetch hand-agr
   command prints one line for the SSH key check, the free tier eligibility, and
   the org credit. The credit line never changes the exit status.
 - `--profile`, `--docker`, `--t3`, `--code-server`, `--desktop`,
-  `--disposable`, `--ssh-key`, `--json` on `create`, and the `check` verb apply only to console
+  `--disposable`, `--ssh-key`, `--count`, `--json` on `create`, and the `check` verb apply only to console
   hands. The exe.dev provider refuses them and exits 1.
 
 ### exe.dev hands

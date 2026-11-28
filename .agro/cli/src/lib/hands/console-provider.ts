@@ -7,15 +7,22 @@ import {
   toNode,
   toNodeList,
   waitForRunning,
+  type ConsoleAuthority,
   type ConsoleConfig,
   type ConsoleNode,
   type ConsolePollDeps,
 } from "../console-api.js";
 import { LOCAL_SSH_KEY_MISSING } from "./console-check.js";
-import type { Hand, HandOutcome, HandProvider, HandRequest, HandStatusReport } from "./provider.js";
+import type { Hand, HandOutcome, HandProfile, HandProvider, HandRequest, HandStatusReport } from "./provider.js";
 
 const NO_NODE_ID = "the console response has no node id";
 const DESTROY_ADMIN_LINE = "destroy needs the admin role in agro-console";
+const SPEC_TOO_SMALL_LINE = "the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)";
+const DESKTOP_MIN_SPEC_GB = 4;
+const DESKTOP_ROLE_TOOLS: Record<HandProfile, string[]> = {
+  agro: ["docker", "desktop"],
+  sandbox: ["agro", "docker", "desktop"],
+};
 const CREATE_REFUSAL_LINES: readonly { status: number; code: string; line: string }[] = [
   {
     status: 422,
@@ -25,7 +32,7 @@ const CREATE_REFUSAL_LINES: readonly { status: number; code: string; line: strin
   {
     status: 422,
     code: "SPEC_TOO_SMALL_FOR_TOOL",
-    line: "the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)",
+    line: SPEC_TOO_SMALL_LINE,
   },
   {
     status: 503,
@@ -95,9 +102,19 @@ function isDesktopFatal(status: number | undefined): boolean {
   return status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429;
 }
 
-function toolsField(docker: boolean | undefined, desktop: boolean | undefined): Record<string, unknown> {
-  if (desktop === true) return { tools: docker === true ? ["docker", "desktop"] : ["desktop"] };
+function toolsField(
+  docker: boolean | undefined,
+  desktop: boolean | undefined,
+  profile: HandProfile,
+  authority: ConsoleAuthority,
+): Record<string, unknown> {
+  if (desktop === true) return { tools: DESKTOP_ROLE_TOOLS[authority === "brain" ? "sandbox" : profile] };
   return docker === true ? { docker: true } : {};
+}
+
+function isBelowDesktopSpec(spec: string | undefined): boolean {
+  const gb = spec === undefined ? undefined : /^n(\d+)$/.exec(spec)?.[1];
+  return gb !== undefined && Number(gb) < DESKTOP_MIN_SPEC_GB;
 }
 
 function toHand(node: ConsoleNode, fallbackSpec: string | null = null): Hand {
@@ -120,6 +137,7 @@ function toHand(node: ConsoleNode, fallbackSpec: string | null = null): Hand {
 export function createConsoleProvider(
   deps: ConsolePollDeps,
   config: ConsoleConfig,
+  authority: ConsoleAuthority,
   notice: (message: string) => void,
   localKey?: LocalSshKey,
 ): ConsoleHandProvider {
@@ -181,7 +199,8 @@ export function createConsoleProvider(
     },
 
     async create(request, onStatus) {
-      const { name, spec, disposable, profile, docker, t3, codeServer, desktop } = request;
+      const { name, spec, disposable, profile = "sandbox", docker, t3, codeServer, desktop } = request;
+      if (desktop === true && isBelowDesktopSpec(spec)) return { ok: false, error: SPEC_TOO_SMALL_LINE };
       const keys = request.sshKeyIds ?? [];
       const resolvedKeys = keys.length > 0 ? { ok: true as const, value: keys } : await defaultSshKeyIds();
       if (!resolvedKeys.ok) return resolvedKeys;
@@ -191,11 +210,11 @@ export function createConsoleProvider(
         deps,
         config,
         {
-          profile: profile ?? "sandbox",
+          profile,
           ...(name === undefined ? {} : { name }),
           ...(spec === undefined ? {} : { spec }),
           ...(sshKeyIds.length === 0 ? {} : { sshKeyIds }),
-          ...toolsField(docker, desktop),
+          ...toolsField(docker, desktop, profile, authority),
           ...(t3 === true ? { t3: true } : {}),
           ...(codeServer === true ? { runtimeSettings: { codeServerEnabled: true } } : {}),
           ...(disposable === true ? { disposable: true } : {}),

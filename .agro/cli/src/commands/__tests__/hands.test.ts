@@ -11,9 +11,11 @@ import {
   handsHelp,
   normalizeHandRef,
   resolveHandsConsoleConfig,
+  createMany,
   runHands,
   type HandsDeps,
 } from "../hands.js";
+import type { Hand, HandOutcome, HandProvider, HandStatusReport } from "../../lib/hands/provider.js";
 
 const TOKEN = "brn_known_secret_token_4f2a";
 const TOKEN_PATH = "/home/sandbox/.agro/brain-token";
@@ -1004,9 +1006,15 @@ describe("agro hands create profile and app flags", () => {
   it("shows the new flags in the help", () => {
     const help = handsHelp("agro");
     expect(help).toContain(
-      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
+      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--count <N>] [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
     );
-    for (const flag of ["--profile", "--json", "--ssh-key", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+    for (const flag of ["--profile", "--json", "--ssh-key", "--count", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+    expect(help).toContain("--count must be an integer from 1 to 10");
+    expect(help).toContain("hand <k> of <N>: <error>");
+    expect(help).toContain("--ssh-key, --count, and --json apply only to console hands.");
+    expect(help).toContain("agro, docker, and desktop for the");
+    expect(help).toContain("With \`--spec n2\`, \`create\`");
+    expect(help).not.toContain("sends the tools docker and desktop");
   });
 });
 
@@ -1487,23 +1495,44 @@ describe("agro hands create --desktop", () => {
   const TIMEOUT_WARNING =
     "warning: hand u9 is running but xrdp is not listening after 120 s; check with agro hands exec u9 -- systemctl status xrdp";
 
-  it("posts tools with desktop and no docker field", async () => {
-    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
-    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: ["desktop"] });
-  });
+  const OPERATOR = { readCredentials: credentials("cred") };
+  const SANDBOX_TOOLS = ["agro", "docker", "desktop"];
+  const AGRO_TOOLS = ["docker", "desktop"];
 
-  it("posts tools with docker and desktop and no docker field with --docker", async () => {
-    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
-    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--docker", "--desktop"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: ["docker", "desktop"] });
-  });
-
-  it.each([[["--profile", "agro"]], [["--profile", "sandbox"]], [[]]])("accepts --desktop with %j", async (flag) => {
+  it.each([[[]], [["--profile", "sandbox"]]])("posts the sandbox role tools and no docker field with %j", async (flag) => {
     const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
     expect(await runHands([...BASE_CREATE, ...flag, "--desktop"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toMatchObject({ tools: ["desktop"] });
-    expect(h.calls[0].body).not.toHaveProperty("docker");
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: SANDBOX_TOOLS });
+  });
+
+  it.each([[[]], [["--docker"]]])(
+    "posts the agro role tools and no docker field with --profile agro and %j under operator authority",
+    async (flag) => {
+      const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], OPERATOR);
+      expect(await runHands(["--operator", ...BASE_CREATE, "--profile", "agro", ...flag, "--desktop"], h.io, h.deps)).toBe(0);
+      expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: AGRO_TOOLS });
+    },
+  );
+
+  it("posts the sandbox role tools under operator authority without --profile", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], OPERATOR);
+    expect(await runHands(["--operator", ...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: SANDBOX_TOOLS });
+  });
+
+  it.each([[[]], [["--docker"]]])(
+    "posts the sandbox role tools with --profile agro and %j under brain authority",
+    async (flag) => {
+      const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+      expect(await runHands([...BASE_CREATE, "--profile", "agro", ...flag, "--desktop"], h.io, h.deps)).toBe(0);
+      expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: SANDBOX_TOOLS });
+    },
+  );
+
+  it("sends no spec field with --desktop and no --spec", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).not.toHaveProperty("spec");
   });
 
   it("posts no tools field without --desktop", async () => {
@@ -1526,7 +1555,7 @@ describe("agro hands create --desktop", () => {
       profile: "sandbox",
       sshKeyIds: ["key-1"],
       spec: "n4",
-      tools: ["desktop"],
+      tools: SANDBOX_TOOLS,
       freeTier: true,
     });
   });
@@ -1551,9 +1580,22 @@ describe("agro hands create --desktop", () => {
     }
   });
 
+  it.each([[BASE_CREATE], [["--operator", "create"]]])(
+    "refuses --desktop --spec n2 with the spec line and sends no console request: %j",
+    async (args) => {
+      const h = harness([SPEC_TOO_SMALL], OPERATOR);
+      expect(await runHands([...args, "--spec", "n2", "--desktop"], h.io, h.deps)).toBe(1);
+      expect(h.calls).toEqual([]);
+      expect(h.stderr()).toBe(
+        "agro hands create: the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)\n",
+      );
+      expect(h.stdout()).toBe("");
+    },
+  );
+
   it("prints the spec line and exits 1 on HTTP 422 SPEC_TOO_SMALL_FOR_TOOL", async () => {
     const h = harness([SPEC_TOO_SMALL]);
-    expect(await runHands([...BASE_CREATE, "--spec", "n2", "--desktop"], h.io, h.deps)).toBe(1);
+    expect(await runHands([...BASE_CREATE, "--spec", "n4", "--desktop"], h.io, h.deps)).toBe(1);
     expect(h.calls).toHaveLength(1);
     expect(h.stderr()).toBe(
       "agro hands create: the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)\n",
@@ -1797,7 +1839,7 @@ describe("agro hands create --desktop", () => {
     );
     expect(await runHands(["create", "--desktop"], h.io, h.deps)).toBe(0);
     expect(h.calls[1].body).toEqual({ name: "agro-cli@9f3c2a1b7e4d", publicKey: LOCAL_KEY.trim() });
-    expect(h.calls[2].body).toEqual({ profile: "sandbox", sshKeyIds: ["new-key"], tools: ["desktop"] });
+    expect(h.calls[2].body).toEqual({ profile: "sandbox", sshKeyIds: ["new-key"], tools: SANDBOX_TOOLS });
   });
 
   it("exits 2 through the config error path for a malformed console.json", async () => {
@@ -1824,7 +1866,404 @@ describe("agro hands create --desktop", () => {
     expect(help).toContain("DESKTOP_IMAGE_UNAVAILABLE");
     expect(help).toContain("rdpListening");
     expect(help).toContain(":3389 when xrdp listens, else null");
-    expect(help).toContain("--code-server, --desktop,\n--ssh-key, and --json apply only to console hands.");
+    expect(help).toContain("--code-server, --desktop,\n--ssh-key, --count, and --json apply only to console hands.");
     expect(help).not.toContain("--desktop applies only to console hands");
+  });
+});
+
+describe("agro hands create --count", () => {
+  type NodeBody = Record<string, unknown>;
+  const COUNT_TOOLS = ["agro", "docker", "desktop"];
+  const COUNT_NEXT_LINES =
+    "next: tailscale up\n" +
+    "next: sudo passwd sandbox\n" +
+    "next: open the Connect card of the hand in the console and download the .rdp file\n";
+
+  function node(k: number, status = "running", extra: NodeBody = {}): NodeBody {
+    return {
+      id: `u${k}`,
+      status,
+      orgIndex: 40 + k,
+      alias: `alias-${k}`,
+      name: null,
+      profile: "sandbox",
+      spec: "n4",
+      sshHost: `hand-${k}.example`,
+      ...extra,
+    };
+  }
+
+  function reply(r: Reply): Response {
+    return new Response(r.body === undefined ? null : JSON.stringify(r.body), {
+      status: r.status,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  function counted(
+    nodes: Record<string, NodeBody[]>,
+    post: (k: number) => Reply | Promise<Reply> = (k) => ({ status: 202, body: { id: `u${k}`, status: "queued" } }),
+    overrides: Partial<HandsDeps> = {},
+  ) {
+    const posts: Array<Record<string, unknown>> = [];
+    const log: string[] = [];
+    const fetchStub = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if ((init?.method ?? "GET") === "POST") {
+        posts.push(JSON.parse(String(init?.body)));
+        const k = posts.length;
+        log.push(`POST ${k}`);
+        const answer = await post(k);
+        log.push(`POST ${k} replied`);
+        return reply(answer);
+      }
+      const id = url.slice(url.lastIndexOf("/") + 1);
+      log.push(`GET ${id}`);
+      const queue = nodes[id];
+      return reply({ status: 200, body: queue.length > 1 ? queue.shift() : queue[0] });
+    }) as typeof fetch;
+    return { ...harness([], { fetch: fetchStub, ...overrides }), posts, log };
+  }
+
+  const THREE_RUNNING = () => ({ u1: [node(1)], u2: [node(2)], u3: [node(3)] });
+  const HAND_LINES =
+    "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+    "hand 42 alias alias-2 status running ssh sandbox@hand-2.example\n" +
+    "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n";
+
+  function jsonOf(k: number, status = "running") {
+    return {
+      id: `u${k}`,
+      index: 40 + k,
+      alias: `alias-${k}`,
+      name: null,
+      status,
+      spec: "n4",
+      sshHost: `hand-${k}.example`,
+      ssh: status === "running" ? `ssh sandbox@hand-${k}.example` : null,
+    };
+  }
+
+  it.each(["0", "11", "2.5", "abc", "+3", "03", "-1", ""])("refuses --count %j and sends no console request", async (value) => {
+    for (const args of [["--count", value], [`--count=${value}`]]) {
+      const h = counted(THREE_RUNNING());
+      expect(await runHands([...BASE_CREATE, ...args], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands create: --count must be an integer from 1 to 10\n");
+      expect(h.posts).toEqual([]);
+    }
+  });
+
+  it("refuses --count without a value", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --count must be an integer from 1 to 10\n");
+    expect(h.posts).toEqual([]);
+  });
+
+  it.each([[["--count", "10"]], [["--count=10"]]])("accepts the upper bound with %j", async (args) => {
+    const nodes = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`u${i + 1}`, [node(i + 1)]]));
+    const h = counted(nodes);
+    expect(await runHands([...BASE_CREATE, ...args], h.io, h.deps)).toBe(0);
+    expect(h.posts).toHaveLength(10);
+    expect(h.stdout().split("\n")).toHaveLength(11);
+  });
+
+  it.each([[["--count", "2"]], [["--count=2"]]])("refuses %j on exedev hands before any provider call", async (args) => {
+    const home = mkdtempSync(join(tmpdir(), "agro-hands-count-"));
+    try {
+      const runs: string[][] = [];
+      const h = counted(THREE_RUNNING(), undefined, {
+        userHome: () => home,
+        run: (cmd, runArgs) => {
+          runs.push([cmd, ...runArgs]);
+          return { status: 0, stdout: "{}" };
+        },
+      });
+      expect(await runHands(["--provider", "exedev", "create", ...args], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands create: --count applies only to console hands\n");
+      expect(runs).toEqual([]);
+      expect(h.posts).toEqual([]);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it.each([[["--project", "acme/widget"]], [["--clone", "acme/widget"]]])("refuses --count 2 with %j", async (flag) => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "2", ...flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --count excludes --project and --clone\n");
+    expect(h.posts).toEqual([]);
+  });
+
+  it("names the hands <name>-1 to <name>-N in request order", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--name", "gate", "--count", "3"], h.io, h.deps)).toBe(0);
+    expect(h.posts.map((body) => body.name)).toEqual(["gate-1", "gate-2", "gate-3"]);
+  });
+
+  it("keeps the plain name with --count 1", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--name", "gate", "--count", "1"], h.io, h.deps)).toBe(0);
+    expect(h.posts.map((body) => body.name)).toEqual(["gate"]);
+  });
+
+  it("sends no name field without --name", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(0);
+    expect(h.posts).toHaveLength(3);
+    for (const body of h.posts) expect(body).not.toHaveProperty("name");
+  });
+
+  it("sends request k+1 only after request k returns a node id and waits for the hands at the same time", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const nodes = {
+      u1: [node(1, "queued"), node(1, "queued"), node(1, "queued"), node(1)],
+      u2: [node(2, "queued"), node(2)],
+      u3: [node(3)],
+    };
+    const h = counted(nodes, async (k) => {
+      if (k === 1) await gate;
+      return { status: 202, body: { id: `u${k}`, status: "queued" } };
+    });
+    const run = runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps);
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    expect(h.log).toEqual(["POST 1"]);
+    release();
+    expect(await run).toBe(0);
+    const at = (entry: string) => h.log.indexOf(entry);
+    expect(at("POST 2")).toBeGreaterThan(at("POST 1 replied"));
+    expect(at("POST 3")).toBeGreaterThan(at("POST 2 replied"));
+    expect(h.log.lastIndexOf("GET u1")).toBeGreaterThan(at("GET u2"));
+    expect(h.log.lastIndexOf("GET u1")).toBeGreaterThan(at("GET u3"));
+    expect(h.stdout()).toBe(HAND_LINES);
+  });
+
+  it("prints one human line with the console index for each hand in request order", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe(HAND_LINES);
+    expect(h.stderr()).toContain("agro hands create: hand u2 running\n");
+  });
+
+  it("prints a dash for a hand without an index or an SSH host", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "running", { sshHost: null, alias: null, orgIndex: null })] });
+    expect(await runHands([...BASE_CREATE, "--count", "2"], h.io, h.deps)).toBe(0);
+    expect(h.stdout().split("\n")[1]).toBe("hand - alias - status running ssh -");
+  });
+
+  it("prints one JSON line for each hand in request order", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(0);
+    expect(h.stdout().split("\n")).toEqual([
+      JSON.stringify(jsonOf(1)),
+      JSON.stringify(jsonOf(2)),
+      JSON.stringify(jsonOf(3)),
+      "",
+    ]);
+  });
+
+  it("stops after a refusal at request 2 of 3", async () => {
+    const h = counted(THREE_RUNNING(), (k) =>
+      k === 2 ? { status: 500, body: { error: "boom", code: "INTERNAL" } } : { status: 202, body: { id: `u${k}`, status: "queued" } },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
+    expect(h.posts).toHaveLength(2);
+    expect(h.stdout()).toBe("hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n");
+    expect(h.stderr()).toMatch(/^agro hands create: hand 2 of 3: HTTP 500 INTERNAL: boom$/m);
+    expect(h.stderr()).not.toContain("hand 3 of 3");
+    expect(h.stderr().endsWith("agro hands create: hand 2 of 3: HTTP 500 INTERNAL: boom\nagro hands create: hand 3 not requested\n")).toBe(true);
+  });
+
+  it("names the skipped range after a refusal at request 2 of 4", async () => {
+    const nodes = { ...THREE_RUNNING(), u4: [node(4)] };
+    const h = counted(nodes, (k) =>
+      k === 2 ? { status: 500, body: { error: "boom", code: "INTERNAL" } } : { status: 202, body: { id: `u${k}`, status: "queued" } },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "4"], h.io, h.deps)).toBe(1);
+    expect(h.posts).toHaveLength(2);
+    expect(h.stderr().endsWith("agro hands create: hand 2 of 4: HTTP 500 INTERNAL: boom\nagro hands create: hands 3 to 4 not requested\n")).toBe(true);
+  });
+
+  it("prints the JSON line of hand 1 only after a refusal at request 2 of 3", async () => {
+    const h = counted(THREE_RUNNING(), (k) =>
+      k === 2 ? { status: 500, body: { error: "boom", code: "INTERNAL" } } : { status: 202, body: { id: `u${k}`, status: "queued" } },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toBe(`${JSON.stringify(jsonOf(1))}\n`);
+    expect(h.stderr()).toContain("agro hands create: hand 3 not requested\n");
+  });
+
+  it("prints desktop - for a hand whose wait failed with --desktop", async () => {
+    const desktop = (k: number, status = "running") =>
+      node(k, status, { desktop: true, rdpListening: true, tailnetName: `alias-${k}.ts.net`, tailnetAddress: null });
+    const h = counted({ u1: [desktop(1)], u2: [desktop(2, "failed")], u3: [desktop(3)] });
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")[1]).toBe("hand 42 alias alias-2 status failed ssh - desktop -");
+  });
+
+  it("prints every hand and exits 1 after a wait failure at hand 2 of 3", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "failed")], u3: [node(3)] });
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
+    expect(h.posts).toHaveLength(3);
+    expect(h.stdout()).toBe(
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+        "hand 42 alias alias-2 status failed ssh -\n" +
+        "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n",
+    );
+    expect(h.stderr()).toContain("agro hands create: hand 2 of 3: hand u2 failed — last status failed\n");
+  });
+
+  it("prints ssh - for a hand whose wait failed although its last node has an SSH host", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "provisioning")], u3: [node(3)] }, undefined, { timeoutMs: 3000 });
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")[1]).toBe("hand 42 alias alias-2 status provisioning ssh -");
+  });
+
+  it("prints the JSON line with the last status after a wait failure at hand 2 of 3", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "failed")], u3: [node(3)] });
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")).toEqual([
+      JSON.stringify(jsonOf(1)),
+      JSON.stringify(jsonOf(2, "failed")),
+      JSON.stringify(jsonOf(3)),
+      "",
+    ]);
+  });
+
+  it("sends three desktop requests and prints desktop fields and the next steps once", async () => {
+    const desktop = (k: number, rdpListening: boolean) =>
+      node(k, "running", { desktop: true, rdpListening, tailnetName: rdpListening ? `alias-${k}.ts.net` : null, tailnetAddress: null });
+    const h = counted(
+      { u1: [desktop(1, true)], u2: [desktop(2, false)], u3: [desktop(3, true)] },
+      undefined,
+      { desktopPollMs: 10, desktopTimeoutMs: 30 },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.posts).toEqual(Array(3).fill({ profile: "sandbox", sshKeyIds: ["key-1"], tools: COUNT_TOOLS }));
+    expect(h.stdout()).toBe(
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example desktop alias-1.ts.net:3389\n" +
+        "hand 42 alias alias-2 status running ssh sandbox@hand-2.example desktop not listening\n" +
+        "hand 43 alias alias-3 status running ssh sandbox@hand-3.example desktop alias-3.ts.net:3389\n" +
+        COUNT_NEXT_LINES,
+    );
+    expect(h.stderr()).toContain("agro hands create: warning: hand u2 is running but xrdp is not listening");
+  });
+
+  it("adds the desktop object to each JSON line with --desktop", async () => {
+    const desktop = (k: number) =>
+      node(k, "running", { desktop: true, rdpListening: true, tailnetName: `alias-${k}.ts.net`, tailnetAddress: null });
+    const h = counted({ u1: [desktop(1)], u2: [desktop(2)] });
+    expect(await runHands([...BASE_CREATE, "--count", "2", "--desktop", "--json"], h.io, h.deps)).toBe(0);
+    const lines = h.stdout().split("\n");
+    expect(lines).toHaveLength(3);
+    expect(JSON.parse(lines[1])).toEqual({
+      ...jsonOf(2),
+      desktop: { rdpListening: true, tailnetName: "alias-2.ts.net", rdpAddress: "alias-2.ts.net:3389" },
+    });
+    expect(h.stdout()).not.toContain("next:");
+  });
+
+  it.each([[[]], [["--json"]]])("keeps the output of --count 1 with %j", async (flag) => {
+    const plain = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, ...flag], plain.io, plain.deps)).toBe(0);
+    const counted1 = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--count", "1", ...flag], counted1.io, counted1.deps)).toBe(0);
+    expect(counted1.stdout()).toBe(plain.stdout());
+    expect(counted1.stderr()).toBe(plain.stderr());
+  });
+
+  function fakeHand(k: number, status = "running"): Hand {
+    return {
+      id: `u${k}`,
+      index: String(40 + k),
+      alias: `alias-${k}`,
+      name: null,
+      profile: "sandbox",
+      status,
+      spec: "n4",
+      sshHost: `hand-${k}.example`,
+      sshDest: `sandbox@hand-${k}.example`,
+      remoteName: `hand-${40 + k}`,
+      hostKeyAlias: `u${k}`,
+      label: `#${40 + k}`,
+    } as Hand;
+  }
+
+  function fakeProvider(create: (k: number, onStatus: HandStatusReport) => Promise<HandOutcome<Hand>>) {
+    let k = 0;
+    return { create: (_request: unknown, onStatus: HandStatusReport) => create(++k, onStatus) } as unknown as HandProvider;
+  }
+
+  function fakeDeps(h: ReturnType<typeof harness>): HandsDeps {
+    return { ...h.deps, desktopPollMs: 10, desktopTimeoutMs: 30 } as HandsDeps;
+  }
+
+  it("prints every hand with a node id and exits 1 when create rejects for hand 2 of 3", async () => {
+    const h = harness([]);
+    let finishFirst!: () => void;
+    const first = new Promise<void>((done) => {
+      finishFirst = done;
+    });
+    const provider = fakeProvider(async (k, onStatus) => {
+      await Promise.resolve();
+      onStatus(fakeHand(k, "queued"));
+      if (k === 1) await first;
+      if (k === 2) throw new Error("socket closed");
+      if (k === 3) finishFirst();
+      return { ok: true, value: fakeHand(k) };
+    });
+    const status = await createMany(h.io, fakeDeps(h), provider, "agro hands create", { sshKeyIds: [] }, 3, undefined, false);
+    expect(status).toBe(1);
+    expect(h.stdout()).toBe(
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+        "hand 42 alias alias-2 status queued ssh -\n" +
+        "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n",
+    );
+    expect(h.stderr()).toContain("agro hands create: hand 2 of 3: socket closed\n");
+  });
+
+  it("keeps a running hand and warns when the desktop wait rejects for hand 2 of 3", async () => {
+    const h = harness([]);
+    const provider = fakeProvider(async (k, onStatus) => {
+      await Promise.resolve();
+      onStatus(fakeHand(k, "queued"));
+      return { ok: true, value: fakeHand(k) };
+    });
+    const awaitDesktop = async (id: string) => {
+      if (id === "u2") throw new Error("desktop read broke");
+      return { rdpListening: true, tailnetName: `${id}.ts.net`, tailnetAddress: null, status: "running", apiError: null };
+    };
+    const status = await createMany(
+      h.io,
+      fakeDeps(h),
+      provider,
+      "agro hands create",
+      { sshKeyIds: [], desktop: true },
+      3,
+      awaitDesktop,
+      false,
+    );
+    expect(status).toBe(0);
+    expect(h.stdout().split("\n").slice(0, 3)).toEqual([
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example desktop u1.ts.net:3389",
+      "hand 42 alias alias-2 status running ssh sandbox@hand-2.example desktop not listening",
+      "hand 43 alias alias-3 status running ssh sandbox@hand-3.example desktop u3.ts.net:3389",
+    ]);
+    expect(h.stderr()).toContain("agro hands create: warning: hand u2 desktop state unknown: desktop read broke\n");
+    expect(h.stderr()).not.toContain("of 3:");
+  });
+
+  it("keeps request order when the provider reports a status before its first await", async () => {
+    const h = harness([]);
+    const provider = fakeProvider((k, onStatus) => {
+      onStatus(fakeHand(k, "queued"));
+      return Promise.resolve({ ok: true, value: fakeHand(k) });
+    });
+    const status = await createMany(h.io, fakeDeps(h), provider, "agro hands create", { sshKeyIds: [] }, 3, undefined, true);
+    expect(status).toBe(0);
+    expect(h.stdout().split("\n").map((line) => (line === "" ? "" : JSON.parse(line).id))).toEqual(["u1", "u2", "u3", ""]);
   });
 });

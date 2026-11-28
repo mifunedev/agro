@@ -11,9 +11,11 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - `agro hands create --desktop` requests a console hand with the desktop tool, waits up to 120 seconds for xrdp, and prints the desktop state and the next steps. `--json` adds `desktop` with `rdpListening`, `tailnetName`, and `rdpAddress` ([#1667](https://github.com/mifunedev/agro/issues/1667)).
+- `agro hands create --count <N>` requests 1 to 10 console hands one at a time, waits for them at the same time, and prints one line for each hand in request order. It exits 0 only when all hands reach `running` ([#1676](https://github.com/mifunedev/agro/issues/1676)).
 
 ### Changed
 
+- `agro hands create --desktop` sends the console role tools: `agro`, `docker`, and `desktop` for the profile `sandbox`, and `docker` and `desktop` for the profile `agro`. Before this change, `--desktop` from [#1667](https://github.com/mifunedev/agro/issues/1667) sent only the `desktop` tool, or `docker` and `desktop` with `--docker`. With `--spec n2`, `--desktop` exits 1 before it sends a request ([#1667](https://github.com/mifunedev/agro/issues/1667), [#1676](https://github.com/mifunedev/agro/issues/1676)).
 - `/supervisor` and `/delegate` briefs forbid guard workarounds through stdin scripts, `docker exec`, remote exec, and base64, and require credential-free test databases ([#1673](https://github.com/mifunedev/agro/issues/1673)).
 
 ### Fixed

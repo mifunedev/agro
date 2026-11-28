@@ -20,6 +20,7 @@ import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-
 import { consoleCheckLines, parseCheck } from "../lib/hands/console-check.js";
 import {
   createConsoleProvider,
+  type ConsoleHandRequest,
   type DesktopState,
   type DesktopWait,
   type LocalSshKey,
@@ -33,6 +34,7 @@ import {
   retiredHandsNotice,
   shellQuote,
   type Hand,
+  type HandOutcome,
   type HandProvider,
 } from "../lib/hands/provider.js";
 import { DOCKERENV_FILE, SANDBOX_MARKER_FILE } from "../lib/execution/detect.js";
@@ -57,6 +59,7 @@ const CONSOLE_ONLY_CREATE_FLAGS = [
   "--desktop",
   "--ssh-key",
   "--json",
+  "--count",
 ] as const;
 const APP_FLAGS = ["--docker", "--t3", "--code-server"] as const;
 
@@ -68,6 +71,9 @@ export type HandsIO = ConsoleIO;
 const RDP_PORT = 3389;
 const DESKTOP_READY_TIMEOUT_MS = 120 * 1000;
 const DESKTOP_POLL_INTERVAL_MS = 5000;
+const MAX_COUNT = 10;
+const COUNT_PATTERN = /^[1-9]\d*$/;
+const COUNT_RANGE_ERROR = `--count must be an integer from 1 to ${MAX_COUNT}`;
 
 type AwaitDesktop = (id: string, wait: DesktopWait) => Promise<DesktopState>;
 
@@ -154,7 +160,7 @@ export function handsHelp(bin: string): string {
 
 Usage:
   ${bin} hands list [--json]
-  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
+  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--count <N>] [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
   ${bin} hands fork <hand> [--spec <spec>] [--name <name>]
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
@@ -210,8 +216,13 @@ agro-cli@<host name>, and sends its id. When the file does not exist,
 sends only the \`--ssh-key\` ids.
 
 \`--desktop\` adds the desktop tool to the hand. It applies to both profiles.
-With \`--docker\`, \`create\` sends the tools docker and desktop. The desktop
-needs at least \`n4\`: the console refuses a smaller spec with HTTP 422
+\`create\` sends the console role tools: agro, docker, and desktop for the
+profile sandbox, and docker and desktop for the profile agro. With brain
+authority, \`create\` always sends the sandbox tools, because the console
+forces the profile sandbox for a brain. \`--docker\` adds nothing to
+\`--desktop\`. The desktop needs at least \`n4\`. With \`--spec n2\`, \`create\`
+exits 1 before it sends a request. Without \`--spec\`, the console default
+\`n4\` fits. The console refuses a smaller spec with HTTP 422
 SPEC_TOO_SMALL_FOR_TOOL, and HTTP 503 DESKTOP_IMAGE_UNAVAILABLE when the
 region has no desktop image. After \`running\`, \`create\` waits up to 120
 seconds for rdpListening. If xrdp does not listen or the hand leaves
@@ -228,6 +239,22 @@ sshHost, and ssh. The ssh field is null unless the status is running.
 When the console returns a hand id and the wait then fails,
 \`create --json\` prints the line with the last status and exits 1.
 \`--json\` excludes --project and --clone.
+
+\`--count <N>\` requests N hands. N is an integer from 1 to 10. The default
+is 1. Another value exits 1 with \`--count must be an integer from 1 to 10\`.
+With N greater than 1, \`--count\` excludes --project and --clone, and
+\`--name <name>\` gives the names <name>-1 to <name>-N. \`create\` sends one
+request at a time. It sends the next request after the console returns the
+node id of the previous hand. A refusal without a node id stops the later
+requests. The waits run at the same time. Then \`create\` prints one line for
+each hand with a node id, in request order:
+\`hand <index> alias <alias> status <status> ssh <sandbox@host or ->\`. With
+\`--desktop\`, each line adds \`desktop <rdpAddress>\` or
+\`desktop not listening\`, and the next steps follow once. With \`--json\`,
+\`create\` prints one JSON line for each hand in request order. A hand whose
+wait failed gets its last status. Each failure prints
+\`hand <k> of <N>: <error>\` on stderr. \`create\` exits 0 only when all N
+hands reach \`running\`, else 1. With N equal to 1, the output does not change.
 
 \`create --disposable\` requests a disposable hand with no data volume.
 --disposable applies only to console hands. Only a sandbox-profile hand can
@@ -269,7 +296,7 @@ and SSH host. \`fork\` runs \`ssh exe.dev cp <hand> [<name>] --copy-tags\`.
 \`pause\`, \`resume\`, and \`destroy\` run \`ssh exe.dev pause\`, \`resume\`,
 and \`rm\`. \`destroy\` asks for confirmation unless --yes is given.
 --spec, --disposable, --profile, --docker, --t3, --code-server, --desktop,
---ssh-key, and --json apply only to console hands.
+--ssh-key, --count, and --json apply only to console hands.
 
 Guards: \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 without a
 change when the VM lacks the ${HAND_TAG} tag. Each write verb exits 1 without a
@@ -398,12 +425,19 @@ interface CreateArgs {
   apps: Set<(typeof APP_FLAGS)[number]>;
   sshKeyIds: string[];
   json: boolean;
+  count: number;
 }
 
-const VALUE_FLAGS = ["--name", "--spec", "--project", "--clone", "--profile", "--ssh-key"] as const;
+const VALUE_FLAGS = ["--name", "--spec", "--project", "--clone", "--profile", "--ssh-key", "--count"] as const;
+
+function parseCount(value: string | undefined): number | undefined {
+  if (value === undefined || !COUNT_PATTERN.test(value)) return undefined;
+  const count = Number(value);
+  return count <= MAX_COUNT ? count : undefined;
+}
 
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
-  const args: CreateArgs = { apps: new Set(), sshKeyIds: [], json: false, desktop: false };
+  const args: CreateArgs = { apps: new Set(), sshKeyIds: [], json: false, desktop: false, count: 1 };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     if (token === "--disposable") {
@@ -429,6 +463,12 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
       return { ok: false, error: token.startsWith("-") ? `unknown flag "${token}"` : `unexpected argument "${token}"` };
     }
     const value = inline ?? tokens[++i];
+    if (flag === "--count") {
+      const count = parseCount(value);
+      if (count === undefined) return { ok: false, error: COUNT_RANGE_ERROR };
+      args.count = count;
+      continue;
+    }
     if (value === undefined || value === "") return { ok: false, error: `${flag} requires a value` };
     if (flag === "--name") args.name = value;
     else if (flag === "--spec") args.spec = value;
@@ -448,6 +488,9 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
   if (args.json && (args.project !== undefined || args.clone !== undefined)) {
     return { ok: false, error: "--json excludes --project and --clone" };
   }
+  if (args.count > 1 && (args.project !== undefined || args.clone !== undefined)) {
+    return { ok: false, error: "--count excludes --project and --clone" };
+  }
   const sandboxApp = APP_FLAGS.find((flag) => args.profile !== "agro" && args.apps.has(flag));
   if (sandboxApp !== undefined) return { ok: false, error: `${sandboxApp} requires --profile agro` };
   return { ok: true, args };
@@ -458,14 +501,17 @@ function rdpAddress(state: DesktopState): string | null {
   return !state.rdpListening || host === null ? null : `${host}:${RDP_PORT}`;
 }
 
+const DESKTOP_NEXT_STEPS =
+  "next: tailscale up\n" +
+  "next: sudo passwd sandbox\n" +
+  "next: open the Connect card of the hand in the console and download the .rdp file\n";
+
 function printDesktop(io: HandsIO, hand: Hand, state: DesktopState): void {
   const address = rdpAddress(state);
   io.stdout(
     `desktop: ${state.rdpListening ? `xrdp listening${address === null ? "" : ` on ${address}`}` : "xrdp not listening"}\n` +
       (hand.sshDest === null ? "" : `next: ssh ${hand.sshDest}\n`) +
-      "next: tailscale up\n" +
-      "next: sudo passwd sandbox\n" +
-      "next: open the Connect card of the hand in the console and download the .rdp file\n",
+      DESKTOP_NEXT_STEPS,
   );
 }
 
@@ -554,7 +600,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { name, spec, project, clone, disposable, desktop, profile, apps, sshKeyIds, json } = parsed.args;
+  const { name, spec, project, clone, disposable, desktop, profile, apps, sshKeyIds, json, count } = parsed.args;
   let local: { path: string; branch: string } | undefined;
   if (project !== undefined) {
     const found = brainProject(deps, project);
@@ -582,6 +628,10 @@ async function runCreate(
     desktop,
     sshKeyIds,
   };
+  if (count > 1) {
+    const desktopWait = desktop ? awaitDesktop : undefined;
+    return createMany(io, deps, provider, prefix, request, count, desktopWait, json);
+  }
   const created = await provider.create(request, (hand) => {
     last = hand;
     report(hand);
@@ -602,6 +652,93 @@ async function runCreate(
   const desktopState = await waitForDesktop();
   if (desktopState !== undefined) printDesktop(io, running, desktopState);
   return placed;
+}
+
+interface CreatedHand {
+  index: number;
+  last: Hand | undefined;
+  outcome: HandOutcome<Hand>;
+  desktop: DesktopState | undefined;
+}
+
+function launchInSequence(
+  io: HandsIO,
+  deps: HandsDeps,
+  provider: HandProvider,
+  prefix: string,
+  request: ConsoleHandRequest,
+  count: number,
+  awaitDesktop: AwaitDesktop | undefined,
+): Promise<CreatedHand>[] {
+  const report = statusReporter(io, prefix);
+  const launched: Promise<CreatedHand>[] = [];
+  const launch = (index: number): void => {
+    let last: Hand | undefined;
+    const named = request.name === undefined ? request : { ...request, name: `${request.name}-${index}` };
+    const settle = async (): Promise<CreatedHand> => {
+      const outcome = await provider.create(named, (hand) => {
+        if (last === undefined && index < count) launch(index + 1);
+        last = hand;
+        report(hand);
+      });
+      if (outcome.ok) last = outcome.value;
+      const desktop =
+        outcome.ok && awaitDesktop !== undefined
+          ? await waitDesktop(io, deps, prefix, outcome.value, awaitDesktop).catch((error: unknown) =>
+              desktopUnknown(io, prefix, outcome.value, error),
+            )
+          : undefined;
+      return { index, last, outcome, desktop };
+    };
+    launched[index - 1] = settle().catch((error: unknown) => ({
+      index,
+      last,
+      outcome: { ok: false, error: messageOf(error) },
+      desktop: undefined,
+    }));
+  };
+  launch(1);
+  return launched;
+}
+
+function desktopUnknown(io: HandsIO, prefix: string, hand: Hand, error: unknown): DesktopState {
+  const apiError = messageOf(error);
+  io.stderr(`${prefix}: warning: hand ${hand.id} desktop state unknown: ${apiError}\n`);
+  return { status: null, rdpListening: false, tailnetName: null, tailnetAddress: null, apiError };
+}
+
+function handLine(created: CreatedHand, hand: Hand, desktop: boolean): string {
+  const address = created.desktop === undefined ? null : rdpAddress(created.desktop);
+  const desktopField = !desktop ? "" : ` desktop ${created.outcome.ok ? (address ?? "not listening") : "-"}`;
+  return `hand ${hand.index ?? "-"} alias ${hand.alias ?? "-"} status ${hand.status} ssh ${hand.status === "running" ? (hand.sshDest ?? "-") : "-"}${desktopField}\n`;
+}
+
+export async function createMany(
+  io: HandsIO,
+  deps: HandsDeps,
+  provider: HandProvider,
+  prefix: string,
+  request: ConsoleHandRequest,
+  count: number,
+  awaitDesktop: AwaitDesktop | undefined,
+  json: boolean,
+): Promise<number> {
+  const launched = launchInSequence(io, deps, provider, prefix, request, count, awaitDesktop);
+  const settled: CreatedHand[] = [];
+  for (let i = 0; i < launched.length; i += 1) settled.push(await launched[i]);
+  for (const created of settled) {
+    const hand = created.outcome.ok ? created.outcome.value : created.last;
+    if (hand === undefined) continue;
+    io.stdout(json ? createdLine(hand, created.desktop) : handLine(created, hand, request.desktop === true));
+  }
+  if (!json && settled.some((created) => created.desktop !== undefined)) io.stdout(DESKTOP_NEXT_STEPS);
+  for (const created of settled) {
+    if (!created.outcome.ok) io.stderr(`${prefix}: hand ${created.index} of ${count}: ${created.outcome.error}\n`);
+  }
+  const firstSkipped = settled.length + 1;
+  if (firstSkipped === count) io.stderr(`${prefix}: hand ${count} not requested\n`);
+  else if (firstSkipped < count) io.stderr(`${prefix}: hands ${firstSkipped} to ${count} not requested\n`);
+  return settled.length === count && settled.every((created) => created.outcome.ok) ? 0 : 1;
 }
 
 async function waitDesktop(
@@ -960,7 +1097,7 @@ export async function runHands(
       authority === "operator"
         ? { read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
         : undefined;
-    const consoleProvider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
+    const consoleProvider = createConsoleProvider(deps, config, authority, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
     provider = consoleProvider;
     awaitDesktop = consoleProvider.awaitDesktop;
   }
