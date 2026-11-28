@@ -13,14 +13,14 @@
       ".agro/skills/sandbox/references/validation.md",
       "docs/lifecycle-commands.md"
     ],
-    "instructionSha256": "7322f9d2617239502678fc5e0e9cd9f5612300653f925df1710bfd00673fa2ad",
+    "instructionSha256": "9d4ae7b410a30b670d0e3b2a5d3452c3c5085f3b08aa5efffa720b321b8b535b",
     "casesSha256": "7c0b4d227ff0f1d73d0d16ec50fc6da16314e81a6145f1f2159db7650d0db0bb"
   },
   "decisions": [
     {
       "caseId": "R1",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R1",
+      "agentHandle": "replay15-R1",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -32,16 +32,15 @@
         "commands": [
           "agro --version",
           "agro run --help",
-          "agro run -- <verification-command>",
-          "agro run -- sh -c '<verification-command-with-shell-operators>'"
+          "agro run -- <verification-command>"
         ],
-        "notes": "I read two files: .agro/skills/sandbox/SKILL.md and references/local-docker.md.\n\nIn SKILL.md, the \"Select a route\" table maps \"Run one command with container isolation\" to local/docker. The request also fits the \"For application runs\" decision order:\n- Step 1: the request needs no separate kernel, so local/msb does not apply.\n- Step 2: the request names a location, this host checkout, and rules out \"another machine\". So hands and exedev do not apply, and I skip the hands list and git status steps.\n- Step 7: the route falls to local/docker with `agro run -- <command>`.\n\nThe request asks for a disposable container, not a persistent workspace. The \"Boundaries\" section in SKILL.md and the \"Choose when\" section in local-docker.md send persistent workspaces to the lifecycle commands, so the lifecycle route does not apply. The request does not ask for interactive work or checkout isolation, so herdr and worktrees are not owners. It is not a fresh-install or release check, so validation does not apply.\n\nThe \"Shared safety\" section in SKILL.md and the \"Prerequisites\" section in local-docker.md set these steps:\n- Check `agro --version` and `agro run --help` before running anything.\n- Run from the host, not from inside a sandbox, because `agro run` refuses nested execution.\n- Wrap the command in `sh -c` only if it uses shell operators.\n- Record the exit code that `agro run` returns.\n- Check the checkout diff afterwards, because writes to the mounted checkout are not rolled back.\n\nIf Docker or `agro run` fails, stop and report. Do not fall back to running on the raw host."
+        "notes": "SKILL.md Select a route says local/docker runs one command with container isolation. Decision step 2 applies: the request names an explicit location, this host checkout, and rejects another machine. So the hand checks in steps 4 to 6 do not run. Shared safety says to check agro --version and agro run --help first. references/local-docker.md Execute gives agro run -- <command> from the host checkout and says the container is removed after the run. The operator rejected a persistent workspace, so the lifecycle route does not apply."
       }
     },
     {
       "caseId": "R2",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R2",
+      "agentHandle": "replay15-R2",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -54,15 +53,15 @@
           "agro --version",
           "agro run --help",
           "msb --version",
-          "agro run --isolation microvm -- <command...>"
+          "agro run --isolation microvm -- <command>"
         ],
-        "notes": "I read two files. The first was .agro/skills/sandbox/SKILL.md, the \"Select a route\" table and the ordered decision list. The table sends \"Run one command with a separate kernel on a KVM host\" to local/msb. Step 1 of the list says the need for isolation picks the runtime: a separate kernel means `agro run --isolation microvm`. The container runtime is needed only for services or an egress allowlist, and the request needs neither. Step 2 says an explicit location wins. The request names \"this checkout\" on \"this host\", which has KVM, so the location is the local host. That means steps 3 to 7 (git status, hands list, hand selection) do not move the run anywhere else, and no hand is resumed or created. The second file was .agro/skills/sandbox/references/local-msb.md. Its Prerequisites say to run on the host, not inside a sandbox. Before running, check three things: `agro run --help` must list `--isolation microvm`, `msb --version` must report exactly 0.7.13, and the host user must be able to read and write /dev/kvm (the operator says it can). The config must not declare services or `access.egress: allowlist`. The image comes from `--image`, then `run.microvm.image`, then the default ghcr.io/mifunedev/mifunetu:<version>. Pass `--image` if the installed CLI version has no release tag. Use `sh -c` if the command needs shell operators. `agro run` owns guest cleanup, so do not use raw msb create/run/rm commands. To verify, record the exit code and the new line in ~/.agro/runs/microvm.jsonl. If any guard refuses, stop and report it rather than falling back to the host or to weaker isolation. The execution owner is agro-run. No hands, exedev, validation, lifecycle, herdr or worktrees owner applies."
+        "notes": "SKILL.md Select a route maps a separate kernel on a KVM host to local/msb. Decision order step 1 says a separate kernel selects agro run --isolation microvm. The request names this checkout, so the host is local. references/local-msb.md Prerequisites need host execution, --isolation microvm in help, msb exactly 0.7.13, /dev/kvm access, and no services or egress allowlist. The request meets each one. Execute gives agro run --isolation microvm -- <command>. agro run owns the guest cleanup."
       }
     },
     {
       "caseId": "R3",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R3",
+      "agentHandle": "replay15-R3",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -74,16 +73,16 @@
         "commands": [
           "agro --version",
           "agro run --help",
-          "add run.services.postgres (image postgres:17-alpine, env POSTGRES_PASSWORD, ready 'pg_isready -U postgres') and run.env TEST_DATABASE_URL=postgres://postgres:<password>@postgres:5432/postgres to the checkout's agro.json, keeping secrets out of tracked configuration",
-          "agro run -- <integration-test-command>"
+          "<declare run.services.postgres (image, env, ready) and run.env.TEST_DATABASE_URL in the checkout's agro.json, secrets kept out of tracked config>",
+          "agro run -- <integration test command>"
         ],
-        "notes": "I read two files: .agro/skills/sandbox/SKILL.md and .agro/skills/sandbox/references/local-docker.md.\n\nSKILL.md \"Select a route\", rule 1: the request needs a service, so it needs the container runtime. Rule 2: the request names an explicit location (\"this Docker-capable host\"), so it uses that host. I therefore skipped rules 3 to 6 (git status, agro hands list, picking a hand). The route table maps \"Run one command with container isolation, services, or an egress allowlist\" to local/docker.\n\nlocal-docker.md decides the rest:\n- \"Choose when\": use it for one command on the host that runs agro, when the command needs services.\n- \"Prerequisites\": run on the host, not inside a sandbox, and check agro run --help first.\n- \"Execute\": declare PostgreSQL in agro.json under run.services and run.env. Each service gets a fresh container on a network for that run only, and the tests reach it at postgres:5432.\n- \"Cleanup\": agro run tries to remove the services and networks after success or failure. Afterwards, check for cleanup errors and confirm that no resources from this run are left.\n\nOther cautions from that file and SKILL.md \"Shared safety\": set a finite deadline and watch the run with a background monitor, not sleep loops. If Docker is missing, stop and report; never fall back to running on the raw host.\n\nNot applicable: lifecycle (the request is one run, not a persistent workspace), herdr (no interactive process), worktrees, hands, exedev and validation."
+        "notes": "SKILL.md Select a route says services need the container runtime, and an explicitly named location wins. The request names this Docker-capable host, so hands are not checked. references/local-docker.md Execute shows the PostgreSQL run.services config in agro.json. Each service gets a fresh container on a per-run network. local-docker.md Cleanup says agro run removes services and networks after success or failure. That covers the remove-on-end requirement. It is a one-off command, not a persistent workspace, so lifecycle and herdr do not apply. Run on the host, not nested inside a sandbox. Set a finite deadline and watch it with a background monitor."
       }
     },
     {
       "caseId": "R4",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R4",
+      "agentHandle": "replay15-R4",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -97,13 +96,13 @@
           "agro run --help",
           "agro run -- <dependency-verification-command>"
         ],
-        "notes": "I read two files: .agro/skills/sandbox/SKILL.md and .agro/skills/sandbox/references/local-docker.md.\n\nSKILL.md \"Select a route\": the route table sends one command that needs an egress allowlist to local/docker. In the application-run order, step 1 says isolation needs pick the runtime, and services or an egress allowlist need the container runtime. Step 2 says to use a location the request names, and this request names \"this Docker-capable host\". So the run stays local and does not go to a hand or exe.dev.\n\nSKILL.md \"Shared safety\": inspect `agro --version` and `agro run --help` before using any flags. Never fall back to the raw host or weaker isolation. Stop at a guard.\n\nlocal-docker.md \"Choose when\" and \"Execute\": the `access.egress: \"allowlist\"` setting already in the checkout's agro.json routes traffic through an internal network and a Squid proxy. The proxy allows the hosts in .devcontainer/egress-policy.yaml plus `access.egressAllow`. So a plain `agro run -- <command>` from the checkout on the host keeps the policy as it is, with no config change. Do not use `--sandbox`, because existing-sandbox mode ignores `access.egress`.\n\nlocal-docker.md \"Failure remedies\": if the proxy refuses a request, do not disable the allowlist and do not fall back to host execution. Report the block. If the Docker engine is missing, stop and report (SKILL.md).\n\n\"Verify\" says to record the command and its real exit code, then check the checkout diff.\n\nI gave no herdr, worktrees or lifecycle owners. The run is one disposable command, not a persistent workspace, an interactive process or a checkout-isolation job."
+        "notes": "SKILL.md Select a route says an egress allowlist selects the container runtime, which is local/docker. SKILL.md step 1 says services or an egress allowlist use the container runtime. The host is Docker-capable, so no fallback question arises. local-docker.md Execute says access.egress allowlist in agro.json routes the command through the Squid proxy with .devcontainer/egress-policy.yaml plus access.egressAllow, so plain agro run keeps the declared policy. local-docker.md Failure remedies forbids disabling the allowlist, and SKILL.md Shared safety forbids raw host fallback. Do not use --sandbox, because existing-sandbox mode ignores access.egress. Run from the host checkout, not inside a sandbox, and record the exit code."
       }
     },
     {
       "caseId": "R5",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R5",
+      "agentHandle": "replay15-R5",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -114,27 +113,22 @@
           "agro-run"
         ],
         "commands": [
-          "agro --version",
           "agro hands --help",
-          "agro hands create --help",
           "agro hands create --project acme/widget",
-          "agro hands exec <hand> -- agro run --help",
-          "agro hands exec <hand> --project acme/widget -- git rev-parse HEAD",
-          "git -C <harness-root>/projects/acme/widget rev-parse HEAD",
+          "agro hands exec <hand> --project acme/widget -- agro run --help",
           "agro hands exec <hand> --project acme/widget -- agro run -- <command>",
-          "agro hands exec <hand> --project acme/widget -- git commit -am '<message>'",
+          "agro hands exec <hand> --project acme/widget -- git commit -am <message>",
           "agro hands fetch <hand> --project acme/widget",
           "agro hands list",
-          "agro hands destroy <hand> --yes",
-          "agro hands list"
+          "agro hands destroy <hand> --yes"
         ],
-        "notes": "I read SKILL.md and references/hands.md, nothing else. The request has explicit operator authority to create a billable hand and to destroy it after acceptance. It asks to offload the current branch of an existing brain project (acme/widget) to a new hand and fetch the committed result. This matches the hands row in the SKILL.md \"Select a route\" table: \"Offload a project from a brain to a hand on either provider\". It also matches the hands.md \"Choose when\" example: \"Create a new hand for mifunedev/<repo>. I authorize creating it and destroying it after you accept the result.\"\n\nTwo owners apply. hands.md \"Choose when\" says \"A hand request that runs application work names both owners: agro hands and agro run\". agro hands handles creation, SSH transport and git movement between brain and hand. agro run on the hand handles application execution, which keeps that execution isolated as the request requires.\n\nThe commands follow hands.md Execute, Verify and Cleanup:\n- Create: `agro hands create --project` pushes the current branch of the existing brain project and adds the brain remote. Record the hand, SSH host and ownership. Do not pass `--spec` if the provider is exedev; read `hands.provider` from the host config instead of guessing.\n- Run: check remote `agro run --help` and runtime support first. Confirm the hand HEAD equals the brain HEAD, then run `agro hands exec ... -- agro run -- <command>`. The command is a placeholder because the request names none.\n- Fetch: commit on the hand first, because fetch moves only commits.\n- Verify: the advisor accepts the result, then `agro hands list` accounts for the hand.\n- Cleanup: `agro hands destroy <hand> --yes` stays within the approved scope (only this task-owned hand), then a final `agro hands list`.\n\nSource ownership is preserved because the brain keeps the history and the advisor, not the hand, accepts the result. Owners not assigned:\n- worktrees: only one agent and one hand are involved, so no checkout isolation is needed.\n- herdr: the work is a one-shot run, not a persistent interactive one.\n- lifecycle: no persistent Docker workspace is involved.\n- exedev-api: this is a hand, not a raw exe.dev VM used through the SSH command API."
+        "notes": "SKILL.md Select a route maps offloading a project from a brain to a hand to the hands route. The operator explicitly authorized the billable create and the teardown scope, so the default never-create rule does not block it. hands.md Choose when says agro hands owns transport and git movement, and agro run owns application execution. A request with application work names both owners. hands.md Execute step 1 says create --project pushes the current branch of the existing brain project. Step 2 runs one-shot work through agro hands exec with agro run after the remote help check. Step 3 commits on the hand, then fetches. Verify runs agro hands list and the advisor accepts the result. Cleanup destroys only the task-owned hand."
       }
     },
     {
       "caseId": "R6",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R6",
+      "agentHandle": "replay15-R6",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -146,16 +140,18 @@
         "commands": [
           "ssh exe.dev whoami --json",
           "ssh exe.dev ls --json",
-          "ssh review-box.exe.xyz '<bounded control-plane inspection command, e.g. agro --version>'",
+          "ssh review-box.exe.xyz 'agro --version'",
+          "ssh review-box.exe.xyz 'agro run --help'",
+          "ssh review-box.exe.xyz '<bounded inspection command>'",
           "ssh exe.dev ls --json"
         ],
-        "notes": "I read only two files: .agro/skills/sandbox/SKILL.md and .agro/skills/sandbox/references/exedev.md. They were enough to decide.\n\nRoute: exedev. In SKILL.md, the \"Select a route\" table sends `exedev` work to \"Use an approved exe.dev VM through the SSH command API, not as a hand\". The request names a borrowed exe.dev VM (review-box) and its command API. It does not use the VM as a hand, so the route is not `hands`. It does not run an application command through agro run, so the route is not `local/docker` or `local/msb`. It is not validation.\n\nOwner: exedev-api only. exedev.md \"Choose when\" says the SSH account API manages the VM. I assigned no agro-run owner because the request is a bounded control-plane inspection, not application execution. If the inspection turned into application work, it would have to run in a supported sandbox on the VM through `agro run` (exedev.md § Execute), not on the raw VM host. Herdr, lifecycle and worktrees are not involved.\n\nCommands:\n1. Check the account with `whoami --json` (exedev.md § Prerequisites).\n2. Before acting, record that this is a borrowed VM, its exact name (review-box), and the allowed lifecycle operations: inspection only, no create, no rm.\n3. Find the VM in `ls --json` (§ Execute: \"Select a recorded existing VM from `ls --json`\").\n4. Run the inspection with `ssh review-box.exe.xyz '<command>'` and record the real exit codes (§ Verify).\n5. Run `ssh exe.dev ls --json` again to confirm review-box is still there (§ Verify: \"Confirm the exact VM remains ... when the task retains it\").\n\nWhat the operator did not authorize: there is no `new` call. The VM is borrowed and retained, so there is no `rm` (§ Cleanup: \"Do not delete borrowed VMs\"). There is no restart without explicit authority (§ Failure remedies). If account SSH access fails, stop and ask the operator to repair key access."
+        "notes": "SKILL.md Select a route says the exedev route covers an approved exe.dev VM used through the SSH command API, not as a hand. The request names a borrowed VM and is not a hand offload, so the hands route does not apply. exedev.md Prerequisites says to record the VM as borrowed, with its exact name and allowed operations. Here the allowed operations are inspection and retention only. exedev.md Execute says to select the recorded VM from ls --json and run commands through ssh <name>.exe.xyz. Do not run new. exedev.md Verify says to confirm the retained VM still appears in ls --json. exedev.md Cleanup says not to delete borrowed VMs, so do not run rm or restart. SKILL.md Shared safety says to inspect installed help and not assume source capabilities."
       }
     },
     {
       "caseId": "R7",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R7",
+      "agentHandle": "replay15-R7",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -168,17 +164,15 @@
           "SKILL=.agro/skills/sandbox",
           "bash \"$SKILL/scripts/run.sh\" exedev --preflight",
           "setsid nohup bash \"$SKILL/scripts/run.sh\" exedev > run.out 2>&1 < /dev/null &",
-          "cat run.out",
-          "(bounded harness completion monitor on the detached driver, e.g. setsid bash .agro/skills/sandbox/scripts/run.sh exedev under a monitor with a completion wake; no shell polling loop)",
-          "cat <log path from run.out>  # copy RESULT F1-F4 rows, SUMMARY, 'remaining agro-matrix resources on exedev: 0' and 'RUN DONE'"
+          "cat run.out"
         ],
-        "notes": "I read only the instruction files the task named: sandbox/SKILL.md, references/validation.md, references/providers.md and references/exedev.md.\n\nRoute: validation. SKILL.md has a section called \"Validation and supporting resources\". It sends fresh-install checks to references/validation.md and adapter setup to references/providers.md. It also says the validation drivers run only through the validation procedure. The skill description lists \"validate a fresh AGRO install or release\" as its own trigger. The exedev route does not fit. Its table row covers using an approved exe.dev VM through the SSH command API for work. The operator says this is release validation, not an application workload, and asks for the existing validation procedure.\n\nOwner: validation-driver. The \"Choose when\" section of validation.md says scripts/run.sh creates one VM, runs one check, and destroys the VM. The \"Cleanup\" section of validation.md and the \"Cleanup\" section of exedev.md both say the driver owns cleanup unless KEEP=1. adapters/exedev.sh calls the exe.dev SSH API (new/ls/rm) inside the driver, so the operator does not need a separate exedev-api owner.\n\nAuthority: the request approves one billable VM and limits teardown to the VM this check owns. That meets the approval and ownership prerequisites in validation.md and providers.md. KEEP stays unset, so the driver creates and destroys exactly one agro-mx-<date>-<time> VM tagged agro-matrix.\n\nCommands: checks/fresh-install.sh is the default check, so the run needs no check argument. It runs rows F1 to F4 against the default INSTALL_URL, which is the latest release installer. Before the run, providers.md § exe.dev requires the driver host's SSH key to be registered with exe.dev and python3 to be installed. The steps follow validation.md: Set up step 3 (preflight), then the detached Main scenario launch and monitoring, then Verify (copy results from the actual log). If resources remain after the run, delete only the recorded VM with 'ssh exe.dev rm <name>', as providers.md § exe.dev says. Do not sweep the whole account."
+        "notes": "SKILL.md section Validation and supporting resources sends fresh-install checks to references/validation.md. That file's Main scenario uses run.sh exedev with the default check checks/fresh-install.sh. The driver creates one VM, runs the check, and destroys the VM on exit, so it owns creation and teardown. Operator approval and teardown scope are given in the request. Preflight runs first and the driver runs detached under bounded completion monitoring. exedev.md line 88 confirms the driver owns cleanup for validation runs, so this is not the exedev route."
       }
     },
     {
       "caseId": "R8",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R8",
+      "agentHandle": "replay15-R8",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -195,15 +189,15 @@
           "agro tool install herdr",
           "herdr",
           "agro ps <name>",
-          "git worktree add .worktrees/<branch> -b <branch>  (through the /worktrees skill)"
+          "git worktree add .worktrees/<prefix>/<slug> -b <prefix>/<slug>"
         ],
-        "notes": "The request does not go to any sandbox execution route. It is about workspace lifecycle, interactive processes, and checkout isolation, and the sandbox skill does not own any of those. The frontmatter description of .agro/skills/sandbox/SKILL.md says the skill \"Does not own persistent workspace lifecycle, interactive process management, or checkout isolation.\" Its Boundaries section names three separate owners: (1) persistent Docker workspaces go to the public lifecycle commands in docs/lifecycle-commands.md, where `agro sandbox install docker` creates the sandbox and `agro shell` and `agro ps` attach to it and inspect it; (2) interactive agents, tests, and servers go to /herdr, so the dev server runs in a Herdr pane and keeps running after a disconnect, not in an attached shell; (3) checkout isolation goes to /worktrees, which gives parallel implementation its own .worktrees/ checkout. The Select a route table (local/docker, local/msb, hands, exedev) only covers one-off isolated commands and offload, so it does not apply here. None of the validation material applies either. I did not open any reference files beyond SKILL.md and the verb table in docs/lifecycle-commands.md."
+        "notes": "SKILL.md frontmatter says the sandbox skill does not own persistent workspace lifecycle, interactive process management, or checkout isolation. SKILL.md Boundaries sends persistent Docker workspaces to the lifecycle commands, interactive servers to /herdr, and checkout isolation to /worktrees. None of the four execution routes applies, so the route is lifecycle. docs/lifecycle-commands.md 'The verbs' and 'Creating a sandbox' give agro sandbox install docker, agro shell, and agro ps. AGENTS.md lifecycle order adds agro tool install herdr and herdr. .worktrees/AGENTS.md gives git worktree add under .worktrees/."
       }
     },
     {
       "caseId": "R9",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R9",
+      "agentHandle": "replay15-R9",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -214,27 +208,26 @@
           "agro-run"
         ],
         "commands": [
-          "cat ${AGRO_HOME:-~/.agro}/config.json   # confirm hands.provider is exedev",
-          "agro --version && agro hands --help && agro run --help",
-          "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
+          "agro hands --help",
           "agro hands list",
           "agro hands exec sbx-dev-001 -- git -C projects/mifunedev/widget rev-parse HEAD",
-          "git -C <harness-root>/projects/mifunedev/widget remote get-url hand-sbx-dev-001   # if missing: git -C <harness-root>/projects/mifunedev/widget remote add hand-sbx-dev-001 sbx-dev-001.exe.xyz:projects/mifunedev/widget",
+          "git -C <harness-root>/projects/mifunedev/widget remote get-url hand-sbx-dev-001",
+          "git -C <harness-root>/projects/mifunedev/widget remote add hand-sbx-dev-001 sbx-dev-001.exe.xyz:projects/mifunedev/widget",
           "GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=sbx-dev-001\" git -C <harness-root>/projects/mifunedev/widget push hand-sbx-dev-001 HEAD",
-          "git -C <harness-root>/projects/mifunedev/widget rev-parse HEAD   # must equal hand HEAD from: agro hands exec sbx-dev-001 -- git -C projects/mifunedev/widget rev-parse HEAD",
+          "agro hands exec sbx-dev-001 --project mifunedev/widget -- git rev-parse HEAD",
           "agro hands exec sbx-dev-001 --project mifunedev/widget -- agro run --help",
           "agro hands exec sbx-dev-001 --project mifunedev/widget -- agro run -- pnpm test",
-          "agro hands exec sbx-dev-001 --project mifunedev/widget -- git commit -am '<message>'",
+          "agro hands exec sbx-dev-001 --project mifunedev/widget -- git commit -am \"<message>\"",
           "agro hands fetch sbx-dev-001 --project mifunedev/widget",
           "agro hands list"
         ],
-        "notes": "Route is hands. The deciding sources are the SKILL.md \"Select a route\" table and the hands.md \"Choose when\" section. The table says the hands route covers offloading a project from a brain to a hand on either provider. hands.md lists this request almost word for word as a request that selects this route (\"Offload the current branch of mifunedev/<repo> to hand sbx-dev-001, run pnpm test, commit, and fetch it here\"). The request names an explicit location, so SKILL.md order step 2 applies. hands.md says the provider comes from hands.provider in the host config, not from the host type. Here that value is exedev, so <hand> is the exe.dev VM name, the brain remote is hand-<vm>, and the SSH destination is <vm>.exe.xyz. The same section assigns two owners because the request includes application work: agro hands for selection, SSH transport, push and fetch, and agro run on the hand for pnpm test. The commands follow SKILL.md steps 5-6 and hands.md \"Put a project on an existing hand\" steps 2-4 (inspect or add the hand-sbx-dev-001 remote, push with a pinned HostKeyAlias, check that the hand HEAD equals the brain HEAD) and Execute steps 2-3 (exec agro run -- pnpm test, commit on the hand, agro hands fetch). They end with Verify (agro hands list). Nothing billable is created and no hand is created or resumed. If the hand does not hold the project, Put-a-project step 1 (git init plus receive.denyCurrentBranch updateInstead) comes first. If the exedev guard refuses (for example, the VM has no agro-hand tag) or the exec fails, stop and report. Do not fall back. I read only SKILL.md and references/hands.md. herdr, worktrees, lifecycle, exedev-api and validation-driver are not assigned owners for this one-shot run."
+        "notes": "hands.md Choose when lists this exact request as one that selects the hands route. The host config sets hands.provider to exedev, so sbx-dev-001 is an exe.dev VM name, the brain remote is hand-sbx-dev-001, and the SSH destination is sbx-dev-001.exe.xyz. The exedev route in SKILL.md Select a route covers using a VM as something other than a hand, so it does not apply here. hands.md says to name two owners: agro hands moves git and handles transport, and agro run runs pnpm test on the hand. The hand already exists, so no billable create is needed. The push follows hands.md Put a project on an existing hand, steps 2 and 3, and init on the hand comes first if the project folder is missing. SKILL.md step 6 says to confirm the hand HEAD equals the brain HEAD before the run. Execute step 3 says to commit on the hand before agro hands fetch. Stop at a tag guard or brain guard refusal, as hands.md Failure remedies says."
       }
     },
     {
       "caseId": "R10",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R10",
+      "agentHandle": "replay15-R10",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -247,13 +240,13 @@
           "agro hands --help",
           "agro hands list"
         ],
-        "notes": "The route is hands. In .agro/skills/sandbox/SKILL.md, the \"Select a route\" table says the hands route covers hands on either provider, and \"Shared safety\" says the hands route serves console and exe.dev hands. A hand is a resource role, not another provider, so exedev is not the route here. The exedev route is for an approved exe.dev VM used through the SSH command API, not as a hand. In references/hands.md, \"Choose when\" lists \"List my hands.\" as a request that selects this route. The same section says one brain uses one provider and that hands.provider in ${AGRO_HOME:-~/.agro}/config.json selects it. A setting of exedev only changes the provider behind `agro hands`. It does not change the route, and nothing needs to be configured. The only owner is agro-hands, because `agro hands` owns hand selection and transport. No application work runs, so agro-run is not involved. Prerequisites in hands.md say to check installed `agro hands --help` first. Then run `agro hands list`. This is read-only and not billable, so no operator authority is needed. Failure remedies apply if the brain SSH key is not registered: `ssh exe.dev whoami` fails, `agro hands` exits 2, and the operator must register the key. No other references were needed."
+        "notes": "SKILL.md Select a route maps hand work to the hands route and says that route serves exe.dev hands. hands.md Choose when lists \"List my hands.\" as a request for this route. hands.provider exedev only selects the provider, so the route stays hands, not exedev. exedev.md says to use the hands route for an exe.dev VM used as a hand. The request runs no application work, so agro run is not an owner. Listing is read-only and needs no billable authority."
       }
     },
     {
       "caseId": "R11",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R11",
+      "agentHandle": "replay15-R11",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -264,16 +257,17 @@
         ],
         "commands": [
           "agro hands --help",
+          "agro hands pause --help",
           "agro hands pause sbx-dev-001",
           "agro hands list"
         ],
-        "notes": "The decision came from the routing table in .agro/skills/sandbox/SKILL.md, section \"Select a route\". That table says the hands route covers a brain offloading to a hand \"on either provider\". Under \"Shared safety\", the same file says a hand is a resource role, not a provider, and that the hands route serves both console and exe.dev hands. In references/hands.md, section \"Choose when\", the list of requests that select this route includes \"Pause hand sbx-dev-001\" word for word. The same section says hands.provider in the host config chooses the provider. Here it is set to exedev, so <hand> is the exe.dev VM name and the CLI's tag guard and brain guard apply. The exedev route is ruled out: references/exedev.md, section \"Choose when\", says to use the hands route for an exe.dev VM that acts as a hand. Its raw `ssh exe.dev pause` belongs only to non-hand VM use. The section \"Choose when\" in hands.md names two owners only for a request that runs application work. Pausing runs none, so the only owner is agro hands; agro run is not needed. The pause and resume commands come from the section \"Cleanup\" in hands.md, which says to use `agro hands pause <hand>`, notes that both providers support pause and resume, and says to check the resulting state with `agro hands list`. The section \"Prerequisites\" says to check `agro hands --help` on the installed CLI first. Pausing is not a billable create or fork, so it needs no extra authority. The section \"Failure remedies\" covers a refusal: if the exedev guard refuses because the VM lacks the agro-hand tag or is the brain itself, stop and report it. Do not tag the VM to get past the guard."
+        "notes": "SKILL.md Select a route maps hand operations on either provider to the hands route. The hands.md Choose when section lists 'Pause hand sbx-dev-001' as a hands-route request, and the hands route covers exe.dev hands. That section also says hands.provider exedev means the hand is an exe.dev VM name. The exedev route is for VMs used through the SSH API without being hands, so it does not apply. hands.md Cleanup says both providers support pause and that agro hands list confirms the new state. Pausing runs no application work, so agro run is not an owner. Pause is not a billable create or fork, so no extra authority is needed. If the tag guard or brain guard refuses, stop and report."
       }
     },
     {
       "caseId": "R12",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R12",
+      "agentHandle": "replay15-R12",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -284,25 +278,21 @@
           "agro-run"
         ],
         "commands": [
-          "agro run --help",
           "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
-          "agro config get hands.provider",
           "agro hands list",
           "agro hands exec agro-sbx-dev-001 -- git -C projects/mifunedev/widget rev-parse HEAD",
-          "git -C <harness-root>/projects/mifunedev/widget remote get-url hand-agro-sbx-dev-001",
+          "agro hands exec agro-sbx-dev-001 -- agro run --help",
           "GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=agro-sbx-dev-001\" git -C <harness-root>/projects/mifunedev/widget push hand-agro-sbx-dev-001 HEAD",
           "git -C <harness-root>/projects/mifunedev/widget rev-parse HEAD",
-          "agro hands exec agro-sbx-dev-001 -- git -C projects/mifunedev/widget rev-parse HEAD",
-          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --help",
           "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run -- <test-command>"
         ],
-        "notes": "I read only .agro/skills/sandbox/SKILL.md and .agro/skills/sandbox/references/hands.md.\n\nSKILL.md § Select a route lists the decision order for application runs, and this request falls through it to the hands route:\n1. The request states no isolation need, so the default runtime applies.\n2. The request describes the setup but names no location for the run.\n3. Check `git status --porcelain` first. If the project is dirty, the route becomes local/docker.\n4. Confirm `agro hands list` succeeds on the brain. Read `hands.provider` from the host config instead of guessing it; it should be exedev here.\n5. The request says agro-sbx-dev-001 is running and holds mifunedev/widget. If it is the only such hand, step 5 selects it.\n6. Push the current branch to the brain remote `hand-agro-sbx-dev-001` (not origin). Confirm the hand HEAD equals the brain HEAD; if they differ, stop and report. Then run `agro hands exec <hand> --project <owner>/<repo> -- agro run -- <command>`.\n\nhands.md § Choose when says the route has two owners. agro hands owns selecting the hand, the SSH transport and moving git between brain and hand. agro run on the hand owns running the tests. A hand request that runs application work names both, so the owners are agro-hands and agro-run.\n\nSupporting steps from hands.md:\n- Prerequisites: check the hand's runtime with `agro run --help` over the hand before running tests.\n- § Put a project on an existing hand, steps 2-3: the push uses a remote and a pinned HostKeyAlias. If the remote exists but differs, stop for advisor review.\n- § Execute step 2: one-shot application work uses `agro run` on the hand.\n\nGuards:\n- If `agro hands exec` fails, stop, report, and offer local/docker; switch only after the operator agrees.\n- Never fall back to the raw host.\n- No create or fork is involved, so no billable authority is needed.\n\nHerdr is not an owner here because this is a one-shot test run through `agro run`. It would apply only to persistent or interactive test processes.\n\nThe test command is not given, so `<test-command>` is a placeholder (for example `pnpm test`)."
+        "notes": "SKILL.md Select a route steps 2-7 decide it. The request names no location, so the default order applies. Step 3 needs a clean checkout; a dirty checkout switches the route to local/docker. Step 5 picks the one running hand that holds the project. Step 6 pushes to remote hand-agro-sbx-dev-001 (not origin), checks that the hand HEAD equals the brain HEAD, then runs agro run on the hand. hands.md Choose when names both owners, agro hands and agro run, for application work on a hand. If agro hands exec fails, stop and offer local/docker. The test command is unknown, so it stays a placeholder."
       }
     },
     {
       "caseId": "R13",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R13",
+      "agentHandle": "replay15-R13",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -312,18 +302,18 @@
           "agro-run"
         ],
         "commands": [
-          "cd <harness-root>/projects/mifunedev/widget && git status --porcelain",
+          "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
           "agro hands list",
-          "agro --version && agro run --help",
-          "cd <harness-root>/projects/mifunedev/widget && agro run -- <test command, e.g. pnpm test>"
+          "agro run --help",
+          "cd <harness-root>/projects/mifunedev/widget && agro run -- <test-command>"
         ],
-        "notes": "The route came from the \"Select a route\" default order in .agro/skills/sandbox/SKILL.md. Step 1: the request asks for no particular isolation, so the default runtime applies. Step 2: the request names no location. It mentions the hand only to say that it is paused. Step 3: if git status --porcelain shows changes, the route is already local/docker. Step 4: run agro hands list to confirm the hand's state. Step 5: only a hand whose status is `running` and that holds the project counts, and \"Any other status does not count\". A paused hand therefore does not qualify, and since no running hand holds the project, the route is local/docker. SKILL.md also says \"The default never resumes or creates a hand\". So I would not resume agro-sbx-dev-001 unless the operator asks. That rules out the hands route and its agro-hands owner. Step 7 then gives `agro run -- <command>` on the brain host, run from the widget checkout. references/local-docker.md (\"Choose when\", \"Execute\") confirms how this works: one command on the host running agro, an example with `agro run -- pnpm test`, no implicit shell, and a check of `agro run --help` first. It also says to record the command and its exit code, and to use a background monitor with a finite deadline rather than sleep loops. If the Docker engine is missing, stop and report; do not fall back to the raw host. The test command is a placeholder because the request does not give one. herdr is not an owner here: this is a one-shot isolated agro run, not an interactive test session."
+        "notes": "SKILL.md Select a route steps 1-7 decided it. The request names no location and needs no special isolation. Step 5 counts only a hand with status running that holds the project. A paused hand does not count, so no running hand holds mifunedev/widget. Step 7 then selects local/docker with agro run. The rule that the default never resumes or creates a hand forbids resuming agro-sbx-dev-001. hands.md Cleanup allows resume only to continue the same task the hand was paused for, and only on request."
       }
     },
     {
       "caseId": "R14",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R14",
+      "agentHandle": "replay15-R14",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -333,18 +323,18 @@
           "agro-run"
         ],
         "commands": [
-          "cd projects/mifunedev/widget && git status --porcelain",
+          "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
           "agro hands list",
           "agro run --help",
-          "agro run -- <test command, e.g. pnpm test>"
+          "cd <harness-root>/projects/mifunedev/widget && agro run -- <test-command>"
         ],
-        "notes": "The route is local/docker. Two files decided it: .agro/skills/sandbox/SKILL.md, section \"Select a route\" (the ordered application-run decision), and .agro/skills/sandbox/references/local-docker.md, sections \"Choose when\", \"Prerequisites\" and \"Execute\".\n\nHow the steps apply to this request:\n- Step 1 (isolation): the request does not ask for a separate kernel, services or an egress allowlist, so the default runtime applies.\n- Step 2 (location): the request names no explicit location.\n- Step 3 (dirty checkout): `git status --porcelain` would send the run to local/docker if the checkout has uncommitted changes. The result is local/docker either way.\n- Steps 4 and 5 (hands): I would still run `agro hands list` to confirm. The request says no hand exists, so no running hand holds the project, and the rule is \"If no running hand holds the project, use `local/docker`\". If `agro hands list` fails or this host is not a brain, report the error and still use local/docker.\n- The default never resumes or creates a hand. The operator did not ask to put the project on a hand, so the hands route is excluded. No billable create is authorized.\n- Step 7: run `agro run -- <command>` on the host from the widget checkout, after checking `agro run --help` as Shared safety and the local-docker Prerequisites require.\n\nFailure handling: if the Docker engine is missing, stop and report. Never fall back to the raw host.\n\nOwners: agro-run is the only owner. Herdr is not assigned: the Boundaries pointer to /herdr covers interactive or persistent test sessions, and this is a one-shot `agro run`. The run uses a bounded completion monitor and a finite deadline, as the local-docker \"Failure remedies\" section requires. Worktrees and lifecycle are not involved, because nothing calls for checkout isolation or a persistent workspace.\n\nThe test command is a placeholder. The local-docker reference uses `pnpm test` as its example, but the widget project's actual command is not known from the allowed files. I did not need hands.md, exedev.md, local-msb.md, the validation references or docs/lifecycle-commands.md."
+        "notes": "This is an application test run with no explicit location. SKILL.md Select a route steps 3 to 7 apply. No running hand holds the project because no hand exists, so step 5 selects local/docker. The default never creates or resumes a hand, and the operator did not ask to put the project on a hand or authorize a billable create. local-docker.md Execute gives agro run -- <command> on the host. agro run owns application execution. Run agro hands list to confirm. If it fails or the host is not a brain, report the error and still use local/docker. If Docker is missing, stop and report. Never fall back to the raw host."
       }
     },
     {
       "caseId": "R15",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R15",
+      "agentHandle": "replay15-R15",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -354,17 +344,16 @@
           "agro-run"
         ],
         "commands": [
-          "agro --version",
           "agro run --help",
-          "cd <path-to>/mifunedev/widget && agro run -- <test command, e.g. pnpm test>"
+          "cd <harness-root>/projects/mifunedev/widget && agro run -- <test-command>"
         ],
-        "notes": "The routing comes from the \"Select a route\" section of .agro/skills/sandbox/SKILL.md, which lists the decision steps in order. Step 1: the request asks for no separate kernel, services or egress allowlist, so the default container runtime applies. Step 2: the request names an explicit location (\"on this host\"), and that decides the route. A running hand, agro-sbx-dev-001, is mentioned, but the explicit location takes precedence over the hand checks in steps 4-6. Running `agro hands list`, pushing to hand-<hand> and running `agro hands exec` therefore do not apply. Per SKILL.md, \"local\" means the host running agro, even when it is a remote VM such as this exe.dev brain. Shared safety forbids running the work on the raw host, so the tests run in a container through `agro run`. The route is not \"exedev\" because the request is not about using a VM through the SSH command API. references/local-docker.md (\"Choose when\", \"Prerequisites\", \"Execute\") says to run one command on the host running agro: check `agro run --help`, then run `agro run -- pnpm test` from the project checkout on the host, not inside a sandbox. If the Docker engine is missing, stop and report rather than fall back to the raw host. The test command is a placeholder because the repository's test script is not known. herdr is not listed as an owner because this is a single disposable `agro run` command, not an interactive or persistent test session."
+        "notes": "SKILL.md Select a route step 2 says an explicit location in the request wins. The request says on this host, so the hand is not used even though agro-sbx-dev-001 is running. Shared safety says local means the host running agro. local-docker.md Choose when and Execute give agro run -- <command> from the project directory on the host. Step 1 adds no isolation need beyond the container default."
       }
     },
     {
       "caseId": "R16",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R16",
+      "agentHandle": "replay15-R16",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -376,26 +365,20 @@
         ],
         "commands": [
           "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
-          "agro --version",
-          "agro hands --help",
           "agro hands list",
           "agro hands exec agro-sbx-dev-001 -- git -C projects/mifunedev/widget rev-parse HEAD",
-          "git -C <harness-root>/projects/mifunedev/widget remote get-url hand-agro-sbx-dev-001",
           "GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=agro-sbx-dev-001\" git -C <harness-root>/projects/mifunedev/widget push hand-agro-sbx-dev-001 HEAD",
           "git -C <harness-root>/projects/mifunedev/widget rev-parse HEAD",
-          "agro hands exec agro-sbx-dev-001 -- git -C projects/mifunedev/widget rev-parse HEAD",
           "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --help",
-          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- msb --version",
-          "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- test -r /dev/kvm -a -w /dev/kvm",
           "agro hands exec agro-sbx-dev-001 --project mifunedev/widget -- agro run --isolation microvm -- <command>"
         ],
-        "notes": "I decided this from the \"Select a route\" order in .agro/skills/sandbox/SKILL.md, with .agro/skills/sandbox/references/hands.md and references/local-msb.md as support.\n\n- Step 1 (runtime): \"a separate guest kernel\" selects the microVM runtime, `agro run --isolation microvm`. Step 1 says to use that runtime on whatever host the later steps pick.\n- Step 2 (location): the request names a running hand but does not tell me to run there. I treated it as context, not an explicit location.\n- Step 3 (local changes): if `git status --porcelain` in the project shows changes, the order switches to local/docker. In that case the microVM would run on the brain host (local/msb). It would need the local-msb.md prerequisites: msb exactly 0.7.13, read/write access to /dev/kvm, and no services or egress allowlist.\n- Steps 4 and 5 (pick a hand): with a clean checkout, `agro hands list` must show agro-sbx-dev-001 as running. The hand holds the project if the rev-parse check from hands.md \"Choose when\" exits 0. That makes the hands route.\n- Step 6 (sync): push the current branch to the brain remote `hand-agro-sbx-dev-001`, not origin. Use the existing-hand steps 2 and 3 with a pinned HostKeyAlias. If the remote is missing, add it as `agro-sbx-dev-001.exe.xyz:projects/mifunedev/widget`. If an existing remote differs, stop. Then confirm the hand HEAD equals the brain HEAD, and stop and report if they differ.\n- Run: hands.md says a run on a hand keeps the step-1 runtime. Its prerequisites say to check the hand's runtime capabilities before application work. So I check `agro run --help` for `--isolation microvm`, the msb version and the /dev/kvm access on the hand first. Then I run `agro run --isolation microvm -- <command>` through `agro hands exec`.\n\nOwners: hands.md says a hand request that runs application work names both `agro hands` (picks the hand, SSH transport, git movement) and `agro run` (runs the application). So the owners are agro-hands and agro-run.\n\nGuards:\n- Before the push, read `hands.provider` in the host config to confirm the brain uses exedev. Do not guess the provider from the host.\n- This plan creates or forks nothing, so it needs no billable authority.\n- If `agro hands exec` fails, or the hand has no msb or KVM support, stop and report. Offer local/docker only after the operator agrees, and never fall back to the raw host or to weaker isolation."
+        "notes": "SKILL.md Select a route step 1: a separate kernel selects the runtime agro run --isolation microvm, used on the host that later steps select. The request names no explicit location. Steps 3-6: if the checkout is clean and agro hands list shows agro-sbx-dev-001 running and holding the project, use the hand. Push to remote hand-agro-sbx-dev-001 and confirm HEADs match. hands.md Choose when says a run on a hand keeps the step 1 runtime, and that application work on a hand names both owners, agro hands and agro run. Check remote agro run --help and KVM support first. If the checkout is dirty, run agro run --isolation microvm locally instead. If hands exec fails, stop and report."
       }
     },
     {
       "caseId": "R17",
       "observedModel": "claude-opus-5-5",
-      "agentHandle": "replay14-R17",
+      "agentHandle": "replay15-R17",
       "freshContext": true,
       "decisionOnly": true,
       "executed": false,
@@ -405,12 +388,11 @@
           "agro-run"
         ],
         "commands": [
-          "git -C <path-to>/mifunedev/widget status --porcelain",
-          "agro --version",
+          "git -C <harness-root>/projects/mifunedev/widget status --porcelain",
           "agro run --help",
-          "cd <path-to>/mifunedev/widget && agro run -- <test-command>"
+          "cd <harness-root>/projects/mifunedev/widget && agro run -- <test-command>"
         ],
-        "notes": "I picked the route from the \"Select a route\" section of .agro/skills/sandbox/SKILL.md, using its ordered list for application runs. Step 1: the request needs no particular isolation, so the default runtime applies and only the host is left to choose. Step 2: the request names no location. Step 3: the project has uncommitted edits, so `git status --porcelain` would not be empty, and that step sends the run to local/docker. So steps 4-6 never come into play: no `agro hands list`, and no push to the `hand-agro-sbx-dev-001` remote. The running hand that holds mifunedev/widget would only count if the checkout were clean. Running on the hand would also leave the uncommitted edits behind, which goes against the \"Preserve checkout changes\" rule in Shared safety. Step 7 and the Execute section of references/local-docker.md give the command: run `agro run -- <test-command>` (for example `agro run -- pnpm test`) on the brain host from the widget checkout. Shared safety says to check `agro --version` and `agro run --help` first. Then record the actual exit code, as the Verify section says. If the Docker engine is missing, stop and report it; do not fall back to the raw host. I did not count herdr as an owner. The Boundaries line (\"For interactive agents, tests, or servers, use /herdr\") covers interactive or persistent sessions, and this is a single bounded `agro run`. Nothing in the request touches lifecycle or worktrees."
+        "notes": "SKILL.md Select a route sets the order for application runs. Step 1: the request needs no special isolation. Step 2: the request names no location; it only says a hand holds the project. Step 3: uncommitted edits make git status --porcelain non-empty, so the route is local/docker before any hand check. A hand push would carry only commits, not the edits (hands.md Execute step 3). The default never uses a hand in this case. Run the tests with agro run -- <command> on the brain host."
       }
     }
   ]
