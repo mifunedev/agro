@@ -15,7 +15,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
-- `agro hands create --desktop` sends the console role tools: `agro`, `docker`, and `desktop` for the profile `sandbox`, and `docker` and `desktop` for the profile `agro`. With `--spec n2`, it exits 1 before it sends a request ([#1676](https://github.com/mifunedev/agro/issues/1676)).
+- `agro hands create --desktop` sends the console role tools: `agro`, `docker`, and `desktop` for the profile `sandbox`, and `docker` and `desktop` for the profile `agro`. Before this change, `--desktop` from [#1667](https://github.com/mifunedev/agro/issues/1667) sent only the `desktop` tool, or `docker` and `desktop` with `--docker`. With `--spec n2`, `--desktop` exits 1 before it sends a request ([#1667](https://github.com/mifunedev/agro/issues/1667), [#1676](https://github.com/mifunedev/agro/issues/1676)).
 - `/supervisor` and `/delegate` briefs forbid guard workarounds through stdin scripts, `docker exec`, remote exec, and base64, and require credential-free test databases ([#1673](https://github.com/mifunedev/agro/issues/1673)).
 
 ### Fixed
