@@ -675,20 +675,23 @@ function launchInSequence(
   const launch = (index: number): void => {
     let last: Hand | undefined;
     const named = request.name === undefined ? request : { ...request, name: `${request.name}-${index}` };
-    const created = provider.create(named, (hand) => {
-      if (last === undefined && index < count) launch(index + 1);
-      last = hand;
-      report(hand);
-    });
-    launched.push(
-      created.then(async (outcome) => ({
-        index,
-        last,
-        outcome,
-        desktop:
-          outcome.ok && awaitDesktop !== undefined ? await waitDesktop(io, deps, prefix, outcome.value, awaitDesktop) : undefined,
-      })),
-    );
+    const settle = async (): Promise<CreatedHand> => {
+      const outcome = await provider.create(named, (hand) => {
+        if (last === undefined && index < count) launch(index + 1);
+        last = hand;
+        report(hand);
+      });
+      if (outcome.ok) last = outcome.value;
+      const desktop =
+        outcome.ok && awaitDesktop !== undefined ? await waitDesktop(io, deps, prefix, outcome.value, awaitDesktop) : undefined;
+      return { index, last, outcome, desktop };
+    };
+    launched[index - 1] = settle().catch((error: unknown) => ({
+      index,
+      last,
+      outcome: { ok: false, error: messageOf(error) },
+      desktop: undefined,
+    }));
   };
   launch(1);
   return launched;
@@ -696,11 +699,11 @@ function launchInSequence(
 
 function handLine(created: CreatedHand, hand: Hand, desktop: boolean): string {
   const address = created.desktop === undefined ? null : rdpAddress(created.desktop);
-  const desktopField = desktop ? ` desktop ${address ?? "not listening"}` : "";
+  const desktopField = !desktop ? "" : ` desktop ${created.outcome.ok ? (address ?? "not listening") : "-"}`;
   return `hand ${hand.index ?? "-"} alias ${hand.alias ?? "-"} status ${hand.status} ssh ${hand.sshDest ?? "-"}${desktopField}\n`;
 }
 
-async function createMany(
+export async function createMany(
   io: HandsIO,
   deps: HandsDeps,
   provider: HandProvider,
@@ -722,6 +725,9 @@ async function createMany(
   for (const created of settled) {
     if (!created.outcome.ok) io.stderr(`${prefix}: hand ${created.index} of ${count}: ${created.outcome.error}\n`);
   }
+  const firstSkipped = settled.length + 1;
+  if (firstSkipped === count) io.stderr(`${prefix}: hand ${count} not requested\n`);
+  else if (firstSkipped < count) io.stderr(`${prefix}: hands ${firstSkipped} to ${count} not requested\n`);
   return settled.length === count && settled.every((created) => created.outcome.ok) ? 0 : 1;
 }
 

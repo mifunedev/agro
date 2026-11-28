@@ -11,9 +11,11 @@ import {
   handsHelp,
   normalizeHandRef,
   resolveHandsConsoleConfig,
+  createMany,
   runHands,
   type HandsDeps,
 } from "../hands.js";
+import type { Hand, HandOutcome, HandProvider, HandStatusReport } from "../../lib/hands/provider.js";
 
 const TOKEN = "brn_known_secret_token_4f2a";
 const TOKEN_PATH = "/home/sandbox/.agro/brain-token";
@@ -2072,6 +2074,17 @@ describe("agro hands create --count", () => {
     expect(h.stdout()).toBe("hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n");
     expect(h.stderr()).toMatch(/^agro hands create: hand 2 of 3: HTTP 500 INTERNAL: boom$/m);
     expect(h.stderr()).not.toContain("hand 3 of 3");
+    expect(h.stderr().endsWith("agro hands create: hand 2 of 3: HTTP 500 INTERNAL: boom\nagro hands create: hand 3 not requested\n")).toBe(true);
+  });
+
+  it("names the skipped range after a refusal at request 2 of 4", async () => {
+    const nodes = { ...THREE_RUNNING(), u4: [node(4)] };
+    const h = counted(nodes, (k) =>
+      k === 2 ? { status: 500, body: { error: "boom", code: "INTERNAL" } } : { status: 202, body: { id: `u${k}`, status: "queued" } },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "4"], h.io, h.deps)).toBe(1);
+    expect(h.posts).toHaveLength(2);
+    expect(h.stderr().endsWith("agro hands create: hand 2 of 4: HTTP 500 INTERNAL: boom\nagro hands create: hands 3 to 4 not requested\n")).toBe(true);
   });
 
   it("prints the JSON line of hand 1 only after a refusal at request 2 of 3", async () => {
@@ -2080,6 +2093,15 @@ describe("agro hands create --count", () => {
     );
     expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(1);
     expect(h.stdout()).toBe(`${JSON.stringify(jsonOf(1))}\n`);
+    expect(h.stderr()).toContain("agro hands create: hand 3 not requested\n");
+  });
+
+  it("prints desktop - for a hand whose wait failed with --desktop", async () => {
+    const desktop = (k: number, status = "running") =>
+      node(k, status, { desktop: true, rdpListening: true, tailnetName: `alias-${k}.ts.net`, tailnetAddress: null });
+    const h = counted({ u1: [desktop(1)], u2: [desktop(2, "failed")], u3: [desktop(3)] });
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")[1]).toBe("hand 42 alias alias-2 status failed ssh sandbox@hand-2.example desktop -");
   });
 
   it("prints every hand and exits 1 after a wait failure at hand 2 of 3", async () => {
@@ -2145,5 +2167,96 @@ describe("agro hands create --count", () => {
     expect(await runHands([...BASE_CREATE, "--count", "1", ...flag], counted1.io, counted1.deps)).toBe(0);
     expect(counted1.stdout()).toBe(plain.stdout());
     expect(counted1.stderr()).toBe(plain.stderr());
+  });
+
+  function fakeHand(k: number, status = "running"): Hand {
+    return {
+      id: `u${k}`,
+      index: String(40 + k),
+      alias: `alias-${k}`,
+      name: null,
+      profile: "sandbox",
+      status,
+      spec: "n4",
+      sshHost: `hand-${k}.example`,
+      sshDest: `sandbox@hand-${k}.example`,
+      remoteName: `hand-${40 + k}`,
+      hostKeyAlias: `u${k}`,
+      label: `#${40 + k}`,
+    } as Hand;
+  }
+
+  function fakeProvider(create: (k: number, onStatus: HandStatusReport) => Promise<HandOutcome<Hand>>) {
+    let k = 0;
+    return { create: (_request: unknown, onStatus: HandStatusReport) => create(++k, onStatus) } as unknown as HandProvider;
+  }
+
+  function fakeDeps(h: ReturnType<typeof harness>): HandsDeps {
+    return { ...h.deps, desktopPollMs: 10, desktopTimeoutMs: 30 } as HandsDeps;
+  }
+
+  it("prints every hand with a node id and exits 1 when create rejects for hand 2 of 3", async () => {
+    const h = harness([]);
+    let finishFirst!: () => void;
+    const first = new Promise<void>((done) => {
+      finishFirst = done;
+    });
+    const provider = fakeProvider(async (k, onStatus) => {
+      await Promise.resolve();
+      onStatus(fakeHand(k, "queued"));
+      if (k === 1) await first;
+      if (k === 2) throw new Error("socket closed");
+      if (k === 3) finishFirst();
+      return { ok: true, value: fakeHand(k) };
+    });
+    const status = await createMany(h.io, fakeDeps(h), provider, "agro hands create", { sshKeyIds: [] }, 3, undefined, false);
+    expect(status).toBe(1);
+    expect(h.stdout()).toBe(
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+        "hand 42 alias alias-2 status queued ssh sandbox@hand-2.example\n" +
+        "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n",
+    );
+    expect(h.stderr()).toContain("agro hands create: hand 2 of 3: socket closed\n");
+  });
+
+  it("prints every hand and exits 1 when the desktop wait rejects for hand 2 of 3", async () => {
+    const h = harness([]);
+    const provider = fakeProvider(async (k, onStatus) => {
+      await Promise.resolve();
+      onStatus(fakeHand(k, "queued"));
+      return { ok: true, value: fakeHand(k) };
+    });
+    const awaitDesktop = async (id: string) => {
+      if (id === "u2") throw new Error("desktop read broke");
+      return { rdpListening: true, tailnetName: `${id}.ts.net`, tailnetAddress: null, status: "running", apiError: null };
+    };
+    const status = await createMany(
+      h.io,
+      fakeDeps(h),
+      provider,
+      "agro hands create",
+      { sshKeyIds: [], desktop: true },
+      3,
+      awaitDesktop,
+      false,
+    );
+    expect(status).toBe(1);
+    expect(h.stdout().split("\n").slice(0, 3)).toEqual([
+      "hand 41 alias alias-1 status running ssh sandbox@hand-1.example desktop u1.ts.net:3389",
+      "hand 42 alias alias-2 status running ssh sandbox@hand-2.example desktop -",
+      "hand 43 alias alias-3 status running ssh sandbox@hand-3.example desktop u3.ts.net:3389",
+    ]);
+    expect(h.stderr()).toContain("agro hands create: hand 2 of 3: desktop read broke\n");
+  });
+
+  it("keeps request order when the provider reports a status before its first await", async () => {
+    const h = harness([]);
+    const provider = fakeProvider((k, onStatus) => {
+      onStatus(fakeHand(k, "queued"));
+      return Promise.resolve({ ok: true, value: fakeHand(k) });
+    });
+    const status = await createMany(h.io, fakeDeps(h), provider, "agro hands create", { sshKeyIds: [] }, 3, undefined, true);
+    expect(status).toBe(0);
+    expect(h.stdout().split("\n").map((line) => (line === "" ? "" : JSON.parse(line).id))).toEqual(["u1", "u2", "u3", ""]);
   });
 });
