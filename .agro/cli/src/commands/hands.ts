@@ -683,7 +683,11 @@ function launchInSequence(
       });
       if (outcome.ok) last = outcome.value;
       const desktop =
-        outcome.ok && awaitDesktop !== undefined ? await waitDesktop(io, deps, prefix, outcome.value, awaitDesktop) : undefined;
+        outcome.ok && awaitDesktop !== undefined
+          ? await waitDesktop(io, deps, prefix, outcome.value, awaitDesktop).catch((error: unknown) =>
+              desktopUnknown(io, prefix, outcome.value, error),
+            )
+          : undefined;
       return { index, last, outcome, desktop };
     };
     launched[index - 1] = settle().catch((error: unknown) => ({
@@ -697,10 +701,16 @@ function launchInSequence(
   return launched;
 }
 
+function desktopUnknown(io: HandsIO, prefix: string, hand: Hand, error: unknown): DesktopState {
+  const apiError = messageOf(error);
+  io.stderr(`${prefix}: warning: hand ${hand.id} desktop state unknown: ${apiError}\n`);
+  return { status: null, rdpListening: false, tailnetName: null, tailnetAddress: null, apiError };
+}
+
 function handLine(created: CreatedHand, hand: Hand, desktop: boolean): string {
   const address = created.desktop === undefined ? null : rdpAddress(created.desktop);
   const desktopField = !desktop ? "" : ` desktop ${created.outcome.ok ? (address ?? "not listening") : "-"}`;
-  return `hand ${hand.index ?? "-"} alias ${hand.alias ?? "-"} status ${hand.status} ssh ${hand.sshDest ?? "-"}${desktopField}\n`;
+  return `hand ${hand.index ?? "-"} alias ${hand.alias ?? "-"} status ${hand.status} ssh ${hand.status === "running" ? (hand.sshDest ?? "-") : "-"}${desktopField}\n`;
 }
 
 export async function createMany(

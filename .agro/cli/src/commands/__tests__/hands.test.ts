@@ -2101,7 +2101,7 @@ describe("agro hands create --count", () => {
       node(k, status, { desktop: true, rdpListening: true, tailnetName: `alias-${k}.ts.net`, tailnetAddress: null });
     const h = counted({ u1: [desktop(1)], u2: [desktop(2, "failed")], u3: [desktop(3)] });
     expect(await runHands([...BASE_CREATE, "--count", "3", "--desktop"], h.io, h.deps)).toBe(1);
-    expect(h.stdout().split("\n")[1]).toBe("hand 42 alias alias-2 status failed ssh sandbox@hand-2.example desktop -");
+    expect(h.stdout().split("\n")[1]).toBe("hand 42 alias alias-2 status failed ssh - desktop -");
   });
 
   it("prints every hand and exits 1 after a wait failure at hand 2 of 3", async () => {
@@ -2110,10 +2110,16 @@ describe("agro hands create --count", () => {
     expect(h.posts).toHaveLength(3);
     expect(h.stdout()).toBe(
       "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
-        "hand 42 alias alias-2 status failed ssh sandbox@hand-2.example\n" +
+        "hand 42 alias alias-2 status failed ssh -\n" +
         "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n",
     );
     expect(h.stderr()).toContain("agro hands create: hand 2 of 3: hand u2 failed — last status failed\n");
+  });
+
+  it("prints ssh - for a hand whose wait failed although its last node has an SSH host", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "provisioning")], u3: [node(3)] }, undefined, { timeoutMs: 3000 });
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")[1]).toBe("hand 42 alias alias-2 status provisioning ssh -");
   });
 
   it("prints the JSON line with the last status after a wait failure at hand 2 of 3", async () => {
@@ -2213,13 +2219,13 @@ describe("agro hands create --count", () => {
     expect(status).toBe(1);
     expect(h.stdout()).toBe(
       "hand 41 alias alias-1 status running ssh sandbox@hand-1.example\n" +
-        "hand 42 alias alias-2 status queued ssh sandbox@hand-2.example\n" +
+        "hand 42 alias alias-2 status queued ssh -\n" +
         "hand 43 alias alias-3 status running ssh sandbox@hand-3.example\n",
     );
     expect(h.stderr()).toContain("agro hands create: hand 2 of 3: socket closed\n");
   });
 
-  it("prints every hand and exits 1 when the desktop wait rejects for hand 2 of 3", async () => {
+  it("keeps a running hand and warns when the desktop wait rejects for hand 2 of 3", async () => {
     const h = harness([]);
     const provider = fakeProvider(async (k, onStatus) => {
       await Promise.resolve();
@@ -2240,13 +2246,14 @@ describe("agro hands create --count", () => {
       awaitDesktop,
       false,
     );
-    expect(status).toBe(1);
+    expect(status).toBe(0);
     expect(h.stdout().split("\n").slice(0, 3)).toEqual([
       "hand 41 alias alias-1 status running ssh sandbox@hand-1.example desktop u1.ts.net:3389",
-      "hand 42 alias alias-2 status running ssh sandbox@hand-2.example desktop -",
+      "hand 42 alias alias-2 status running ssh sandbox@hand-2.example desktop not listening",
       "hand 43 alias alias-3 status running ssh sandbox@hand-3.example desktop u3.ts.net:3389",
     ]);
-    expect(h.stderr()).toContain("agro hands create: hand 2 of 3: desktop read broke\n");
+    expect(h.stderr()).toContain("agro hands create: warning: hand u2 desktop state unknown: desktop read broke\n");
+    expect(h.stderr()).not.toContain("of 3:");
   });
 
   it("keeps request order when the provider reports a status before its first await", async () => {
