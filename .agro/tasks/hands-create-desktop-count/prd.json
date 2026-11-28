@@ -114,5 +114,6 @@
       "commit": "d185df81"
     }
   ],
-  "pr": 1677
+  "pr": 1677,
+  "blocked": "awaiting supervisor decision: CI red on 674c050c. sandbox-routing.test.ts 'grades actual fresh decision-only records' fails with 'stale source: instructionSha256' because US-003 changed docs/lifecycle-commands.md, a hashed instruction file of the sandbox routing replay (.agro/scripts/__tests__/helpers/sandbox-routing.ts). Options: A) revert the docs/lifecycle-commands.md part of US-003 and keep the CLI help and CHANGELOG (precedent: cli-disposable-hands Lesson 3); the docs keep the #1667 --desktop text, which is now stale. B) keep the docs change and refresh decisions.json with a real replay: 17 fresh-context decision-only agents (R1-R17), at most 2 at a time, as #1667 did (replay14). The advisor will not edit the hash without fresh observations. Recommendation: B, because the operator asked for docs/ updates and A leaves wrong --desktop docs."
 }
