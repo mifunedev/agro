@@ -77,8 +77,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no new finding in the changed lines."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits ddd20d1a + repair 18b04cc1 (round 1: the Changed entry names the #1667 behavior change per supervisor direction). AC1-AC2 executed: help test 'shows the new flags in the help' pins the usage line, --count paragraph, role tools, n2 sentence, exedev console-only list; `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); typecheck exit 0. AC3 reasoned from diff: docs row, --desktop bullet, new --count bullet, exedev list. AC4 executed by reading CHANGELOG [Unreleased]: Added --count entry and Changed --desktop entry, linking #1676 (Changed also #1667). AC5 executed (same vitest run). AC6 executed: ste-check finding set on docs/lifecycle-commands.md equals the HEAD~1 baseline (1 pre-existing VAGUE finding), no new finding.",
       "dependsOn": [
         "US-002"
       ],
@@ -87,7 +87,9 @@
         ".agro/cli/src/commands/__tests__/hands.test.ts",
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "18b04cc1",
+      "rounds": 1
     },
     {
       "id": "US-004",
