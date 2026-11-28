@@ -77,8 +77,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no new finding in the changed lines."
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Commits ddd20d1a + repair 18b04cc1 (round 1: the Changed entry names the #1667 behavior change per supervisor direction). AC1-AC2 executed: help test 'shows the new flags in the help' pins the usage line, --count paragraph, role tools, n2 sentence, exedev console-only list; `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); typecheck exit 0. AC3 reasoned from diff: docs row, --desktop bullet, new --count bullet, exedev list. AC4 executed by reading CHANGELOG [Unreleased]: Added --count entry and Changed --desktop entry, linking #1676 (Changed also #1667). AC5 executed (same vitest run). AC6 executed: ste-check finding set on docs/lifecycle-commands.md equals the HEAD~1 baseline (1 pre-existing VAGUE finding), no new finding.",
+      "passes": false,
+      "notes": "Commits ddd20d1a + repair 18b04cc1 (round 1: the Changed entry names the #1667 behavior change per supervisor direction). AC1-AC2 executed: help test 'shows the new flags in the help' pins the usage line, --count paragraph, role tools, n2 sentence, exedev console-only list; `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); typecheck exit 0. AC3 reasoned from diff: docs row, --desktop bullet, new --count bullet, exedev list. AC4 executed by reading CHANGELOG [Unreleased]: Added --count entry and Changed --desktop entry, linking #1676 (Changed also #1667). AC5 executed (same vitest run). AC6 executed: ste-check finding set on docs/lifecycle-commands.md equals the HEAD~1 baseline (1 pre-existing VAGUE finding), no new finding. | Reopened round 2: CI red on 674c050c (sandbox-routing stale instructionSha256 after the docs edit). Supervisor chose option B: refresh decisions.json from a real replay.",
       "dependsOn": [
         "US-002"
       ],
@@ -86,10 +86,10 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts",
         "docs/lifecycle-commands.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json"
       ],
-      "commit": "18b04cc1",
-      "rounds": 1
+      "rounds": 2
     },
     {
       "id": "US-004",
@@ -114,6 +114,5 @@
       "commit": "d185df81"
     }
   ],
-  "pr": 1677,
-  "blocked": "awaiting supervisor decision: CI red on 674c050c. sandbox-routing.test.ts 'grades actual fresh decision-only records' fails with 'stale source: instructionSha256' because US-003 changed docs/lifecycle-commands.md, a hashed instruction file of the sandbox routing replay (.agro/scripts/__tests__/helpers/sandbox-routing.ts). Options: A) revert the docs/lifecycle-commands.md part of US-003 and keep the CLI help and CHANGELOG (precedent: cli-disposable-hands Lesson 3); the docs keep the #1667 --desktop text, which is now stale. B) keep the docs change and refresh decisions.json with a real replay: 17 fresh-context decision-only agents (R1-R17), at most 2 at a time, as #1667 did (replay14). The advisor will not edit the hash without fresh observations. Recommendation: B, because the operator asked for docs/ updates and A leaves wrong --desktop docs."
+  "pr": 1677
 }
