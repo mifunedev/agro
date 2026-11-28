@@ -1,6 +1,6 @@
 # Manual review: hands create --count and --desktop
 
-Tested revision: `85775c875c523b26a567e550458008c5c898687d` on
+Tested revision: `e379e74a1b63e278b4984bd2e444f3631c1ef5ab` on
 `feat/1676-hands-create-desktop-count`. Each result below is from an observed
 run on 2026-11-28.
 
@@ -82,8 +82,8 @@ reaches a live console.
    POST /api/nodes {"profile":"sandbox","name":"gate-1","tools":["agro","docker","desktop"]}
    POST /api/nodes {"profile":"sandbox","name":"gate-2","tools":["agro","docker","desktop"]}
    GET /api/nodes/node-1
-   GET /api/nodes/node-2
    GET /api/nodes/node-1
+   GET /api/nodes/node-2
    GET /api/nodes/node-2
    ```
 
@@ -96,7 +96,9 @@ reaches a live console.
    - The body has no `spec` field. The console default spec `n4` applies.
    - The names are `gate-1` and `gate-2` in request order.
    - The CLI sends the second `POST` after the first `POST` returns a node id.
-     The waits for the two hands run at the same time.
+   - The CLI sends the two `GET` requests for each hand after both `POST`
+     requests. One `GET` reads the status and one `GET` reads the desktop
+     state.
    - stdout has one JSON line for each hand, in request order.
 
 ## B. Failure path: the desktop with a small spec
@@ -186,6 +188,7 @@ Prerequisite: scenario A ran on the same fake console, so the counter is at 3.
    agro hands create: hand node-3 queued
    agro hands create: hand node-3 running
    agro hands create: hand 2 of 3: HTTP 402 NODE_LIMIT_REACHED: paid node limit reached
+   agro hands create: hand 3 not requested
    ```
 
    Observed requests:
@@ -201,7 +204,9 @@ Prerequisite: scenario A ran on the same fake console, so the counter is at 3.
    Check these results:
 
    - The CLI sends no third `POST` after the refusal of request 2.
-   - The stderr line names the request position `2 of 3`.
+   - The refusal line names the request position `2 of 3`.
+   - The line `hand 3 not requested` names the hand that the CLI did not
+     request.
    - stdout has the line of the hand with a node id. The value after `hand` is
      the console index `3`, not the request position.
    - Without `--desktop`, the body has no `tools` field.
