@@ -104,15 +104,15 @@
         "No command uses a real token, and no command reaches a live console."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Advisor read evidence/manual-review.md (222 lines). AC1 executed by worker: `npm --prefix .agro/cli run build`, then `node .agro/cli/dist/agro.js hands create ...` with inline AGRO_CONSOLE_URL=http://127.0.0.1:18777 AGRO_CONSOLE_TOKEN=fake-token and a fresh HOME. AC2 executed: port 18777 free before boot; advisor confirmed nothing listens on 1877x after the run. AC3 executed: untracked Node fake console in the scratchpad, logged method/path/body, PID stopped, scratch deleted (advisor confirmed the scratchpad is empty). AC4 executed: transcript shows the five commands with stdout, stderr, exit status, and request logs (A exit 0 with two sandbox bodies tools [agro,docker,desktop]; B n2 exit 1 no request; C --count 11 exit 1 no request; D exedev exit 1 no request; E refusal at 2 of 3: two POSTs, stderr 'hand 2 of 3', exit 1). AC5 reasoned: only the literal fake-token and 127.0.0.1 appear. | Reopened round 1: the transcript predates the review fixes (scenario E now prints 'hand 3 not requested'); rerun on the current head.",
+      "passes": true,
+      "notes": "Advisor read evidence/manual-review.md (222 lines). AC1 executed by worker: `npm --prefix .agro/cli run build`, then `node .agro/cli/dist/agro.js hands create ...` with inline AGRO_CONSOLE_URL=http://127.0.0.1:18777 AGRO_CONSOLE_TOKEN=fake-token and a fresh HOME. AC2 executed: port 18777 free before boot; advisor confirmed nothing listens on 1877x after the run. AC3 executed: untracked Node fake console in the scratchpad, logged method/path/body, PID stopped, scratch deleted (advisor confirmed the scratchpad is empty). AC4 executed: transcript shows the five commands with stdout, stderr, exit status, and request logs (A exit 0 with two sandbox bodies tools [agro,docker,desktop]; B n2 exit 1 no request; C --count 11 exit 1 no request; D exedev exit 1 no request; E refusal at 2 of 3: two POSTs, stderr 'hand 2 of 3', exit 1). AC5 reasoned: only the literal fake-token and 127.0.0.1 appear. | Reopened round 1: the transcript predates the review fixes (scenario E now prints 'hand 3 not requested'); rerun on the current head. | Round 1 accepted (61c45763): transcript rerun on e379e74a (code identical to the reviewed 9836b97c), port 18777 free before and after, fake console PID stopped, scratch deleted; scenario E shows 'hand 3 not requested'; ste-check no findings.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/tasks/hands-create-desktop-count/evidence/manual-review.md"
       ],
-      "commit": "d185df81",
+      "commit": "61c45763",
       "rounds": 1
     }
   ],
