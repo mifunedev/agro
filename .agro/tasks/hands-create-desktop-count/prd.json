@@ -52,15 +52,17 @@
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits 53033ca7 + repair 1b8f8652 (round 1: hand lines print the console index, not the request position). Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); `corepack pnpm run typecheck` exit 0. All AC executed by tests in describe 'agro hands create --count': bound (0, 11, 2.5, abc, +3, 03, -1, empty, both forms; 10 accepted), exedev refusal for --count 2 and --count=2, --project/--clone exclusion, names <name>-k / plain name at N=1 / no name field, request k+1 held until node id k with concurrent polls, refusal at 2 of 3 (2 POSTs, stderr 'hand 2 of 3: ...'), N=1 output byte-identical with and without --json, human lines with console index (41-43, dash for null index/ssh), desktop fields and next steps once, JSON lines in order with last status after a wait failure at 2 of 3, exit 1 on failure, three desktop bodies with the US-001 tools. Typecheck executed exit 0.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts"
-      ]
+      ],
+      "rounds": 1,
+      "commit": "1b8f8652"
     },
     {
       "id": "US-003",
