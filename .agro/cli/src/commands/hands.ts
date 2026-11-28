@@ -960,7 +960,7 @@ export async function runHands(
       authority === "operator"
         ? { read: () => deps.readFile(keyPath), name: `agro-cli@${deps.hostname()}` }
         : undefined;
-    const consoleProvider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
+    const consoleProvider = createConsoleProvider(deps, config, authority, (notice) => hidden.stderr(`${prefix}: ${notice}\n`), localKey);
     provider = consoleProvider;
     awaitDesktop = consoleProvider.awaitDesktop;
   }

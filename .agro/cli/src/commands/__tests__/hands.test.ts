@@ -1487,23 +1487,44 @@ describe("agro hands create --desktop", () => {
   const TIMEOUT_WARNING =
     "warning: hand u9 is running but xrdp is not listening after 120 s; check with agro hands exec u9 -- systemctl status xrdp";
 
-  it("posts tools with desktop and no docker field", async () => {
-    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
-    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: ["desktop"] });
-  });
+  const OPERATOR = { readCredentials: credentials("cred") };
+  const SANDBOX_TOOLS = ["agro", "docker", "desktop"];
+  const AGRO_TOOLS = ["docker", "desktop"];
 
-  it("posts tools with docker and desktop and no docker field with --docker", async () => {
-    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
-    expect(await runHands([...BASE_CREATE, "--profile", "agro", "--docker", "--desktop"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: ["docker", "desktop"] });
-  });
-
-  it.each([[["--profile", "agro"]], [["--profile", "sandbox"]], [[]]])("accepts --desktop with %j", async (flag) => {
+  it.each([[[]], [["--profile", "sandbox"]]])("posts the sandbox role tools and no docker field with %j", async (flag) => {
     const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
     expect(await runHands([...BASE_CREATE, ...flag, "--desktop"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toMatchObject({ tools: ["desktop"] });
-    expect(h.calls[0].body).not.toHaveProperty("docker");
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: SANDBOX_TOOLS });
+  });
+
+  it.each([[[]], [["--docker"]]])(
+    "posts the agro role tools and no docker field with --profile agro and %j under operator authority",
+    async (flag) => {
+      const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], OPERATOR);
+      expect(await runHands(["--operator", ...BASE_CREATE, "--profile", "agro", ...flag, "--desktop"], h.io, h.deps)).toBe(0);
+      expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: AGRO_TOOLS });
+    },
+  );
+
+  it("posts the sandbox role tools under operator authority without --profile", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP], OPERATOR);
+    expect(await runHands(["--operator", ...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", sshKeyIds: ["key-1"], tools: SANDBOX_TOOLS });
+  });
+
+  it.each([[[]], [["--docker"]]])(
+    "posts the sandbox role tools with --profile agro and %j under brain authority",
+    async (flag) => {
+      const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+      expect(await runHands([...BASE_CREATE, "--profile", "agro", ...flag, "--desktop"], h.io, h.deps)).toBe(0);
+      expect(h.calls[0].body).toEqual({ profile: "agro", sshKeyIds: ["key-1"], tools: SANDBOX_TOOLS });
+    },
+  );
+
+  it("sends no spec field with --desktop and no --spec", async () => {
+    const h = harness([QUEUED, DESKTOP_RUNNING, RDP_UP]);
+    expect(await runHands([...BASE_CREATE, "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).not.toHaveProperty("spec");
   });
 
   it("posts no tools field without --desktop", async () => {
@@ -1526,7 +1547,7 @@ describe("agro hands create --desktop", () => {
       profile: "sandbox",
       sshKeyIds: ["key-1"],
       spec: "n4",
-      tools: ["desktop"],
+      tools: SANDBOX_TOOLS,
       freeTier: true,
     });
   });
@@ -1551,9 +1572,22 @@ describe("agro hands create --desktop", () => {
     }
   });
 
+  it.each([[BASE_CREATE], [["--operator", "create"]]])(
+    "refuses --desktop --spec n2 with the spec line and sends no console request: %j",
+    async (args) => {
+      const h = harness([SPEC_TOO_SMALL], OPERATOR);
+      expect(await runHands([...args, "--spec", "n2", "--desktop"], h.io, h.deps)).toBe(1);
+      expect(h.calls).toEqual([]);
+      expect(h.stderr()).toBe(
+        "agro hands create: the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)\n",
+      );
+      expect(h.stdout()).toBe("");
+    },
+  );
+
   it("prints the spec line and exits 1 on HTTP 422 SPEC_TOO_SMALL_FOR_TOOL", async () => {
     const h = harness([SPEC_TOO_SMALL]);
-    expect(await runHands([...BASE_CREATE, "--spec", "n2", "--desktop"], h.io, h.deps)).toBe(1);
+    expect(await runHands([...BASE_CREATE, "--spec", "n4", "--desktop"], h.io, h.deps)).toBe(1);
     expect(h.calls).toHaveLength(1);
     expect(h.stderr()).toBe(
       "agro hands create: the desktop needs at least n4 (4 GB); use --spec n4 or larger (n8 recommended)\n",
@@ -1797,7 +1831,7 @@ describe("agro hands create --desktop", () => {
     );
     expect(await runHands(["create", "--desktop"], h.io, h.deps)).toBe(0);
     expect(h.calls[1].body).toEqual({ name: "agro-cli@9f3c2a1b7e4d", publicKey: LOCAL_KEY.trim() });
-    expect(h.calls[2].body).toEqual({ profile: "sandbox", sshKeyIds: ["new-key"], tools: ["desktop"] });
+    expect(h.calls[2].body).toEqual({ profile: "sandbox", sshKeyIds: ["new-key"], tools: SANDBOX_TOOLS });
   });
 
   it("exits 2 through the config error path for a malformed console.json", async () => {
