@@ -52,8 +52,8 @@
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Commits 53033ca7 + repair 1b8f8652 (round 1: hand lines print the console index, not the request position). Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); `corepack pnpm run typecheck` exit 0. All AC executed by tests in describe 'agro hands create --count': bound (0, 11, 2.5, abc, +3, 03, -1, empty, both forms; 10 accepted), exedev refusal for --count 2 and --count=2, --project/--clone exclusion, names <name>-k / plain name at N=1 / no name field, request k+1 held until node id k with concurrent polls, refusal at 2 of 3 (2 POSTs, stderr 'hand 2 of 3: ...'), N=1 output byte-identical with and without --json, human lines with console index (41-43, dash for null index/ssh), desktop fields and next steps once, JSON lines in order with last status after a wait failure at 2 of 3, exit 1 on failure, three desktop bodies with the US-001 tools. Typecheck executed exit 0. | Reopened round 2 for /code-review 1677 findings 1, 3, 4, 5. | Round 2 accepted (445f604b): result promises never reject (failed result per hand, exit 1), slot reserved per request, 'hand(s) <k+1> to <N> not requested' stderr line, 'desktop -' on a failed hand. Advisor reran `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/ .agro/scripts/__tests__/sandbox-routing.test.ts` exit 0 (417 passed); typecheck exit 0.",
+      "passes": false,
+      "notes": "Commits 53033ca7 + repair 1b8f8652 (round 1: hand lines print the console index, not the request position). Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); `corepack pnpm run typecheck` exit 0. All AC executed by tests in describe 'agro hands create --count': bound (0, 11, 2.5, abc, +3, 03, -1, empty, both forms; 10 accepted), exedev refusal for --count 2 and --count=2, --project/--clone exclusion, names <name>-k / plain name at N=1 / no name field, request k+1 held until node id k with concurrent polls, refusal at 2 of 3 (2 POSTs, stderr 'hand 2 of 3: ...'), N=1 output byte-identical with and without --json, human lines with console index (41-43, dash for null index/ssh), desktop fields and next steps once, JSON lines in order with last status after a wait failure at 2 of 3, exit 1 on failure, three desktop bodies with the US-001 tools. Typecheck executed exit 0. | Reopened round 2 for /code-review 1677 findings 1, 3, 4, 5. | Round 2 accepted (445f604b): result promises never reject (failed result per hand, exit 1), slot reserved per request, 'hand(s) <k+1> to <N> not requested' stderr line, 'desktop -' on a failed hand. Advisor reran `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/ .agro/scripts/__tests__/sandbox-routing.test.ts` exit 0 (417 passed); typecheck exit 0. | Reopened round 3 (supervisor approved option A) for the second-review findings F1 and F2.",
       "dependsOn": [
         "US-001"
       ],
@@ -61,7 +61,7 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands.test.ts"
       ],
-      "rounds": 2,
+      "rounds": 3,
       "commit": "445f604b"
     },
     {
@@ -115,6 +115,5 @@
       "commit": "d185df81"
     }
   ],
-  "pr": 1677,
-  "blocked": "awaiting supervisor decision: the second /code-review 1677 pass (on 5c03e346, CI green) found 2 real defects in US-002, which already used its 2 repair rounds. F1 (important): with --count N>1 and no --json, a hand whose wait failed prints 'ssh sandbox@<host>' in its line; the --json line gives ssh null unless running. F2 (important, unlikely: awaitDesktop already turns API errors into apiError): if only the desktop wait throws, a running hand is reported as failed and the exit status is 1. Dropped nits: undocumented 'desktop -', '--count' with no value prints the range error, stdout/stderr numbering (docs wording hashed by the routing replay), 'N2' spelling (the console accepts only lowercase specs). Options: A) approve round 3 for US-002 to fix F1 and F2 in hands.ts and its tests (no docs change, no replay); B) accept as-is and record F1 and F2 in Lessons. Recommendation: A, since F1 misleads an operator on a failure path and both fixes are small."
+  "pr": 1677
 }
