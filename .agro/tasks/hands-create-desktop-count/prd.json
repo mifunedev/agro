@@ -52,8 +52,8 @@
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Commits 53033ca7 + repair 1b8f8652 (round 1: hand lines print the console index, not the request position). Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); `corepack pnpm run typecheck` exit 0. All AC executed by tests in describe 'agro hands create --count': bound (0, 11, 2.5, abc, +3, 03, -1, empty, both forms; 10 accepted), exedev refusal for --count 2 and --count=2, --project/--clone exclusion, names <name>-k / plain name at N=1 / no name field, request k+1 held until node id k with concurrent polls, refusal at 2 of 3 (2 POSTs, stderr 'hand 2 of 3: ...'), N=1 output byte-identical with and without --json, human lines with console index (41-43, dash for null index/ssh), desktop fields and next steps once, JSON lines in order with last status after a wait failure at 2 of 3, exit 1 on failure, three desktop bodies with the US-001 tools. Typecheck executed exit 0. | Reopened round 2 for /code-review 1677 findings 1, 3, 4, 5. | Round 2 accepted (445f604b): result promises never reject (failed result per hand, exit 1), slot reserved per request, 'hand(s) <k+1> to <N> not requested' stderr line, 'desktop -' on a failed hand. Advisor reran `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/ .agro/scripts/__tests__/sandbox-routing.test.ts` exit 0 (417 passed); typecheck exit 0. | Reopened round 3 (supervisor approved option A) for the second-review findings F1 and F2.",
+      "passes": true,
+      "notes": "Commits 53033ca7 + repair 1b8f8652 (round 1: hand lines print the console index, not the request position). Advisor reran: `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/` exit 0 (379 passed); `corepack pnpm run typecheck` exit 0. All AC executed by tests in describe 'agro hands create --count': bound (0, 11, 2.5, abc, +3, 03, -1, empty, both forms; 10 accepted), exedev refusal for --count 2 and --count=2, --project/--clone exclusion, names <name>-k / plain name at N=1 / no name field, request k+1 held until node id k with concurrent polls, refusal at 2 of 3 (2 POSTs, stderr 'hand 2 of 3: ...'), N=1 output byte-identical with and without --json, human lines with console index (41-43, dash for null index/ssh), desktop fields and next steps once, JSON lines in order with last status after a wait failure at 2 of 3, exit 1 on failure, three desktop bodies with the US-001 tools. Typecheck executed exit 0. | Reopened round 2 for /code-review 1677 findings 1, 3, 4, 5. | Round 2 accepted (445f604b): result promises never reject (failed result per hand, exit 1), slot reserved per request, 'hand(s) <k+1> to <N> not requested' stderr line, 'desktop -' on a failed hand. Advisor reran `corepack pnpm exec vitest run .agro/cli/src/commands/__tests__/ .agro/scripts/__tests__/sandbox-routing.test.ts` exit 0 (417 passed); typecheck exit 0. | Reopened round 3 (supervisor approved option A) for the second-review findings F1 and F2. | Round 3 accepted (c15ae912): F1 human line prints 'ssh -' unless running (test 'prints ssh - for a hand whose wait failed although its last node has an SSH host'); F2 desktop-wait error stays a warning with exit unaffected (test 'keeps a running hand and warns when the desktop wait rejects for hand 2 of 3'). Advisor reran vitest commands + sandbox-routing exit 0 (418 passed); typecheck exit 0.",
       "dependsOn": [
         "US-001"
       ],
@@ -62,7 +62,7 @@
         ".agro/cli/src/commands/__tests__/hands.test.ts"
       ],
       "rounds": 3,
-      "commit": "445f604b"
+      "commit": "c15ae912"
     },
     {
       "id": "US-003",
