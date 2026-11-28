@@ -1004,9 +1004,15 @@ describe("agro hands create profile and app flags", () => {
   it("shows the new flags in the help", () => {
     const help = handsHelp("agro");
     expect(help).toContain(
-      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
+      "agro hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--count <N>] [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]",
     );
-    for (const flag of ["--profile", "--json", "--ssh-key", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+    for (const flag of ["--profile", "--json", "--ssh-key", "--count", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
+    expect(help).toContain("--count must be an integer from 1 to 10");
+    expect(help).toContain("hand <k> of <N>: <error>");
+    expect(help).toContain("--ssh-key, --count, and --json apply only to console hands.");
+    expect(help).toContain("agro, docker, and desktop for the");
+    expect(help).toContain("With \`--spec n2\`, \`create\`");
+    expect(help).not.toContain("sends the tools docker and desktop");
   });
 });
 
@@ -1858,7 +1864,7 @@ describe("agro hands create --desktop", () => {
     expect(help).toContain("DESKTOP_IMAGE_UNAVAILABLE");
     expect(help).toContain("rdpListening");
     expect(help).toContain(":3389 when xrdp listens, else null");
-    expect(help).toContain("--code-server, --desktop,\n--ssh-key, and --json apply only to console hands.");
+    expect(help).toContain("--code-server, --desktop,\n--ssh-key, --count, and --json apply only to console hands.");
     expect(help).not.toContain("--desktop applies only to console hands");
   });
 });

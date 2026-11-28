@@ -160,7 +160,7 @@ export function handsHelp(bin: string): string {
 
 Usage:
   ${bin} hands list [--json]
-  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
+  ${bin} hands create [--name <name>] [--spec <spec>] [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--disposable] [--desktop] [--ssh-key <uuid>]... [--count <N>] [--json] [--project <owner>/<repo> | --clone <owner>/<repo>]
   ${bin} hands fork <hand> [--spec <spec>] [--name <name>]
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
@@ -216,8 +216,13 @@ agro-cli@<host name>, and sends its id. When the file does not exist,
 sends only the \`--ssh-key\` ids.
 
 \`--desktop\` adds the desktop tool to the hand. It applies to both profiles.
-With \`--docker\`, \`create\` sends the tools docker and desktop. The desktop
-needs at least \`n4\`: the console refuses a smaller spec with HTTP 422
+\`create\` sends the console role tools: agro, docker, and desktop for the
+profile sandbox, and docker and desktop for the profile agro. With brain
+authority, \`create\` always sends the sandbox tools, because the console
+forces the profile sandbox for a brain. \`--docker\` adds nothing to
+\`--desktop\`. The desktop needs at least \`n4\`. With \`--spec n2\`, \`create\`
+exits 1 before it sends a request. Without \`--spec\`, the console default
+\`n4\` fits. The console refuses a smaller spec with HTTP 422
 SPEC_TOO_SMALL_FOR_TOOL, and HTTP 503 DESKTOP_IMAGE_UNAVAILABLE when the
 region has no desktop image. After \`running\`, \`create\` waits up to 120
 seconds for rdpListening. If xrdp does not listen or the hand leaves
@@ -234,6 +239,22 @@ sshHost, and ssh. The ssh field is null unless the status is running.
 When the console returns a hand id and the wait then fails,
 \`create --json\` prints the line with the last status and exits 1.
 \`--json\` excludes --project and --clone.
+
+\`--count <N>\` requests N hands. N is an integer from 1 to 10. The default
+is 1. Another value exits 1 with \`--count must be an integer from 1 to 10\`.
+With N greater than 1, \`--count\` excludes --project and --clone, and
+\`--name <name>\` gives the names <name>-1 to <name>-N. \`create\` sends one
+request at a time. It sends the next request after the console returns the
+node id of the previous hand. A refusal without a node id stops the later
+requests. The waits run at the same time. Then \`create\` prints one line for
+each hand with a node id, in request order:
+\`hand <index> alias <alias> status <status> ssh <sandbox@host or ->\`. With
+\`--desktop\`, each line adds \`desktop <rdpAddress>\` or
+\`desktop not listening\`, and the next steps follow once. With \`--json\`,
+\`create\` prints one JSON line for each hand in request order. A hand whose
+wait failed gets its last status. Each failure prints
+\`hand <k> of <N>: <error>\` on stderr. \`create\` exits 0 only when all N
+hands reach \`running\`, else 1. With N equal to 1, the output does not change.
 
 \`create --disposable\` requests a disposable hand with no data volume.
 --disposable applies only to console hands. Only a sandbox-profile hand can
@@ -275,7 +296,7 @@ and SSH host. \`fork\` runs \`ssh exe.dev cp <hand> [<name>] --copy-tags\`.
 \`pause\`, \`resume\`, and \`destroy\` run \`ssh exe.dev pause\`, \`resume\`,
 and \`rm\`. \`destroy\` asks for confirmation unless --yes is given.
 --spec, --disposable, --profile, --docker, --t3, --code-server, --desktop,
---ssh-key, and --json apply only to console hands.
+--ssh-key, --count, and --json apply only to console hands.
 
 Guards: \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 without a
 change when the VM lacks the ${HAND_TAG} tag. Each write verb exits 1 without a
