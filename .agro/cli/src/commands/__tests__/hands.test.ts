@@ -1862,3 +1862,282 @@ describe("agro hands create --desktop", () => {
     expect(help).not.toContain("--desktop applies only to console hands");
   });
 });
+
+describe("agro hands create --count", () => {
+  type NodeBody = Record<string, unknown>;
+  const COUNT_TOOLS = ["agro", "docker", "desktop"];
+  const COUNT_NEXT_LINES =
+    "next: tailscale up\n" +
+    "next: sudo passwd sandbox\n" +
+    "next: open the Connect card of the hand in the console and download the .rdp file\n";
+
+  function node(k: number, status = "running", extra: NodeBody = {}): NodeBody {
+    return {
+      id: `u${k}`,
+      status,
+      orgIndex: k,
+      alias: `alias-${k}`,
+      name: null,
+      profile: "sandbox",
+      spec: "n4",
+      sshHost: `hand-${k}.example`,
+      ...extra,
+    };
+  }
+
+  function reply(r: Reply): Response {
+    return new Response(r.body === undefined ? null : JSON.stringify(r.body), {
+      status: r.status,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  function counted(
+    nodes: Record<string, NodeBody[]>,
+    post: (k: number) => Reply | Promise<Reply> = (k) => ({ status: 202, body: { id: `u${k}`, status: "queued" } }),
+    overrides: Partial<HandsDeps> = {},
+  ) {
+    const posts: Array<Record<string, unknown>> = [];
+    const log: string[] = [];
+    const fetchStub = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if ((init?.method ?? "GET") === "POST") {
+        posts.push(JSON.parse(String(init?.body)));
+        const k = posts.length;
+        log.push(`POST ${k}`);
+        const answer = await post(k);
+        log.push(`POST ${k} replied`);
+        return reply(answer);
+      }
+      const id = url.slice(url.lastIndexOf("/") + 1);
+      log.push(`GET ${id}`);
+      const queue = nodes[id];
+      return reply({ status: 200, body: queue.length > 1 ? queue.shift() : queue[0] });
+    }) as typeof fetch;
+    return { ...harness([], { fetch: fetchStub, ...overrides }), posts, log };
+  }
+
+  const THREE_RUNNING = () => ({ u1: [node(1)], u2: [node(2)], u3: [node(3)] });
+  const HAND_LINES =
+    "hand 1 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+    "hand 2 alias alias-2 status running ssh sandbox@hand-2.example\n" +
+    "hand 3 alias alias-3 status running ssh sandbox@hand-3.example\n";
+
+  function jsonOf(k: number, status = "running") {
+    return {
+      id: `u${k}`,
+      index: k,
+      alias: `alias-${k}`,
+      name: null,
+      status,
+      spec: "n4",
+      sshHost: `hand-${k}.example`,
+      ssh: status === "running" ? `ssh sandbox@hand-${k}.example` : null,
+    };
+  }
+
+  it.each(["0", "11", "2.5", "abc", "+3", "03", "-1", ""])("refuses --count %j and sends no console request", async (value) => {
+    for (const args of [["--count", value], [`--count=${value}`]]) {
+      const h = counted(THREE_RUNNING());
+      expect(await runHands([...BASE_CREATE, ...args], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands create: --count must be an integer from 1 to 10\n");
+      expect(h.posts).toEqual([]);
+    }
+  });
+
+  it("refuses --count without a value", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --count must be an integer from 1 to 10\n");
+    expect(h.posts).toEqual([]);
+  });
+
+  it.each([[["--count", "10"]], [["--count=10"]]])("accepts the upper bound with %j", async (args) => {
+    const nodes = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`u${i + 1}`, [node(i + 1)]]));
+    const h = counted(nodes);
+    expect(await runHands([...BASE_CREATE, ...args], h.io, h.deps)).toBe(0);
+    expect(h.posts).toHaveLength(10);
+    expect(h.stdout().split("\n")).toHaveLength(11);
+  });
+
+  it.each([[["--count", "2"]], [["--count=2"]]])("refuses %j on exedev hands before any provider call", async (args) => {
+    const home = mkdtempSync(join(tmpdir(), "agro-hands-count-"));
+    try {
+      const runs: string[][] = [];
+      const h = counted(THREE_RUNNING(), undefined, {
+        userHome: () => home,
+        run: (cmd, runArgs) => {
+          runs.push([cmd, ...runArgs]);
+          return { status: 0, stdout: "{}" };
+        },
+      });
+      expect(await runHands(["--provider", "exedev", "create", ...args], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe("agro hands create: --count applies only to console hands\n");
+      expect(runs).toEqual([]);
+      expect(h.posts).toEqual([]);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it.each([[["--project", "acme/widget"]], [["--clone", "acme/widget"]]])("refuses --count 2 with %j", async (flag) => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "2", ...flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe("agro hands create: --count excludes --project and --clone\n");
+    expect(h.posts).toEqual([]);
+  });
+
+  it("names the hands <name>-1 to <name>-N in request order", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--name", "gate", "--count", "3"], h.io, h.deps)).toBe(0);
+    expect(h.posts.map((body) => body.name)).toEqual(["gate-1", "gate-2", "gate-3"]);
+  });
+
+  it("keeps the plain name with --count 1", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--name", "gate", "--count", "1"], h.io, h.deps)).toBe(0);
+    expect(h.posts.map((body) => body.name)).toEqual(["gate"]);
+  });
+
+  it("sends no name field without --name", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(0);
+    expect(h.posts).toHaveLength(3);
+    for (const body of h.posts) expect(body).not.toHaveProperty("name");
+  });
+
+  it("sends request k+1 only after request k returns a node id and waits for the hands at the same time", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const nodes = {
+      u1: [node(1, "queued"), node(1, "queued"), node(1, "queued"), node(1)],
+      u2: [node(2, "queued"), node(2)],
+      u3: [node(3)],
+    };
+    const h = counted(nodes, async (k) => {
+      if (k === 1) await gate;
+      return { status: 202, body: { id: `u${k}`, status: "queued" } };
+    });
+    const run = runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps);
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    expect(h.log).toEqual(["POST 1"]);
+    release();
+    expect(await run).toBe(0);
+    const at = (entry: string) => h.log.indexOf(entry);
+    expect(at("POST 2")).toBeGreaterThan(at("POST 1 replied"));
+    expect(at("POST 3")).toBeGreaterThan(at("POST 2 replied"));
+    expect(h.log.lastIndexOf("GET u1")).toBeGreaterThan(at("GET u2"));
+    expect(h.log.lastIndexOf("GET u1")).toBeGreaterThan(at("GET u3"));
+    expect(h.stdout()).toBe(HAND_LINES);
+  });
+
+  it("prints one human line for each hand in request order", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe(HAND_LINES);
+    expect(h.stderr()).toContain("agro hands create: hand u2 running\n");
+  });
+
+  it("prints a dash for a hand without an SSH host", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "running", { sshHost: null, alias: null })] });
+    expect(await runHands([...BASE_CREATE, "--count", "2"], h.io, h.deps)).toBe(0);
+    expect(h.stdout().split("\n")[1]).toBe("hand 2 alias - status running ssh -");
+  });
+
+  it("prints one JSON line for each hand in request order", async () => {
+    const h = counted(THREE_RUNNING());
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(0);
+    expect(h.stdout().split("\n")).toEqual([
+      JSON.stringify(jsonOf(1)),
+      JSON.stringify(jsonOf(2)),
+      JSON.stringify(jsonOf(3)),
+      "",
+    ]);
+  });
+
+  it("stops after a refusal at request 2 of 3", async () => {
+    const h = counted(THREE_RUNNING(), (k) =>
+      k === 2 ? { status: 500, body: { error: "boom", code: "INTERNAL" } } : { status: 202, body: { id: `u${k}`, status: "queued" } },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
+    expect(h.posts).toHaveLength(2);
+    expect(h.stdout()).toBe("hand 1 alias alias-1 status running ssh sandbox@hand-1.example\n");
+    expect(h.stderr()).toMatch(/^agro hands create: hand 2 of 3: HTTP 500 INTERNAL: boom$/m);
+    expect(h.stderr()).not.toContain("hand 3 of 3");
+  });
+
+  it("prints the JSON line of hand 1 only after a refusal at request 2 of 3", async () => {
+    const h = counted(THREE_RUNNING(), (k) =>
+      k === 2 ? { status: 500, body: { error: "boom", code: "INTERNAL" } } : { status: 202, body: { id: `u${k}`, status: "queued" } },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toBe(`${JSON.stringify(jsonOf(1))}\n`);
+  });
+
+  it("prints every hand and exits 1 after a wait failure at hand 2 of 3", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "failed")], u3: [node(3)] });
+    expect(await runHands([...BASE_CREATE, "--count", "3"], h.io, h.deps)).toBe(1);
+    expect(h.posts).toHaveLength(3);
+    expect(h.stdout()).toBe(
+      "hand 1 alias alias-1 status running ssh sandbox@hand-1.example\n" +
+        "hand 2 alias alias-2 status failed ssh sandbox@hand-2.example\n" +
+        "hand 3 alias alias-3 status running ssh sandbox@hand-3.example\n",
+    );
+    expect(h.stderr()).toContain("agro hands create: hand 2 of 3: hand u2 failed — last status failed\n");
+  });
+
+  it("prints the JSON line with the last status after a wait failure at hand 2 of 3", async () => {
+    const h = counted({ u1: [node(1)], u2: [node(2, "failed")], u3: [node(3)] });
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--json"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")).toEqual([
+      JSON.stringify(jsonOf(1)),
+      JSON.stringify(jsonOf(2, "failed")),
+      JSON.stringify(jsonOf(3)),
+      "",
+    ]);
+  });
+
+  it("sends three desktop requests and prints desktop fields and the next steps once", async () => {
+    const desktop = (k: number, rdpListening: boolean) =>
+      node(k, "running", { desktop: true, rdpListening, tailnetName: rdpListening ? `alias-${k}.ts.net` : null, tailnetAddress: null });
+    const h = counted(
+      { u1: [desktop(1, true)], u2: [desktop(2, false)], u3: [desktop(3, true)] },
+      undefined,
+      { desktopPollMs: 10, desktopTimeoutMs: 30 },
+    );
+    expect(await runHands([...BASE_CREATE, "--count", "3", "--desktop"], h.io, h.deps)).toBe(0);
+    expect(h.posts).toEqual(Array(3).fill({ profile: "sandbox", sshKeyIds: ["key-1"], tools: COUNT_TOOLS }));
+    expect(h.stdout()).toBe(
+      "hand 1 alias alias-1 status running ssh sandbox@hand-1.example desktop alias-1.ts.net:3389\n" +
+        "hand 2 alias alias-2 status running ssh sandbox@hand-2.example desktop not listening\n" +
+        "hand 3 alias alias-3 status running ssh sandbox@hand-3.example desktop alias-3.ts.net:3389\n" +
+        COUNT_NEXT_LINES,
+    );
+    expect(h.stderr()).toContain("agro hands create: warning: hand u2 is running but xrdp is not listening");
+  });
+
+  it("adds the desktop object to each JSON line with --desktop", async () => {
+    const desktop = (k: number) =>
+      node(k, "running", { desktop: true, rdpListening: true, tailnetName: `alias-${k}.ts.net`, tailnetAddress: null });
+    const h = counted({ u1: [desktop(1)], u2: [desktop(2)] });
+    expect(await runHands([...BASE_CREATE, "--count", "2", "--desktop", "--json"], h.io, h.deps)).toBe(0);
+    const lines = h.stdout().split("\n");
+    expect(lines).toHaveLength(3);
+    expect(JSON.parse(lines[1])).toEqual({
+      ...jsonOf(2),
+      desktop: { rdpListening: true, tailnetName: "alias-2.ts.net", rdpAddress: "alias-2.ts.net:3389" },
+    });
+    expect(h.stdout()).not.toContain("next:");
+  });
+
+  it.each([[[]], [["--json"]]])("keeps the output of --count 1 with %j", async (flag) => {
+    const plain = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, ...flag], plain.io, plain.deps)).toBe(0);
+    const counted1 = harness([QUEUED, RUNNING]);
+    expect(await runHands([...BASE_CREATE, "--count", "1", ...flag], counted1.io, counted1.deps)).toBe(0);
+    expect(counted1.stdout()).toBe(plain.stdout());
+    expect(counted1.stderr()).toBe(plain.stderr());
+  });
+});
