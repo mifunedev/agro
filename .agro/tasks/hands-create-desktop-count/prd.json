@@ -115,5 +115,6 @@
       "commit": "d185df81"
     }
   ],
-  "pr": 1677
+  "pr": 1677,
+  "blocked": "awaiting supervisor decision: the second /code-review 1677 pass (on 5c03e346, CI green) found 2 real defects in US-002, which already used its 2 repair rounds. F1 (important): with --count N>1 and no --json, a hand whose wait failed prints 'ssh sandbox@<host>' in its line; the --json line gives ssh null unless running. F2 (important, unlikely: awaitDesktop already turns API errors into apiError): if only the desktop wait throws, a running hand is reported as failed and the exit status is 1. Dropped nits: undocumented 'desktop -', '--count' with no value prints the range error, stdout/stderr numbering (docs wording hashed by the routing replay), 'N2' spelling (the console accepts only lowercase specs). Options: A) approve round 3 for US-002 to fix F1 and F2 in hands.ts and its tests (no docs change, no replay); B) accept as-is and record F1 and F2 in Lessons. Recommendation: A, since F1 misleads an operator on a failure path and both fixes are small."
 }
